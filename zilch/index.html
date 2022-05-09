@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=utf-8">
+    <title>Zilch Dice Game</title>
+    <script type="text/javascript" src="d6.js"></script>
+    <script type="text/javascript" src="game.js"></script>
+</head>
+
+<body>
+<h1 style="text-align:center">Zilch</h1>
+<div style="text-align:center;font-size:small">
+    <a href="aiuto.html">(Regole del gioco)</a>&nbsp;&nbsp;&nbsp;
+    <a href="javascript:hallOfFame()">(Migliori punteggi)</a>&nbsp;&nbsp;&nbsp;
+    <a href="javascript:settings()">[⚙ Impostazioni]</a>
+</div>
+<div style="text-align:center;font-size:small" id="infodiv3">&nbsp;</div>
+<div style="text-align:center;font-size:small" id="infodiv1">&nbsp;</div>
+<div style="text-align:center;font-size:small" id="infodiv2">&nbsp;</div>
+<script type="text/javascript">
+D6.creaDadi(callback, null)
+resetGioco()
+</script>
+</body>
+</html>
