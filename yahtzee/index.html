@@ -1,0 +1,48 @@
+<html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+    <title>Yahtzee Dice Game</title>
+    <script type="text/javascript" src="d6.js"></script>
+    <script type="text/javascript" src="game.js"></script>
+</head>
+
+<body>
+<h1 style="text-align:center">Yahtzee</h1>
+<div style="text-align:center;font-size:small"><a href="aiuto.html">(Regole del gioco)</a>&nbsp;&nbsp;<a href="javascript:hallOfFame()">(Migliori punteggi)</a></div>
+<div style="text-align:center;font-size:small" id="infodiv"></div>
+<table style="font-family:Sans-Serif;font-size:small">
+<tr style="font-size:initial"><td>SEZIONE SUPERIORE</td></tr>
+<tr><th>Combinazione</th><th>Punti</th></tr>
+
+<script type="text/javascript">
+    for (p in Punti) {
+        if (Punti[p] > 5) break
+        document.write('<tr><td>' + p + '</td><td id="' + p + '" style="text-align:right;" onmouseenter="onMouse(' + Punti[p] + ',1)" onmouseout="onMouse(' + Punti[p] + ',0)" onclick="annota(' + Punti[p] + ')"></td></tr>')
+    }
+</script>
+<tr><td>Subtotale</td><td id="Subtotale" style="text-align:right;"></td></tr>
+<tr><td><i>Bonus</i></td><td id="Bonus" style="text-align:right;"></td></tr>
+<tr>
+<tr style="font-size:initial"><td>SEZIONE INFERIORE</td></tr>
+<script type="text/javascript">
+    for (p in Punti) {
+        if (Punti[p] < 6) continue
+        var s = p
+        if (s == "Scala4") s = "Scala di 4" 
+        if (s == "Scala5") s = "Scala di 5" 
+        document.write('<tr><td>' + s + '</td><td id="' + p + '" style="text-align:right;" onmouseenter="onMouse(' + Punti[p] + ',1)" onmouseout="onMouse(' + Punti[p] + ',0)" onclick="annota(' + Punti[p] + ')"></td></tr>')
+    }
+</script>
+<tr><td><i>Bonus</i></td><td id="YBonus" style="text-align:right;"></td></tr>
+<tr><td style="font-size:initial"><b>TOTALE</b></td><td id="Totale" style="text-align:right;"></td></tr>
+</table>
+<!--
+<div style="text-align:center;position:relative;top:-100px">Tiri rimasti:<p id=tiri"></p>Turni rimasti:<p id=turni"></p></div>
+-->
+<script type="text/javascript">
+D6.creaDadi(callback, null)
+resetGioco()
+</script>
+</body>
+</html>
