@@ -1,0 +1,39 @@
+<html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+    <title>Cheerio Dice Game</title>
+    <script type="text/javascript" src="d6.js"></script>
+    <script type="text/javascript" src="gamex.js"></script>
+</head>
+
+<body>
+<h1 style="text-align:center">Cheerio</h1>
+<div style="text-align:center;font-size:small"><a href="aiuto.html">(Regole del gioco)</a>&nbsp;&nbsp;<a href="javascript:hallOfFame()">(Migliori punteggi)</a></div>
+<div style="text-align:center;font-size:small"><a href="index.html">(Vai al gioco base)</a></div>
+<table style="font-family:Sans-Serif;font-size:small">
+<tr><th>Combinazione</th><th>Punti</th></tr>
+<script type="text/javascript">
+    for (p in Punti) {
+        var s = p
+        if (s == "Dadi3") s = "3 di un tipo" 
+        if (s == "Dadi4") s = "4 di un tipo" 
+        if (s == "Dadi5") s = "5 di un tipo" 
+        if (s == "Scala4") s = "4 in sequenza" 
+        document.write('<tr><td>' + s + '</td><td id="' + p + '" style="text-align:right;" onmouseenter="onMouse(' + Punti[p] + ',1)" onmouseout="onMouse(' + Punti[p] + ',0)" onclick="annota(' + Punti[p] + ')"></td></tr>')
+    }
+</script>
+<tr><td style="font-size:initial"><b>TOTALE</b></td><td id="Totale" style="text-align:right;"></td></tr>
+</table>
+<div style="text-align:center;font-size:small">
+<input type="checkbox" id="usaJolly" onclick="setJolly()" checked>Usa i Jolly</input>
+</div>
+<!--
+<div style="text-align:center;position:relative;top:-100px">Tiri rimasti:<p id=tiri"></p>Turni rimasti:<p id=turni"></p></div>
+-->
+<script type="text/javascript">
+D6.creaDadi(callback, null)
+resetGioco()
+</script>
+</body>
+</html>
