@@ -221,7 +221,7 @@ class Partita {
         for (var i in this.giocatori) this.giocatori[i].mano = this.mazzo.prendi(3)
     
         // mostra le carte
-        for (const img of this.mano_pc) img.src = 'trieste/dorso.webp'
+        for (const img of this.mano_pc) img.src = 'trieste/Dorso.webp'
         for (var i=0; i < 3; i++) { 
             this.mano_umano[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.webp' // carica la carta
             this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
@@ -341,7 +341,7 @@ class Partita {
         for (var i=0; i < 3; i++) {
             var m
             m = this.giocatori[0].mano[i]
-            this.mano_pc[i].src = (m != undefined)? 'trieste/dorso.webp':''
+            this.mano_pc[i].src = (m != undefined)? 'trieste/Dorso.webp':''
             this.mano_pc[i].style.visibility = (m != undefined)? 'visible':'hidden'
             m = this.giocatori[1].mano[i]
             if (m != undefined) {
