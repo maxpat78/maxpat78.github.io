@@ -101,7 +101,7 @@ class Giocatore {
         else {
             for (var i=0; i < this.mano.length; i++)
                 possibili.push( this.compara(this.mano[i], p.carte_giocate[1], p.briscola[1], 0) )
-            return this.analizza2(possibili)
+            return this.analizza2(possibili, p.briscola[1])
         }
         console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
         return this.algo1()
@@ -136,6 +136,7 @@ class Giocatore {
 
     // ritorna l'indice della migliore mossa possibile
     // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
+    // conserva le briscole (maggiori), ove possibile
 
     // NOTE
     // a parità di punti, non lasciare una briscola
@@ -145,23 +146,29 @@ class Giocatore {
     // prendere poco è sempre meglio di lasciare niente?
     // l'ultima va valutata in base alla briscola da prendere?
     // introdurre la memoria delle carte prese/rimaste?
-    analizza2(possibili) {
-        var prese = [], perse = []
-        for (var i in possibili)
-            possibili[i].prendo ? prese.push(possibili[i]) : perse.push(possibili[i])
-        console.log('Prese:', prese, '\nPerse:', perse)
+    analizza2(possibili, briscola) {
+        var prese=[], perse=[]
+        for (var i in possibili) possibili[i].prendo ? prese.push(possibili[i]) : perse.push(possibili[i])
+        console.log('Prese:', prese, '\nPerse:', perse,'\n')
         var candidata = 0 // presa candidata (da rapportare, poi, alle possibili)
         if (prese.length) {
             prese.sort( (a,b) => b.miei_punti - a.miei_punti )
+            if (prese.length > 1) {
+                // se la prima presa è con una briscola e la seconda no, ma dà anch'essa punti, la preferisce
+                if (prese[0].carta[1] == briscola[1] && (prese[1].carta[1] != briscola[1] && prese[1].miei_punti > 0))
+                    [prese[0], prese[1]] = [prese[1], prese[0]]
+                // se ha tutte briscole, preferisce la minore
+                if (prese[0].carta[1] == briscola[1] && prese[prese.length-1].carta[1] == briscola[1])
+                    [prese[0], prese[prese.length-1]] = [prese[prese.length-1], prese[0]]
+            }
             console.log('Prese ordinate (dalla più vantaggiosa):', prese)
             // considera migliore la presa che dà punti, altrimenti lascia
             if (prese[0].miei_punti > 0 || prese.length == possibili.length) return possibili.indexOf(prese[0])
         }
-        // di base, compara i punti
+        // di base, compara i punti lasciati all'avversario
         //~ perse.sort( (a,b) => a.suoi_punti - b.suoi_punti)
         // un carico perso è considerato di maggior valore di una briscola minore (fino al Re)
-        var B = this.partita.briscola[1]
-        perse.sort( (a,b) => (a.suoi_punti + (a.carta[1]==B? 5:0)) - (b.suoi_punti + (b.carta[1]==B? 5:0)))
+        perse.sort( (a,b) => (a.suoi_punti + (a.carta[1]==briscola[1]? 5:0)) - (b.suoi_punti + (b.carta[1]==briscola[1]? 5:0)))
         console.log('Lasciate ordinate (dalla più vantaggiosa):', perse)
         return possibili.indexOf(perse[0])
     }
