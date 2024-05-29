@@ -154,12 +154,12 @@ class Giocatore {
         if (prese.length) {
             prese.sort( (a,b) => b.miei_punti - a.miei_punti )
             if (prese.length > 1) {
-                // se la prima presa è con una briscola e la seconda no, ma dà anch'essa punti, la preferisce
-                if (prese[0].carta[1] == briscola[1] && (prese[1].carta[1] != briscola[1] && prese[1].miei_punti > 0))
-                    [prese[0], prese[1]] = [prese[1], prese[0]]
                 // se ha tutte briscole, preferisce la minore
                 if (prese[0].carta[1] == briscola[1] && prese[prese.length-1].carta[1] == briscola[1])
                     [prese[0], prese[prese.length-1]] = [prese[prese.length-1], prese[0]]
+                // se la prima presa è con una briscola e la seconda no, ma dà anch'essa punti, la preferisce
+                if (prese[0].carta[1] == briscola[1] && (prese[1].carta[1] != briscola[1] && prese[1].miei_punti > 0))
+                    [prese[0], prese[1]] = [prese[1], prese[0]]
             }
             console.log('Prese ordinate (dalla più vantaggiosa):', prese)
             // considera migliore la presa che dà punti, altrimenti lascia
