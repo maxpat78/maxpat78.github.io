@@ -136,7 +136,11 @@ class Giocatore {
 
     // ritorna l'indice della migliore mossa possibile
     // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
-    // da fare: a parità di punti, non lasciare una briscola?
+
+    // NOTE
+    // a parità di punti, non lasciare una briscola
+    // a parità di prese con briscola, preferire la più bassa/la carta più bassa?
+    // giocare ancora un seme se l'avversario non aveva carichi?
     // tra asso di briscola e 3 del seme è meglio prendere con il primo?
     // prendere poco è sempre meglio di lasciare niente?
     // l'ultima va valutata in base alla briscola da prendere?
@@ -207,6 +211,9 @@ class Partita {
         this.mano_umano = document.querySelectorAll('#Giocatore2 > img')
         this.mano_banco = document.querySelectorAll('#Banco > img')
 
+        // precarica le immagini di tutte le carte
+        for (var i of this.mazzo.pila) this.mano_banco[0].src = 'trieste/'+i
+    
         // crea i 2 giocatori, PC e umano, e dà le carte
         this.giocatori = []
         this.giocatori.push(new Giocatore(this, 'PC')) // computer
@@ -214,9 +221,9 @@ class Partita {
         for (var i in this.giocatori) this.giocatori[i].mano = this.mazzo.prendi(3)
     
         // mostra le carte
-        for (const img of this.mano_pc) img.src = 'trieste/dorso.png'
+        for (const img of this.mano_pc) img.src = 'trieste/dorso.webp'
         for (var i=0; i < 3; i++) { 
-            this.mano_umano[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.png' // carica la carta
+            this.mano_umano[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.webp' // carica la carta
             this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
         }
         console.log('La briscola è ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
@@ -243,7 +250,7 @@ class Partita {
             // aggiorna la grafica di mano e banco
             this.mano_umano[giocata.i].style.visibility = 'hidden'
             this.mano_umano[giocata.i].src = ''
-            this.mano_banco[0].src = 'trieste/'+giocata.nome+'.png'
+            this.mano_banco[0].src = 'trieste/'+giocata.nome+'.webp'
             this.mano_banco[0].style.visibility = 'visible'
             // fa giocare il PC se l'umano ha fatto la prima mossa
             if (this.primo_di_mano == 1) this.gioca(0)
@@ -256,7 +263,7 @@ class Partita {
             this.carte_giocate[0] = giocata.nome
             this.mano_pc[giocata.i].style.visibility = 'hidden'
             this.mano_pc[giocata.i].src = ''
-            this.mano_banco[1].src = 'trieste/'+giocata.nome+'.png'
+            this.mano_banco[1].src = 'trieste/'+giocata.nome+'.webp'
             this.mano_banco[1].style.visibility = 'visible'
         }
     
@@ -294,14 +301,16 @@ class Partita {
             if (this.mani.length == 40) {
                 this.primo_di_mano = this.di_turno = -1
                 var msg = "Smazzata terminata. "
-                if (this.giocatori[0].punti ==  this.giocatori[1].punti) msg += "Parità!"
-                else if (this.giocatori[0].punti >  this.giocatori[1].punti) msg += `Vince PC: ${this.giocatori[0].punti} a ${this.giocatori[1].punti}.`
-                else msg += `Vinci TU: ${this.giocatori[1].punti} a ${this.giocatori[0].punti}.`
+                if (this.giocatori[0].punti ==  this.giocatori[1].punti)
+                    msg += "Parità!"
+                else if (this.giocatori[0].punti >  this.giocatori[1].punti)
+                    msg += `Vince PC: ${this.giocatori[0].punti} a ${this.giocatori[1].punti}.`
+                else
+                    msg += `Vinci TU: ${this.giocatori[1].punti} a ${this.giocatori[0].punti}.`
                 this.info(msg)
                 return
             }
             // se eseguito PRIMA di rinfresca_carte, la carta giocata resta invisibile
-            //~ if (this.primo_di_mano == 0) setTimeout(this.gioca.bind(this), 1600)
             if (this.primo_di_mano == 0) setTimeout(this.gioca.bind(this), 1510, 0)
         }
     }
@@ -332,15 +341,14 @@ class Partita {
         for (var i=0; i < 3; i++) {
             var m
             m = this.giocatori[0].mano[i]
-            this.mano_pc[i].src = (m != undefined)? 'trieste/dorso.png':''
+            this.mano_pc[i].src = (m != undefined)? 'trieste/dorso.webp':''
             this.mano_pc[i].style.visibility = (m != undefined)? 'visible':'hidden'
             m = this.giocatori[1].mano[i]
             if (m != undefined) {
-                this.mano_umano[i].src =  'trieste/'+m+'.png' // carica il file della carta
+                this.mano_umano[i].src =  'trieste/'+m+'.webp' // carica il file della carta
                 this.mano_umano[i].style.visibility = 'visible'
             }
             else
-                //~ document.querySelectorAll('#Giocatore2 > img')[i].src = ''
                 this.mano_umano[i].style.visibility = 'hidden'
         }
     }
