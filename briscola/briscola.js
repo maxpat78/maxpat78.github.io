@@ -1,5 +1,5 @@
-// Costruisce un mazzo simbolico di carte regionali italiane
-// mazzo_valori Ë ordinato per valore di presa
+Ôªø// Costruisce un mazzo simbolico di carte regionali italiane
+// mazzo_valori √® ordinato per valore di presa
 const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
 const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
 const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
@@ -13,6 +13,7 @@ function una_carta(L) {
 function calcola_punti(carta1, carta2) {
     return mazzo_punti[mazzo_valori.indexOf(carta1[0])] + mazzo_punti[mazzo_valori.indexOf(carta2[0])]
 }
+
 
 
 class Mazzo {
@@ -41,26 +42,19 @@ class Mazzo {
     }
 
     // pesca una carta, rimuovendola dalla pila
-    pesca() {
-        return this.pila.shift()
-    }
+    pesca() { return this.pila.shift() }
 
     // prende n carte dalla cima della pila
     prendi(n) {
         var r = []
-        while (n--)
-            r.push(this.pila.shift())
+        while (n--) r.push(this.pila.shift())
         return r
     }
 
-    vuoto() {
-        return (this.pila.length == 0)
-    }
+    vuoto() { return (this.pila.length == 0) }
 
     // ritorna la carta di briscola (ultima del mazzo)
-    briscola() {
-        return this.pila[this.pila.length-1]
-    }
+    briscola() { return this.pila[this.pila.length-1] }
 
     // mostra il nome completo della carta simbolica
     nome(carta) {
@@ -69,6 +63,8 @@ class Mazzo {
         return valori[ mazzo_valori.indexOf(carta[0]) ] + ' di ' + semi[ mazzo_semi.indexOf(carta[1]) ]
     }
 };
+
+
 
 class Giocatore {
     constructor(partita, tipo='PC') {
@@ -85,9 +81,7 @@ class Giocatore {
     }
     
     // ritorna il numero di carte rimaste
-    carte() {
-        return this.mano.length
-    }
+    carte() { return this.mano.length }
 
     // seleziona una carta a caso
     algo1() {
@@ -109,7 +103,7 @@ class Giocatore {
                 possibili.push( this.compara(this.mano[i], p.carte_giocate[1], p.briscola[1], 0) )
             return this.analizza2(possibili)
         }
-        console.log('ATTENZIONE: algo2 risponde a caso!!! Non dovrebbe succedere MAI!!!')
+        console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
         return this.algo1()
     }
 
@@ -141,10 +135,10 @@ class Giocatore {
     }
 
     // ritorna l'indice della migliore mossa possibile
-    // miglior mossa Ë quella che d‡ pi˘ punti al PC, o meno punti all'avversario
-    // da fare: a parit‡ di punti, non lasciare una briscola?
-    // tra asso di briscola e 3 del seme Ë meglio prendere con il primo?
-    // prendere poco Ë sempre meglio di lasciare niente?
+    // miglior mossa √® quella che d√† pi√π punti al PC, o meno punti all'avversario
+    // da fare: a parit√† di punti, non lasciare una briscola?
+    // tra asso di briscola e 3 del seme √® meglio prendere con il primo?
+    // prendere poco √® sempre meglio di lasciare niente?
     // l'ultima va valutata in base alla briscola da prendere?
     // introdurre la memoria delle carte prese/rimaste?
     analizza2(possibili) {
@@ -155,14 +149,16 @@ class Giocatore {
         var candidata = 0 // presa candidata (da rapportare, poi, alle possibili)
         if (prese.length) {
             prese.sort( (a,b) => b.miei_punti - a.miei_punti )
-            console.log('Prese ordinate (dalla pi˘ vantaggiosa):', prese)
-            // considera migliore la presa che d‡ punti, altrimenti lascia
+            console.log('Prese ordinate (dalla pi√π vantaggiosa):', prese)
+            // considera migliore la presa che d√† punti, altrimenti lascia
             if (prese[0].miei_punti > 0 || prese.length == possibili.length) return possibili.indexOf(prese[0])
         }
+        // di base, compara i punti
         //~ perse.sort( (a,b) => a.suoi_punti - b.suoi_punti)
-        // un carico perso Ë considerato di maggior valore di una briscola minore
-        perse.sort( (a,b) => (a.suoi_punti + (a.carta[1] == this.partita.briscola[1]? 5:0)) - (b.suoi_punti + (b.carta[1] == this.partita.briscola[1]? 5:0)))
-        console.log('Lasciate ordinate (dalla pi˘ vantaggiosa):', perse)
+        // un carico perso √® considerato di maggior valore di una briscola minore (fino al Re)
+        var B = this.partita.briscola[1]
+        perse.sort( (a,b) => (a.suoi_punti + (a.carta[1]==B? 5:0)) - (b.suoi_punti + (b.carta[1]==B? 5:0)))
+        console.log('Lasciate ordinate (dalla pi√π vantaggiosa):', perse)
         return possibili.indexOf(perse[0])
     }
 
@@ -175,7 +171,7 @@ class Giocatore {
         return {i: carta, nome: nome_carta}
     }
     
-    // ritorna il valore di una carta, +5 se Ë di briscola
+    // ritorna il valore di una carta, +5 se √® di briscola
     // se puro=1, non distingue le briscole
     valore(carta, puro=0) {
         var valore = mazzo_punti[ mazzo_valori.indexOf(carta[0]) ]
@@ -192,7 +188,7 @@ class Giocatore {
         c2 = this.mano[0]
         c = c1
         if (c1[1] == this.partita.briscola[1]) c = c2
-        console.log(c, 'Ë la carta minore fra', this.mano)
+        console.log(c, '√® la carta minore fra', this.mano)
         return this.mano.indexOf(c)
     }
 }
@@ -201,38 +197,37 @@ class Giocatore {
 class Partita {
     constructor() {
         this.mazzo = new Mazzo()
-        this.briscola = this.mazzo.briscola()
+        this.briscola = this.mazzo.briscola() // carta di briscola (ultima del mazzo)
         this.di_turno = 1 // chi deve giocare (1=umano)
         this.primo_di_mano = 1 // chi era primo di mano
         this.carte_giocate = [] // le 2 carte giocate in una mano
         this.mani = [] // cronologia delle mani della smazzata
+        // elementi grafici nella pagina
+        this.mano_pc = document.querySelectorAll('#Giocatore1 > img')
+        this.mano_umano = document.querySelectorAll('#Giocatore2 > img')
+        this.mano_banco = document.querySelectorAll('#Banco > img')
 
-        // crea i 2 giocatori, PC e umano, e d‡ le carte
+        // crea i 2 giocatori, PC e umano, e d√† le carte
         this.giocatori = []
         this.giocatori.push(new Giocatore(this, 'PC')) // computer
         this.giocatori.push(new Giocatore(this,'UMANO')) // umano
-        for (var i=0; i < this.giocatori.length; i++) {
-            this.giocatori[i].mano = this.mazzo.prendi(3)
-        }
+        for (var i in this.giocatori) this.giocatori[i].mano = this.mazzo.prendi(3)
     
         // mostra le carte
-        var doc = document.querySelectorAll('#Giocatore1 > img')
-        for (var i=0; i < doc.length; i++) doc[i].src = 'trieste/dorso.png'
-        doc = document.querySelectorAll('#Giocatore2 > img')
-        for (i=0; i < doc.length; i++) { 
-            doc[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.png' // carica la carta
-            doc[i].setAttribute('onclick', 'partita.gioca(1,'+i+')') // assegna un evento onclick
+        for (const img of this.mano_pc) img.src = 'trieste/dorso.png'
+        for (var i=0; i < 3; i++) { 
+            this.mano_umano[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.png' // carica la carta
+            this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
         }
-        // mostra la briscola
-        document.querySelectorAll('#Banco > img')[2].src = 'trieste/'+this.briscola+'.png'
-        console.log('La briscola Ë ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
-        this.info('La briscola Ë ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
+        console.log('La briscola √® ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
+        document.getElementById('riga1').innerHTML = `La briscola √®: ${this.mazzo.nome(this.briscola)}.`
     }
 
     // esegue la giocata in partita aggiornando la grafica di mani e banco
     gioca(giocatore, carta=-1) {
         var giocata
     
+        // previene l'esecuzione se sono state giocate tutte le mani    
         if (this.mani.length == 40) return
     
         if (giocatore == 1) {
@@ -241,11 +236,15 @@ class Partita {
             this.di_turno = 0 // inverte il turno
             giocata = this.giocatori[1].gioca(carta)
             console.log('UMANO gioca', this.mazzo.nome(giocata.nome))
+            // aggiorna il banco
             this.carte_giocate[1] = giocata.nome
+            // registra la giocata nella cronologia
             this.mani.push({giocatore:'Umano', giocata: giocata})
-            document.querySelectorAll('#Giocatore2 > img')[giocata.i].style.visibility = 'hidden'
-            document.querySelectorAll('#Banco > img')[0].src = 'trieste/'+giocata.nome+'.png'
-            document.querySelectorAll('#Banco > img')[0].style.visibility = 'visible'
+            // aggiorna la grafica di mano e banco
+            this.mano_umano[giocata.i].style.visibility = 'hidden'
+            this.mano_umano[giocata.i].src = ''
+            this.mano_banco[0].src = 'trieste/'+giocata.nome+'.png'
+            this.mano_banco[0].style.visibility = 'visible'
             // fa giocare il PC se l'umano ha fatto la prima mossa
             if (this.primo_di_mano == 1) this.gioca(0)
         }
@@ -255,9 +254,10 @@ class Partita {
             console.log('PC gioca', this.mazzo.nome(giocata.nome))
             this.mani.push({giocatore:'PC', giocata: giocata})
             this.carte_giocate[0] = giocata.nome
-            document.querySelectorAll('#Giocatore1 > img')[giocata.i].style.visibility = 'hidden'
-            document.querySelectorAll('#Banco > img')[1].src = 'trieste/'+giocata.nome+'.png'
-            document.querySelectorAll('#Banco > img')[1].style.visibility = 'visible'
+            this.mano_pc[giocata.i].style.visibility = 'hidden'
+            this.mano_pc[giocata.i].src = ''
+            this.mano_banco[1].src = 'trieste/'+giocata.nome+'.png'
+            this.mano_banco[1].style.visibility = 'visible'
         }
     
         // se ambedue hanno giocato...
@@ -265,42 +265,44 @@ class Partita {
             var r = this.compara(this.carte_giocate[0], this.carte_giocate[1])
             //~ console.log('compara(',this.carte_giocate[0], this.carte_giocate[1],') ritorna', r)
             var punti = calcola_punti(this.carte_giocate[0], this.carte_giocate[1])
-            // se Ë maggiore la carta del PC, o era lui di mano... 
+            // se √® maggiore la carta del PC, o era lui di mano... 
             if (r > 0 || (r==0 && this.primo_di_mano==0)) {
                 this.giocatori[0].punti += punti
                 this.primo_di_mano = this.di_turno = 0
                 console.log('PC prende', punti, 'punti')
-                this.info('Prende PC. '+this.giocatori[0].punti+' a '+this.giocatori[1].punti)
+                this.info(`Prende PC! ${this.giocatori[0].punti} a ${this.giocatori[1].punti}.`)
                 if (! this.mazzo.vuoto()) {
                     this.giocatori[0].prendi_carta(this.mazzo.pesca())
                     this.giocatori[1].prendi_carta(this.mazzo.pesca())
                 }
             }
-            // se Ë maggiore la carta dell'umano, o era lui di mano... 
+            // se √® maggiore la carta dell'umano, o era lui di mano... 
             else if (r < 0 || (r==0 && this.primo_di_mano==1)) {
                 this.giocatori[1].punti += punti
                 this.primo_di_mano = this.di_turno = 1
                 console.log('UMANO prende', punti, 'punti')
-                this.info('Prende UMANO. '+this.giocatori[1].punti+' a '+this.giocatori[0].punti)
+                this.info(`Prendi TU! ${this.giocatori[1].punti} a ${this.giocatori[0].punti}.`)
                 if (! this.mazzo.vuoto()) {
                     this.giocatori[1].prendi_carta(this.mazzo.pesca())
                     this.giocatori[0].prendi_carta(this.mazzo.pesca())
                 }
             }
+            document.getElementById('riga3').innerHTML = `${this.mazzo.pila.length} carte nel mazzo.`
             this.carte_giocate = []
             console.log('Carte restanti nel mazzo: ', this.mazzo.pila.length, ' Mani giocate:', this.mani.length/2)
             setTimeout(this.rinfresca_carte.bind(this), 1500)
             if (this.mani.length == 40) {
                 this.primo_di_mano = this.di_turno = -1
                 var msg = "Smazzata terminata. "
-                if (this.giocatori[0].punti ==  this.giocatori[1].punti) msg += "Parit‡!"
-                else if (this.giocatori[0].punti >  this.giocatori[1].punti) msg += "Vince PC: " + this.giocatori[0].punti+'-'+this.giocatori[1].punti
-                else msg += "Vinci TU: " + this.giocatori[1].punti+'-'+this.giocatori[0].punti
+                if (this.giocatori[0].punti ==  this.giocatori[1].punti) msg += "Parit√†!"
+                else if (this.giocatori[0].punti >  this.giocatori[1].punti) msg += `Vince PC: ${this.giocatori[0].punti} a ${this.giocatori[1].punti}.`
+                else msg += `Vinci TU: ${this.giocatori[1].punti} a ${this.giocatori[0].punti}.`
                 this.info(msg)
                 return
             }
             // se eseguito PRIMA di rinfresca_carte, la carta giocata resta invisibile
-            if (this.primo_di_mano == 0) setTimeout(this.gioca.bind(this), 1600)
+            //~ if (this.primo_di_mano == 0) setTimeout(this.gioca.bind(this), 1600)
+            if (this.primo_di_mano == 0) setTimeout(this.gioca.bind(this), 1510, 0)
         }
     }
 
@@ -320,28 +322,30 @@ class Partita {
     // aggiorna la grafica delle carte in mano e sul banco
     rinfresca_carte() {
         // nasconde la carta giocata dall'umano
-        document.querySelectorAll('#Banco > img')[0].style.visibility = 'hidden'
-        // nasconde la carta giocata dal PC se Ë di mano o sono finite le carte
+        this.mano_banco[0].style.visibility = 'hidden'
+        this.mano_banco[0].src = ''
+        // nasconde la carta giocata dal PC se √® di mano o sono finite le carte
         if (this.primo_di_mano == 1 || ! this.giocatori[0].mano.length)
-            document.querySelectorAll('#Banco > img')[1].style.visibility = 'hidden'
-        // nasconde la briscola una volta pescata a fine mazzo
-        if (this.mazzo.vuoto()) document.querySelectorAll('#Banco > img')[2].style.visibility = 'hidden'
+            this.mano_banco[1].style.visibility = 'hidden'
+            this.mano_banco[1].src = ''
         // rinfresca le mani
         for (var i=0; i < 3; i++) {
             var m
             m = this.giocatori[0].mano[i]
-            document.querySelectorAll('#Giocatore1 > img')[i].style.visibility = (m != undefined)? 'visible':'hidden'
+            this.mano_pc[i].src = (m != undefined)? 'trieste/dorso.png':''
+            this.mano_pc[i].style.visibility = (m != undefined)? 'visible':'hidden'
             m = this.giocatori[1].mano[i]
             if (m != undefined) {
-                document.querySelectorAll('#Giocatore2 > img')[i].src =  'trieste/'+m+'.png' // carica il file della carta
-                document.querySelectorAll('#Giocatore2 > img')[i].style.visibility = 'visible'
+                this.mano_umano[i].src =  'trieste/'+m+'.png' // carica il file della carta
+                this.mano_umano[i].style.visibility = 'visible'
             }
             else
-                document.querySelectorAll('#Giocatore2 > img')[i].style.visibility = 'hidden'
+                //~ document.querySelectorAll('#Giocatore2 > img')[i].src = ''
+                this.mano_umano[i].style.visibility = 'hidden'
         }
     }
 
     info(s) {
-        document.getElementById('riga').innerHTML = s
+        document.getElementById('riga2').innerHTML = s
     }
 };

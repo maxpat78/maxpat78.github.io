@@ -2,12 +2,13 @@
 <html>
 
 <head>
-    <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+    <meta http-equiv=Content-Type content="text/html; charset=utf-8">
     <title>Gioco della Briscola</title>
     <script type="text/javascript" src="briscola.js"></script>
 </head>
 
 <body style="background-color:mediumseagreen;">
+<div style="text-align:center">
     <style>
     img {vertical-align:middle;margin:40px 8px;}
     </style>
@@ -15,24 +16,26 @@
     <h1 style="text-align:center">BRISCOLA</h1>
     
     <div id="Giocatore1">
-        <img alt="Carta1" width="80" height="144"/>
-        <img alt="Carta2" width="80" height="144"/>
-        <img alt="Carta3" width="80" height="144"/>
+        <img width="80" height="144"/>
+        <img width="80" height="144"/>
+        <img width="80" height="144"/>
     </div>
     
     <div id="Banco">
-        <img alt="Carta1" width="80" height="144" style="visibility:hidden; margin:0px 80px"/>
-        <img alt="Carta2" width="80" height="144" style="visibility:hidden; margin:0px 80px"/>
-        <img alt="Briscola" width="80" height="144" style="margin:0px 100px"/>
+        <img width="80" height="144" style="visibility:hidden; margin:0px 40px"/>
+        <img width="80" height="144" style="visibility:hidden; margin:0px 40px"/>
     </div>
 
     <div id="Giocatore2">
-        <img alt="Carta1" width="80" height="144"/>
-        <img alt="Carta2" width="80" height="144"/>
-        <img alt="Carta3" width="80" height="144"/>
+        <img width="80" height="144"/>
+        <img width="80" height="144"/>
+        <img width="80" height="144"/>
     </div>
     
-    <h3 id="riga"> </h3>
+    <h3 id="riga1"></h3>
+    <h3 id="riga2"></h3>
+    <h3 id="riga3"></h3>
+<div>
 </body>
 
 <script>partita = new Partita()</script>
