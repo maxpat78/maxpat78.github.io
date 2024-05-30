@@ -1,8 +1,16 @@
-﻿// Costruisce un mazzo simbolico di carte regionali italiane
+﻿//
+// Gioco tradizionale della Briscola italiana
+//
+// (C)2024, maxpat78
+//
+
+// Costruisce un mazzo simbolico di carte regionali italiane
 // mazzo_valori è ordinato per valore di presa
 const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
 const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
 const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
+
+const revision = "$Revision: 1.013"
 
 // ritorna un elemento casuale da una lista (senza rimuoverlo)
 function una_carta(L) {
@@ -207,20 +215,35 @@ class Giocatore {
 
 class Partita {
     constructor() {
-        this.mazzo = new Mazzo()
+        // elementi grafici nella pagina
+        this.mano_pc = document.querySelectorAll('#Giocatore1 > img')
+        this.mano_umano = document.querySelectorAll('#Giocatore2 > img')
+        this.mano_banco = document.querySelectorAll('#Banco > img')
+        this.load(1)
+    }
+
+    gfx_load() {
+        // precarica le immagini di tutte le carte, la prima volta
+        this.img = []
+        this.img['Dorso'] = new Image()
+        this.img['Dorso'].src = 'trieste/Dorso.webp'
+
+        for (var i of this.mazzo.pila) {
+            this.img[i] = new Image()
+            this.img[i].src = `trieste/${i}.webp`
+        }
+    }
+
+    load(first=0) {
+        if (!first && this.mani.length < 40) return
+        this.mazzo = new Mazzo(first)
+        if (first) this.gfx_load()
         this.briscola = this.mazzo.briscola() // carta di briscola (ultima del mazzo)
         this.di_turno = 1 // chi deve giocare (1=umano)
         this.primo_di_mano = 1 // chi era primo di mano
         this.carte_giocate = [] // le 2 carte giocate in una mano
         this.mani = [] // cronologia delle mani della smazzata
-        // elementi grafici nella pagina
-        this.mano_pc = document.querySelectorAll('#Giocatore1 > img')
-        this.mano_umano = document.querySelectorAll('#Giocatore2 > img')
-        this.mano_banco = document.querySelectorAll('#Banco > img')
 
-        // precarica le immagini di tutte le carte
-        for (var i of this.mazzo.pila) this.mano_banco[0].src = 'trieste/'+i
-    
         // crea i 2 giocatori, PC e umano, e dà le carte
         this.giocatori = []
         this.giocatori.push(new Giocatore(this, 'PC')) // computer
@@ -228,9 +251,9 @@ class Partita {
         for (var i in this.giocatori) this.giocatori[i].mano = this.mazzo.prendi(3)
     
         // mostra le carte
-        for (const img of this.mano_pc) img.src = 'trieste/Dorso.webp'
+        for (const img of this.mano_pc) img.src = this.img['Dorso'].src
         for (var i=0; i < 3; i++) { 
-            this.mano_umano[i].src = 'trieste/'+this.giocatori[1].mano[i]+'.webp' // carica la carta
+            this.mano_umano[i].src = this.img[this.giocatori[1].mano[i]].src // carica la carta
             this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
         }
         console.log('La briscola è ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
@@ -257,7 +280,7 @@ class Partita {
             // aggiorna la grafica di mano e banco
             this.mano_umano[giocata.i].style.visibility = 'hidden'
             this.mano_umano[giocata.i].src = ''
-            this.mano_banco[0].src = 'trieste/'+giocata.nome+'.webp'
+            this.mano_banco[0].src = this.img[giocata.nome].src
             this.mano_banco[0].style.visibility = 'visible'
             // fa giocare il PC se l'umano ha fatto la prima mossa
             if (this.primo_di_mano == 1) this.gioca(0)
@@ -270,7 +293,7 @@ class Partita {
             this.carte_giocate[0] = giocata.nome
             this.mano_pc[giocata.i].style.visibility = 'hidden'
             this.mano_pc[giocata.i].src = ''
-            this.mano_banco[1].src = 'trieste/'+giocata.nome+'.webp'
+            this.mano_banco[1].src = this.img[giocata.nome].src
             this.mano_banco[1].style.visibility = 'visible'
         }
     
@@ -348,11 +371,11 @@ class Partita {
         for (var i=0; i < 3; i++) {
             var m
             m = this.giocatori[0].mano[i]
-            this.mano_pc[i].src = (m != undefined)? 'trieste/Dorso.webp':''
+            this.mano_pc[i].src = (m != undefined)? this.img['Dorso'].src : ''
             this.mano_pc[i].style.visibility = (m != undefined)? 'visible':'hidden'
             m = this.giocatori[1].mano[i]
             if (m != undefined) {
-                this.mano_umano[i].src =  'trieste/'+m+'.webp' // carica il file della carta
+                this.mano_umano[i].src =  this.img[m].src // carica il file della carta
                 this.mano_umano[i].style.visibility = 'visible'
             }
             else
