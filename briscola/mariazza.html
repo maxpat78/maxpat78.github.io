@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=utf-8">
+    <title>Gioco della Mariazza</title>
+    <script type="text/javascript" src="mariaxxa.js"></script>
+</head>
+
+<body style="background-color:mediumseagreen;">
+<div style="text-align:center;" onclick="partita.load(0)">
+    <style>
+    img {vertical-align:middle;margin:4px 4px;}
+    :is(h2, h3, p) {line-height: 3px}
+    </style>
+
+    <div id="Giocatore1">
+        <img/>
+        <img/>
+        <img/>
+        <img/>
+        <img/>
+    </div>
+    
+    <div id="Banco">
+        <img style="visibility:hidden"/>
+        <img style="visibility:hidden"/>
+    </div>
+
+    <div id="Giocatore2">
+        <img/>
+        <img/>
+        <img/>
+        <img/>
+        <img/>
+    </div>
+
+    <div>
+    <button type="button" id="accusa" onclick="partita.accusa()" style="position:absolute;top:90%;left:75%;height:30px;width:150px;visibility:hidden">Accusa Mariazza</button>
+    <button type="button" id="scambia" onclick="partita.scambia()" style="position:absolute;top:94%;left:75%;height:30px;width:150px;visibility:hidden">Scambia Sette</button>
+    <h3 id="riga1"></h3>
+    <p id="riga2"></p>
+    <p id="riga3"></p>
+    </div>
+<div>
+</body>
+
+<script>partita = new Partita(1)</script>
+
+</html>
