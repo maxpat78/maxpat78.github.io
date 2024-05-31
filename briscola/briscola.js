@@ -10,8 +10,8 @@ const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
 const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
 const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
 
-const revision = "$Revision: 1.016"
-const DEBUG = 0
+const revision = "$Revision: 1.017"
+const DEBUG = 1
 
 
 
@@ -147,7 +147,7 @@ class Giocatore {
     // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
     // tenta di conservare le briscole
     analizza3(possibili) {
-        if (DEBUG) console.log(possibili)
+        if (DEBUG) console.log('mosse possibili:', possibili)
         var prese=[], perse=[]
         var miglior_punto = null
         var miglior_senza = null
@@ -183,7 +183,11 @@ class Giocatore {
                 return possibili.indexOf(miglior_punto)
         }
         // se non può lasciare...
-        if (!perse.length) return miglior_senza? possibili.indexOf(miglior_senza) : possibili.indexOf(miglior_punto)
+        if (!perse.length) {
+            if (miglior_senza) return possibili.indexOf(miglior_senza)
+            if (miglior_punto) return possibili.indexOf(miglior_punto)
+            return possibili.indexOf(prese[0])
+        }
 
         // come valutare la perdita di una briscola?
         perse.sort( (a,b) => (a.guadagno + (a.briscola? 2:0)) - (b.guadagno + (b.briscola? 2:0)))
@@ -233,7 +237,31 @@ class Partita {
         this.mano_pc = document.querySelectorAll('#Giocatore1 > img')
         this.mano_umano = document.querySelectorAll('#Giocatore2 > img')
         this.mano_banco = document.querySelectorAll('#Banco > img')
+        // BxH dell'area visibile del browser
+        var width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        var height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+        console.log(width, height)
+        // porzione utilizzabile dalle carte (3 carte, 3 righe)
+        var W = (width - 24) / 3
+        var H = (height - 120) / 3
+        // rapporto tra la dim. massima utilizzabile per una carta, e la carta
+        var ratio = Math.min(W/300, H/554)
+        console.log(W, H, ratio)
+        for (var i=0; i<3; i++) {
+            this.mano_pc[i].width = 300*ratio
+            this.mano_pc[i].height = 554*ratio
+        }
+        for (var i=0; i<2; i++) {
+            this.mano_banco[i].width = 300*ratio
+            this.mano_banco[i].height = 554*ratio
+        }
+        for (var i=0; i<3; i++) {
+            this.mano_umano[i].width = 300*ratio
+            this.mano_umano[i].height = 554*ratio
+        }
         this.load(1)
+        // neanche a questo punto, .height/.naturalHeight ecc. sono validi!
+        //console.log(this.img['Dorso'].naturalHeight)
     }
 
     gfx_load() {
