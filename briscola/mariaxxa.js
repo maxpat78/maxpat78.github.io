@@ -301,7 +301,7 @@ class Partita {
         var height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
         console.log(width, height)
         // porzione utilizzabile dalle carte (3 carte, 3 righe)
-        var W = (width - 24) / 5
+        var W = (width - 40) / 5
         var H = (height - 120) / 3
         // rapporto tra la dim. massima utilizzabile per una carta, e la carta
         var ratio = Math.min(W/300, H/554)
