@@ -10,7 +10,10 @@ const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
 const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
 const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
 
-const revision = "$Revision: 1.014"
+const revision = "$Revision: 1.016"
+const DEBUG = 0
+
+
 
 // ritorna un elemento casuale da una lista (senza rimuoverlo)
 function una_carta(L) {
@@ -67,7 +70,7 @@ class Mazzo {
     // mostra il nome completo della carta simbolica
     nome(carta) {
         var valori = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Cavallo', 'Re', 'Tre', 'Asso']
-        var semi = ['Bastoni', 'Coppe', 'Denari', 'Spade']
+        var semi = ['Bastoni', 'Coppe', 'Danari', 'Spade']
         return valori[ mazzo_valori.indexOf(carta[0]) ] + ' di ' + semi[ mazzo_semi.indexOf(carta[1]) ]
     }
 };
@@ -85,7 +88,7 @@ class Giocatore {
     // prende una carta dal mazziere
     prendi_carta(carta) {
         this.mano.push(carta)
-        console.log(this.tipo, 'pesca', carta)
+        if (DEBUG) console.log(this.tipo, 'pesca', carta)
     }
     
     // ritorna il numero di carte rimaste
@@ -108,71 +111,87 @@ class Giocatore {
         // ...altrimenti, cerca la mossa migliore
         else {
             for (var i=0; i < this.mano.length; i++)
-                possibili.push( this.compara(this.mano[i], p.carte_giocate[1], p.briscola[1], 0) )
-            return this.analizza2(possibili, p.briscola[1])
+                possibili.push( this.compara2(this.mano[i], p.carte_giocate[1], p.briscola[1], 0) )
+            return this.analizza3(possibili)
         }
-        console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
+        if (DEBUG) console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
         return this.algo1()
     }
 
     // determina chi fa presa e quanti punti riceve, ritornando un dizionario con i dati
-    compara(mia_carta, sua_carta, briscola, primo) {
-        var o = {carta:mia_carta, prendo:0, prende:0, miei_punti:0, suoi_punti:0}
+    compara2(mia_carta, sua_carta, briscola, primo) {
+        // prende = 1 (io), 0 (lui)
+        // briscola = se mia_carta è una briscola
+        var o = {carta:mia_carta, prende:0, punti:0, guadagno:0, briscola:mia_carta[1]==briscola}
+        o.punti = calcola_punti(mia_carta, sua_carta)
+        // verifica se prendo io
         // una sola briscola?
-        if (mia_carta[1] == briscola && sua_carta[1] != briscola) o.prendo = 1
-        else if (mia_carta[1] != briscola && sua_carta[1] == briscola) o.prendo = 0
+        if (mia_carta[1] == briscola && sua_carta[1] != briscola)
+            o.prende = 1
         // semi diversi?
         else if (mia_carta[1] != sua_carta[1]) {
-            if (primo) o.prendo = 1
-            else o.prendo = 0
+            if (primo) o.prende = 1
         }
         // stesso seme?
         else
-            o.prendo = (mazzo_valori.indexOf(mia_carta[0]) > mazzo_valori.indexOf(sua_carta[0]))? 1 : 0
-    
-        if (o.prendo) {
-            o.prende = o.suoi_punti = 0
-            o.miei_punti = calcola_punti(mia_carta, sua_carta)
-        }
-        else {
-            o.prende = 1
-            o.suoi_punti = calcola_punti(mia_carta, sua_carta)
-            o.miei_punti = 0
-        }
+            o.prende = (mazzo_valori.indexOf(mia_carta[0]) > mazzo_valori.indexOf(sua_carta[0]))? 1 : 0
+        // calcola il guadagno come punti presi da lui o persi da me
+        if (o.prende)
+            o.guadagno = calcola_punti('2S', sua_carta)
+        else
+            o.guadagno = calcola_punti('2S', mia_carta)
         return o
     }
 
     // ritorna l'indice della migliore mossa possibile
     // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
-    // conserva le briscole (maggiori), ove possibile
-    analizza2(possibili, briscola) {
+    // tenta di conservare le briscole
+    analizza3(possibili) {
+        if (DEBUG) console.log(possibili)
         var prese=[], perse=[]
-        for (var i in possibili) possibili[i].prendo ? prese.push(possibili[i]) : perse.push(possibili[i])
+        var miglior_punto = null
+        var miglior_senza = null
+
+        // separa prese e lasciate
+        for (var i in possibili) possibili[i].prende ? prese.push(possibili[i]) : perse.push(possibili[i])
+
         if (prese.length) {
-            prese.sort( (a,b) => b.miei_punti - a.miei_punti ) // ordina per punti...
-            prese.sort( (a,b) => {  // ...e per briscola
-                if (a.carta[1] == b.carta[1]) return 0
-                if (a.carta[1] == briscola[1]) return -1
-                else if (b.carta[1] == briscola[1]) return 1
-            })
-            if (prese.length > 1) {
-                // se la prima presa è con una briscola e la seconda no, ma dà anch'essa punti, la preferisce
-                if (prese[0].carta[1] == briscola[1] && (prese[1].carta[1] != briscola[1] && prese[1].miei_punti > 0))
-                    [prese[0], prese[1]] = [prese[1], prese[0]]
+            var con_punti = prese.filter((a) => a.punti)
+            var senza_briscola = prese.filter((a) => !a.briscola)
+            if (con_punti.length) {
+                con_punti.sort((a,b) => b.punti - a.punti) // ordina per punti
+                miglior_punto = con_punti[0]
+                con_punti.sort((a,b) => { // per briscola
+                    if (a.briscola && !b.briscola) return 1
+                    if (b.briscola && !a.briscola) return -1
+                    return mazzo_valori.indexOf(a.carta[0]) - mazzo_valori.indexOf(b.carta[0])
+                })
+                // preferisce il miglior punto senza briscola o con briscola minore
+                if (miglior_punto.briscola && miglior_punto != con_punti[0])
+                    miglior_punto = con_punti[0]
             }
-            console.log('Prese ordinate (dalla più vantaggiosa):', prese)
+            if (senza_briscola.length) {
+                senza_briscola.sort((a,b) => b.punti - a.punti) 
+                miglior_senza = senza_briscola[0]
+            }
+            if (DEBUG) console.log('prese:',prese,'\n','migliore senza:',miglior_senza,'\n','miglior punto:', miglior_punto)
+            // preferisce la miglior presa senza briscola che dà punti
+            if (miglior_senza && miglior_senza.punti)
+                return possibili.indexOf(miglior_senza)
+            // preferisce la presa che dà punti e o non è di briscola o, essendolo, dà un valore aggiunto
+            if (miglior_punto && miglior_punto.punti && (!miglior_punto.briscola || miglior_punto.guadagno))
+                return possibili.indexOf(miglior_punto)
         }
-        // di base, compara i punti lasciati all'avversario
-        //~ perse.sort( (a,b) => a.suoi_punti - b.suoi_punti)
-        // un carico perso è considerato di maggior valore di una briscola minore (fino al Re)
-        perse.sort( (a,b) => (a.suoi_punti + (a.carta[1]==briscola[1]? 5:0)) - (b.suoi_punti + (b.carta[1]==briscola[1]? 5:0)))
-        console.log('Lasciate ordinate (dalla più vantaggiosa):', perse)
-        if (prese.length) {
-            // lascio, se prendere non mi avvantaggia e lasciare lo avvantaggia poco (2 punti max)
-            if (perse.length && prese[0].miei_punti == 0 && perse[0].suoi_punti < 3)
-                return possibili.indexOf(perse[0])
-            return possibili.indexOf(prese[0])
-        }
+        // se non può lasciare...
+        if (!perse.length) return miglior_senza? possibili.indexOf(miglior_senza) : possibili.indexOf(miglior_punto)
+
+        // come valutare la perdita di una briscola?
+        perse.sort( (a,b) => (a.guadagno + (a.briscola? 2:0)) - (b.guadagno + (b.briscola? 2:0)))
+        if (DEBUG) console.log('perse:', perse)
+        // prende anche se la carta lasciata darebbe punti extra
+        if (prese.length && perse[0].guadagno)
+            return possibili.indexOf(miglior_punto? miglior_punto : prese[0])
+        // altrimenti, lascia
         return possibili.indexOf(perse[0])
     }
 
@@ -202,7 +221,7 @@ class Giocatore {
         c2 = this.mano[0]
         c = c1
         if (c1[1] == this.partita.briscola[1]) c = c2
-        console.log(c, 'è la carta minore fra', this.mano)
+        if (DEBUG) console.log(c, 'è la carta minore fra', this.mano)
         return this.mano.indexOf(c)
     }
 }
@@ -251,7 +270,7 @@ class Partita {
             this.mano_umano[i].src = this.img[this.giocatori[1].mano[i]].src // carica la carta
             this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
         }
-        console.log('La briscola è ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
+        if (DEBUG) console.log('La briscola è ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
         document.getElementById('riga1').innerHTML = `La briscola è: ${this.mazzo.nome(this.briscola)}.`
     }
 
@@ -267,7 +286,7 @@ class Partita {
             if (this.di_turno != 1) return
             this.di_turno = 0 // inverte il turno
             giocata = this.giocatori[1].gioca(carta)
-            console.log('UMANO gioca', this.mazzo.nome(giocata.nome))
+            if (DEBUG) console.log('UMANO gioca', this.mazzo.nome(giocata.nome))
             // aggiorna il banco
             this.carte_giocate[1] = giocata.nome
             // registra la giocata nella cronologia
@@ -283,7 +302,7 @@ class Partita {
         else {
             this.di_turno = 1
             giocata = this.giocatori[0].gioca(carta)
-            console.log('PC gioca', this.mazzo.nome(giocata.nome))
+            if (DEBUG) console.log('PC gioca', this.mazzo.nome(giocata.nome))
             this.mani.push({giocatore:'PC', giocata: giocata})
             this.carte_giocate[0] = giocata.nome
             this.mano_pc[giocata.i].style.visibility = 'hidden'
@@ -295,13 +314,13 @@ class Partita {
         // se ambedue hanno giocato...
         if (this.carte_giocate.length == 2) {
             var r = this.compara(this.carte_giocate[0], this.carte_giocate[1])
-            //~ console.log('compara(',this.carte_giocate[0], this.carte_giocate[1],') ritorna', r)
+            //~ if (DEBUG) console.log('compara(',this.carte_giocate[0], this.carte_giocate[1],') ritorna', r)
             var punti = calcola_punti(this.carte_giocate[0], this.carte_giocate[1])
             // se è maggiore la carta del PC, o era lui di mano... 
             if (r > 0 || (r==0 && this.primo_di_mano==0)) {
                 this.giocatori[0].punti += punti
                 this.primo_di_mano = this.di_turno = 0
-                console.log('PC prende', punti, 'punti')
+                if (DEBUG) console.log('PC prende', punti, 'punti')
                 this.info(`Prende PC! ${this.giocatori[0].punti} a ${this.giocatori[1].punti}.`)
                 if (! this.mazzo.vuoto()) {
                     this.giocatori[0].prendi_carta(this.mazzo.pesca())
@@ -312,7 +331,7 @@ class Partita {
             else if (r < 0 || (r==0 && this.primo_di_mano==1)) {
                 this.giocatori[1].punti += punti
                 this.primo_di_mano = this.di_turno = 1
-                console.log('UMANO prende', punti, 'punti')
+                if (DEBUG) console.log('UMANO prende', punti, 'punti')
                 this.info(`Prendi TU! ${this.giocatori[1].punti} a ${this.giocatori[0].punti}.`)
                 if (! this.mazzo.vuoto()) {
                     this.giocatori[1].prendi_carta(this.mazzo.pesca())
@@ -321,7 +340,7 @@ class Partita {
             }
             document.getElementById('riga3').innerHTML = `${this.mazzo.pila.length} carte nel mazzo.`
             this.carte_giocate = []
-            console.log('Carte restanti nel mazzo: ', this.mazzo.pila.length, ' Mani giocate:', this.mani.length/2)
+            if (DEBUG) console.log('Carte restanti nel mazzo: ', this.mazzo.pila.length, ' Mani giocate:', this.mani.length/2)
             setTimeout(this.rinfresca_carte.bind(this), 1500)
             if (this.mani.length == 40) {
                 this.primo_di_mano = this.di_turno = -1
