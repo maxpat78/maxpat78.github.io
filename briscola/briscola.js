@@ -10,7 +10,7 @@ const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
 const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
 const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
 
-const revision = "$Revision: 1.017"
+const revision = "$Revision: 1.018"
 const DEBUG = 1
 
 
@@ -240,13 +240,13 @@ class Partita {
         // BxH dell'area visibile del browser
         var width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
         var height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        console.log(width, height)
+        if (DEBUG) console.log('width, height', width, height)
         // porzione utilizzabile dalle carte (3 carte, 3 righe)
-        var W = (width - 24) / 3
+        var W = (width - 50) / 3
         var H = (height - 120) / 3
         // rapporto tra la dim. massima utilizzabile per una carta, e la carta
         var ratio = Math.min(W/300, H/554)
-        console.log(W, H, ratio)
+        if (DEBUG) console.log('W, H, ratio', W, H, ratio)
         for (var i=0; i<3; i++) {
             this.mano_pc[i].width = 300*ratio
             this.mano_pc[i].height = 554*ratio
@@ -298,8 +298,8 @@ class Partita {
             this.mano_umano[i].src = this.img[this.giocatori[1].mano[i]].src // carica la carta
             this.mano_umano[i].setAttribute('onclick', `partita.gioca(1,${i})`) // assegna un evento onclick
         }
-        if (DEBUG) console.log('La briscola è ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
-        document.getElementById('riga1').innerHTML = `La briscola è: ${this.mazzo.nome(this.briscola)}.`
+        if (DEBUG) console.log('BRISCOLA: ' + this.mazzo.nome(this.briscola).split(' ').slice(-1))
+        document.getElementById('riga1').innerHTML = `BRISCOLA: ${this.mazzo.nome(this.briscola).toUpperCase()}`
     }
 
     // esegue la giocata in partita aggiornando la grafica di mani e banco
