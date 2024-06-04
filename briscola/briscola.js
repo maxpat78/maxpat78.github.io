@@ -4,8 +4,8 @@
 // (C)2024, maxpat78
 //
 
-const revisione = "$Revisione: 1.100"
-DEBUG = 1
+const revisione = "$Revisione: 1.101"
+DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
 // personalizzato per il gioco della Briscola o della Marianna
@@ -265,7 +265,13 @@ class Tavolo {
         // area visibile del browser
         this.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth
         this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
-        if (DEBUG) console.log(this.width, this.height)
+        // stima dell'area occupata dal tavolo con le carte a pieno formato
+        var max_width = 1400
+        var max_height = 1884
+        // fattore di scala delle carte
+        this.ratio = Math.min(Math.min(max_width,this.width)/Math.max(max_width,this.width), Math.min(max_height,this.height)/Math.max(max_height,this.height))
+        this.ratio = Math.floor(this.ratio*10)/10
+        if (DEBUG) console.log('width, height, ratio', this.width, this.height,this.ratio)
         this.disegnaMazzo()
         this.disegnaCarte()
         this.daiCarte()
@@ -286,14 +292,14 @@ class Tavolo {
 
     disegnaMazzo() {
         // posizione iniziale
-        var x = this.width/3, y = this.height/3
+        var x = this.width/24, y = this.height/3
         console.log(x,y,'iniziali')
 
         // disegna la briscola trasversalmente a metà mazzo
         var img = new Image()
         img.src = `trieste/${this.mazzo.briscola}.webp`
-        img.width /= 3
-        img.height /= 3
+        img.width *= this.ratio
+        img.height *= this.ratio
         img.style.transform = 'rotate(90deg)'
         img.style.position = 'absolute'
         img.style.left = (x+(img.height-img.width)/2)+'px'
@@ -305,8 +311,8 @@ class Tavolo {
         for (var i=0; i < 39; i++) {
             img = new Image()
             img.src = 'trieste/Dorso.webp'
-            img.width /= 3
-            img.height /= 3
+            img.width *= this.ratio
+            img.height *= this.ratio
             img.style.position = 'absolute'
             img.style.left = x+'px'
             img.style.top = y+'px'
@@ -421,7 +427,6 @@ class Tavolo {
         var gfx = (giocatore==0)? this.gfx_manopc : this.gfx_manome
         // se è la briscola (ultima), mostra il dorso e ripristina l'orientamento
         if (img.style.transform != '') {
-            console.log('transform',img.style.transform)
             img.src = 'trieste/Dorso.webp'
             img.style.transform = ''
         }
