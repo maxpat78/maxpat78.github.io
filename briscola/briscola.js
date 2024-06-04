@@ -4,7 +4,7 @@
 // (C)2024, maxpat78
 //
 
-const revisione = "$Revisione: 1.103"
+const revisione = "$Revisione: 1.104"
 DEBUG = 1
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -316,7 +316,6 @@ class Tavolo {
             img.style.position = 'absolute'
             img.style.left = x+'px'
             img.style.top = y+'px'
-            if (DEBUG) console.log('.left .top dorso:',x,y)
             x += 0.1
             y += 0.1
             this.gfx_mazzo.push(img)
@@ -354,6 +353,7 @@ class Tavolo {
 
     disegnaCarte() {
         // posizioni delle mani e del banco
+        console.log('.x .y .top .left', this.gfx_mazzo[1].x, this.gfx_mazzo[1].y, this.gfx_mazzo[1].top, this.gfx_mazzo[1].left)
         var x_pc = this.gfx_mazzo[1].x + 2*this.gfx_mazzo[1].width
         var y_pc = this.gfx_mazzo[1].y - this.gfx_mazzo[1].height*1.2
     
@@ -372,7 +372,7 @@ class Tavolo {
             img.style.position = 'absolute'
             img.style.left = x_pc+'px'
             img.style.top = y_pc+'px'
-            if (DEBUG) console.log('.left .top carta banco:',x_pc,y_pc)
+            if (DEBUG) console.log('.left .top carta pc:',x_pc,y_pc)
             x_pc += this.gfx_mazzo[1].width*0.6
             this.gfx_manopc.push(img)
             document.querySelector('#tavolo').appendChild(img)
