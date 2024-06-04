@@ -4,7 +4,7 @@
 // (C)2024, maxpat78
 //
 
-const revisione = "$Revisione: 1.102"
+const revisione = "$Revisione: 1.103"
 DEBUG = 1
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -110,7 +110,6 @@ class Giocatore {
         }
         // stesso seme?
         else
-            //~ o.prende = (Mazzo.mazzo_valori.indexOf(mia_carta[0]) > Mazzo.mazzo_valori.indexOf(sua_carta[0]))? 1 : 0
             o.prende = (this.partita.mazzo.prende(mia_carta, sua_carta) > 0)? 1 : 0
         // calcola il guadagno come punti presi da lui o persi da me
         if (o.prende)
@@ -328,8 +327,10 @@ class Tavolo {
         img = this.gfx_mazzo.slice(-1)[0]
         var div = document.createElement('div')
         div.id='carte'
-        div.style.left = `${img.x+8}px`
-        div.style.top = `${img.y+8}px`
+        //~ div.style.left = `${img.x+8}px`
+        //~ div.style.top = `${img.y+8}px`
+        div.style.left = `${img.style.left+8}px`
+        div.style.top = `${img.style.top+8}px`
         div.innerHTML = this.mazzo.mazzo.length
         this.fill_div(div)
     }
@@ -371,6 +372,7 @@ class Tavolo {
             img.style.position = 'absolute'
             img.style.left = x_pc+'px'
             img.style.top = y_pc+'px'
+            if (DEBUG) console.log('.left .top carta banco:',x_pc,y_pc)
             x_pc += this.gfx_mazzo[1].width*0.6
             this.gfx_manopc.push(img)
             document.querySelector('#tavolo').appendChild(img)
@@ -383,6 +385,7 @@ class Tavolo {
             img.style.position = 'absolute'
             img.style.left = x_me+'px'
             img.style.top = y_me+'px'
+            if (DEBUG) console.log('.left .top carta mia:',x_me,y_me)
             x_me += this.gfx_mazzo[1].width*0.6
             this.gfx_manome.push(img)
             document.querySelector('#tavolo').appendChild(img)
