@@ -4,8 +4,8 @@
 // (C)2024, maxpat78
 //
 
-const revisione = "$Revisione: 1.101"
-DEBUG = 0
+const revisione = "$Revisione: 1.102"
+DEBUG = 1
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
 // personalizzato per il gioco della Briscola o della Marianna
@@ -64,7 +64,7 @@ class Giocatore {
     gioca(partita) {
         this.partita = partita
         var carta = this.algo2()
-        console.log(`algo2 ha selezionato la possibile mossa in posizione ${carta}`)
+        //~ console.log(`algo2 ha selezionato la possibile mossa in posizione ${carta}`)
         partita.gioca(0, carta)
         this.di_turno = 1
     }
@@ -293,7 +293,7 @@ class Tavolo {
     disegnaMazzo() {
         // posizione iniziale
         var x = this.width/24, y = this.height/3
-        console.log(x,y,'iniziali')
+        if (DEBUG) console.log('X Y mazzo:',x,y)
 
         // disegna la briscola trasversalmente a metà mazzo
         var img = new Image()
@@ -304,6 +304,7 @@ class Tavolo {
         img.style.position = 'absolute'
         img.style.left = (x+(img.height-img.width)/2)+'px'
         img.style.top = y+'px'
+        if (DEBUG) console.log('.left .top briscola:',img.style.left,img.style.top)
         this.gfx_mazzo.push(img) // primo elemento
         document.querySelector('#tavolo').appendChild(img)
 
@@ -316,6 +317,7 @@ class Tavolo {
             img.style.position = 'absolute'
             img.style.left = x+'px'
             img.style.top = y+'px'
+            if (DEBUG) console.log('.left .top dorso:',x,y)
             x += 0.1
             y += 0.1
             this.gfx_mazzo.push(img)
@@ -363,8 +365,8 @@ class Tavolo {
         // aggiunge gli elementi grafici per mani e banco nelle posizioni volute
         for(var i=0; i<3; i++) {
             var img = new Image()
-            img.width /= 3
-            img.height /= 3
+            img.width *= this.ratio
+            img.height *= this.ratio
             img.style.visibility = 'hidden'
             img.style.position = 'absolute'
             img.style.left = x_pc+'px'
@@ -376,8 +378,8 @@ class Tavolo {
     
         for(var i=0; i<3; i++) {
             var img = new Image()
-            img.width /= 3
-            img.height /= 3
+            img.width *= this.ratio
+            img.height *= this.ratio
             img.style.position = 'absolute'
             img.style.left = x_me+'px'
             img.style.top = y_me+'px'
@@ -388,8 +390,8 @@ class Tavolo {
     
         for(var i=0; i<2; i++) {
             var img = new Image()
-            img.width /= 3
-            img.height /= 3
+            img.width *= this.ratio
+            img.height *= this.ratio
             img.style.position = 'absolute'
             img.style.left = x_banco+'px'
             img.style.top = y_banco+'px'
