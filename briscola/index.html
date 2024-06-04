@@ -8,36 +8,11 @@
 </head>
 
 <body style="background-color:mediumseagreen;">
-<div style="text-align:center;" onclick="partita.load(0)">
-    <style>
-    img {vertical-align:middle;margin:4px 4px;}
-    :is(h2, h3, p) {line-height: 3px}
-    </style>
-
-    <div id="Giocatore1">
-        <img/>
-        <img/>
-        <img/>
-    </div>
-    
-    <div id="Banco">
-        <img style="visibility:hidden"/>
-        <img style="visibility:hidden"/>
-    </div>
-
-    <div id="Giocatore2">
-        <img/>
-        <img/>
-        <img/>
-    </div>
-</div>
-<div style="text-align:center">
-    <h2 id="riga1"></h2>
-    <h2 id="riga2"></h2>
-    <h2 id="riga3"></h2>
-</div>
+<div id="tavolo"/>
 </body>
 
-<script>partita = new Partita(1)</script>
+<script>
+partita = new Tavolo()
+</script>
 
 </html>
