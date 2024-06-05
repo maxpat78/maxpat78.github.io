@@ -1,11 +1,11 @@
 ﻿//
 // Gioco tradizionale della Briscola italiana
 //
-// (C)2024, maxpat78
+// (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.104"
-DEBUG = 1
+const revisione = "$Revisione: 1.105"
+DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
 // personalizzato per il gioco della Briscola o della Marianna
@@ -205,6 +205,8 @@ class Tavolo {
     constructor() {
         this.width = 0
         this.height = 0
+        this.carta_w = 0  // dimensioni risultanti dopo la scalatura di una carta
+        this.carta_h = 0
         this.imgs = [] // immagini di ogni carta del mazzo
         this.gfx_mazzo = [] // immagini dei dorsi e della briscola componenti il mazzo
         this.gfx_manopc = [] // immagini della mano del PC
@@ -264,9 +266,15 @@ class Tavolo {
         // area visibile del browser
         this.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth
         this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+        // cerca di risolvere l'anomalia di scala in Chrome per Android
+        if (window.outerHeight && (window.innerHeight - window.outerHeight) > 100) {
+            this.height = window.outerHeight
+            this.width = window.outerWidth
+        }
         // stima dell'area occupata dal tavolo con le carte a pieno formato
-        var max_width = 1400
-        var max_height = 1884
+        var max_width = 5*300
+        var max_height = 3.5*554
+    
         // fattore di scala delle carte
         this.ratio = Math.min(Math.min(max_width,this.width)/Math.max(max_width,this.width), Math.min(max_height,this.height)/Math.max(max_height,this.height))
         this.ratio = Math.floor(this.ratio*10)/10
@@ -299,6 +307,8 @@ class Tavolo {
         img.src = `trieste/${this.mazzo.briscola}.webp`
         img.width *= this.ratio
         img.height *= this.ratio
+        this.carta_w = img.width
+        this.carta_h = img.height
         img.style.transform = 'rotate(90deg)'
         img.style.position = 'absolute'
         img.style.left = (x+(img.height-img.width)/2)+'px'
@@ -311,8 +321,8 @@ class Tavolo {
         for (var i=0; i < 39; i++) {
             img = new Image()
             img.src = 'trieste/Dorso.webp'
-            img.width *= this.ratio
-            img.height *= this.ratio
+            img.width = this.carta_w
+            img.height = this.carta_h
             img.style.position = 'absolute'
             img.style.left = x+'px'
             img.style.top = y+'px'
@@ -353,52 +363,43 @@ class Tavolo {
 
     disegnaCarte() {
         // posizioni delle mani e del banco
-        console.log('.x .y .top .left', this.gfx_mazzo[1].x, this.gfx_mazzo[1].y, this.gfx_mazzo[1].top, this.gfx_mazzo[1].left)
-        var x_pc = this.gfx_mazzo[1].x + 2*this.gfx_mazzo[1].width
-        var y_pc = this.gfx_mazzo[1].y - this.gfx_mazzo[1].height*1.2
+        var x_pc = this.width/24 + 2*this.carta_w
+        var y_pc = this.height/3 - this.carta_h*1.2
     
         var x_me = x_pc
-        var y_me = this.gfx_mazzo[1].y + this.gfx_mazzo[1].height*1.2
+        var y_me = this.height/3 + this.carta_h*1.2
     
-        var x_banco = x_pc + 0.6*this.gfx_mazzo[1].width
-        var y_banco = this.gfx_mazzo[1].y
+        var x_banco = x_pc + 0.6*this.carta_w
+        var y_banco = this.height/3
     
         // aggiunge gli elementi grafici per mani e banco nelle posizioni volute
         for(var i=0; i<3; i++) {
             var img = new Image()
-            img.width *= this.ratio
-            img.height *= this.ratio
             img.style.visibility = 'hidden'
             img.style.position = 'absolute'
             img.style.left = x_pc+'px'
             img.style.top = y_pc+'px'
-            if (DEBUG) console.log('.left .top carta pc:',x_pc,y_pc)
-            x_pc += this.gfx_mazzo[1].width*0.6
+            x_pc += this.carta_w*0.6
             this.gfx_manopc.push(img)
             document.querySelector('#tavolo').appendChild(img)
         }
     
         for(var i=0; i<3; i++) {
             var img = new Image()
-            img.width *= this.ratio
-            img.height *= this.ratio
             img.style.position = 'absolute'
             img.style.left = x_me+'px'
             img.style.top = y_me+'px'
-            if (DEBUG) console.log('.left .top carta mia:',x_me,y_me)
-            x_me += this.gfx_mazzo[1].width*0.6
+            x_me += this.carta_w*0.6
             this.gfx_manome.push(img)
             document.querySelector('#tavolo').appendChild(img)
         }
     
         for(var i=0; i<2; i++) {
             var img = new Image()
-            img.width *= this.ratio
-            img.height *= this.ratio
             img.style.position = 'absolute'
             img.style.left = x_banco+'px'
             img.style.top = y_banco+'px'
-            x_banco += this.gfx_mazzo[1].width*0.6
+            x_banco += this.carta_w*0.6
             this.gfx_banco.push(img)
             document.querySelector('#tavolo').appendChild(img)
         }
@@ -407,14 +408,14 @@ class Tavolo {
         img = this.gfx_manopc.slice(-1)[0]
         var div = document.createElement('div')
         div.id='punti_pc'
-        div.style.left = `${img.x+this.gfx_mazzo[1].width+8}px`
+        div.style.left = `${img.x+this.carta_w+8}px`
         div.style.top = `${img.y+8}px`
         div.innerHTML = this.punti_pc
         this.fill_div(div)
         img = this.gfx_manome.slice(-1)[0]
         div = document.createElement('div')
         div.id='punti_me'
-        div.style.left = `${img.x+this.gfx_mazzo[1].width+8}px`
+        div.style.left = `${img.x+this.carta_w+8}px`
         div.style.top = `${img.y+8}px`
         div.innerHTML = this.punti_me
         this.fill_div(div)
@@ -492,12 +493,12 @@ class Tavolo {
         if (giocatore == 0) gfx[indice+10].src = `trieste/${this.mani[0][indice]}.webp`
         this.animaImmagine(gfx[indice+10], {x: this.gfx_banco[giocatore].x, y: this.gfx_banco[giocatore].y}, 1500)
         this.gfx_banco[giocatore+10] = gfx[indice+10] // registra la carta visibile giocata sul banco
+        // la seconda giocata sarà sovrapposta all'altra
+        this.gfx_banco[giocatore+10].style.zIndex = this.giocate.length
         // aggiorna mano e banco
         this.giocate[giocatore] = this.mani[giocatore][indice]
         // la posizione nella mano rimane undefined fino all'eventuale pescata successiva
         this.mani[giocatore][indice] = undefined
-        // l'ultima giocata viene sovrapposta all'altra
-        if (this.giocate.length == 2) gfx[indice+10].style.zIndex = 99
         if (DEBUG) console.log(`giocatore ${giocatore} gioca carta ${this.giocate[giocatore]} da posizione ${indice}`)
         // inserisce la mossa nella cronologia
         this.cronologia.push({giocatore: giocatore, indice: indice, carta: this.giocate[giocatore]})
@@ -507,7 +508,6 @@ class Tavolo {
             this.di_turno = 0
             // evita che la risposta del PC sia contemporanea all'animazione della giocata umana
             setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), pausa, this)
-            //~ this.giocatore_pc.gioca(this)
         }
         // se ambedue hanno giocato, determina chi prende
         if (this.giocate.length == 2)
