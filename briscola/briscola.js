@@ -4,25 +4,26 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.105"
+const revisione = "$Revisione: 1.110"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
 // personalizzato per il gioco della Briscola o della Marianna
-class Mazzo {
-    static mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
-    // mazzo_valori è qui ordinato per valore di presa nella Briscola
-    static mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
-    // mazzo_punti è qui ordinato per punti nella Briscola
-    static mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
-    static nome_valori = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Cavallo', 'Re', 'Tre', 'Asso']
-    static nome_semi = ['Bastoni', 'Coppe', 'Danari', 'Spade']
+const mazzo_semi = "BCDS" // Bastoni, Coppe, Denari, Spade
+// mazzo_valori è qui ordinato per valore di presa nella Briscola
+const mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
+// mazzo_punti è qui ordinato per punti nella Briscola
+const mazzo_punti = [0,0,0,0,0,2,3,4,10,11]
+const nome_valori = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Cavallo', 'Re', 'Tre', 'Asso']
+const nome_semi = ['Bastoni', 'Coppe', 'Danari', 'Spade']
 
+
+class Mazzo {
     constructor() {
         this.mazzo = []
-        for (let i in Mazzo.mazzo_semi)
-            for (let j in Mazzo.mazzo_valori)
-                this.mazzo.push(Mazzo.mazzo_valori[j]+Mazzo.mazzo_semi[i])
+        for (let i in mazzo_semi)
+            for (let j in mazzo_valori)
+                this.mazzo.push(mazzo_valori[j]+mazzo_semi[i])
         this.mazzo.sort((a,b) => 0.5 - Math.random()) // ordina a caso (=mescola)
         this.briscola = this.mazzo.slice(-1)[0] // la carta di briscola sarà l'ultima pescata nel mazzo riordinato
         // per la Marianna senza briscola, usare 'NN'
@@ -34,16 +35,21 @@ class Mazzo {
 
     vuoto() { return this.mazzo.length == 0 }
 
+    carte() { return this.mazzo.length }
+
     // mostra il nome completo della carta
     nome(carta) {
-        return Mazzo.nome_valori[ Mazzo.mazzo_valori.indexOf(carta[0]) ] + ' di ' + Mazzo.nome_semi[ Mazzo.mazzo_semi.indexOf(carta[1]) ]
+        return nome_valori[ mazzo_valori.indexOf(carta[0]) ] + ' di ' + nome_semi[ mazzo_semi.indexOf(carta[1]) ]
     }
 
     // mostra il nome del seme della carta
-    seme(carta) { return Mazzo.nome_semi[ Mazzo.mazzo_semi.indexOf(carta[1]) ] }
+    seme(carta) { return nome_semi[ mazzo_semi.indexOf(carta[1]) ] }
 
     // ritorna i punti corrispondenti alla carta
-    punti(carta) { return Mazzo.mazzo_punti[Mazzo.mazzo_valori.indexOf(carta[0])] }
+    punti(carta) { return mazzo_punti[mazzo_valori.indexOf(carta[0])] }
+
+    // ritorna il valore di presa della carta
+    valore(carta) { return mazzo_valori.indexOf(carta[0]) }
 
     // ritorna un numero positivo se carta1 prende carta2, negativo in caso contrario
     // tiene conto del seme di briscola
@@ -55,12 +61,12 @@ class Mazzo {
         // semi diversi?
         if (carta1[1] != carta2[1]) return (prima_giocata==0)? 1 : -1
         // semi uguali: compara i valori di presa
-        return Mazzo.mazzo_valori.indexOf(carta1[0]) - Mazzo.mazzo_valori.indexOf(carta2[0]) 
+        return this.valore(carta1) - this.valore(carta2) 
     }
-};
+}
 
 
-class Giocatore {
+class IA {
     gioca(partita) {
         this.partita = partita
         var carta = this.algo2()
@@ -122,16 +128,15 @@ class Giocatore {
     // ritorna l'indice della migliore mossa possibile, rapportato alla mano del PC
     // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
     // tenta di conservare le briscole
-    analizza3(possibili) {
-        if (DEBUG) console.log('mosse possibili:', possibili)
+    analizza3(casi) {
+        if (DEBUG) console.log('mosse possibili:', casi)
         var prese=[], perse=[]
         var miglior_punto = null
         var miglior_senza = null
-        var mazzo_valori = "24567FCR3A" // A=Asso, F=Fante, C=Cavallo, R=Re
         var mano = this.partita.mani[0]
     
         // separa prese e lasciate
-        for (var i in possibili) possibili[i].prende ? prese.push(possibili[i]) : perse.push(possibili[i])
+        for (var i in casi) casi[i].prende ? prese.push(casi[i]) : perse.push(casi[i])
 
         if (prese.length) {
             var con_punti = prese.filter((a) => a.punti)
@@ -142,7 +147,7 @@ class Giocatore {
                 con_punti.sort((a,b) => { // per briscola
                     if (a.briscola && !b.briscola) return 1
                     if (b.briscola && !a.briscola) return -1
-                    return mazzo_valori.indexOf(a.carta[0]) - mazzo_valori.indexOf(b.carta[0])
+                    return this.partita.mazzo.valore(a.carta) - this.partita.mazzo.valore(b.carta)
                 })
                 // preferisce il miglior punto senza briscola o con briscola minore
                 if (miglior_punto.briscola && miglior_punto != con_punti[0])
@@ -198,40 +203,23 @@ class Giocatore {
         if (DEBUG) console.log(c, 'è la carta minore fra', mano)
         return this.partita.mani[0].indexOf(c)
     }
-};
+}
 
 
 class Tavolo {
     constructor() {
-        this.width = 0
-        this.height = 0
-        this.carta_w = 0  // dimensioni risultanti dopo la scalatura di una carta
-        this.carta_h = 0
-        this.imgs = [] // immagini di ogni carta del mazzo
-        this.gfx_mazzo = [] // immagini dei dorsi e della briscola componenti il mazzo
-        this.gfx_manopc = [] // immagini della mano del PC
-        this.gfx_manome = [] // immagini della mano umana
-        this.gfx_banco = [] // immagini del banco
-        this.mazzo = new Mazzo()
-        this.mani = [[], []] // array di array con le 3 carte simboliche in mano (0=PC, 1=umano)
-        this.giocate = [] // carte giocate sul banco (0=PC, 1=umano)
+        // coordinate assolute in px delle mani e del banco
+        this.coord = [ {x: 320, y: 1}, // PC
+        {x: 320, y: 585}, // Umano
+        {x: 410, y: 293} // Banco
+        ]
+        this.svuota()
         this.gfx_load = 0 // indica se le carte sono state completamente caricate
-        this.di_turno = 1 // chi deve fare la mossa corrente (0=PC, 1=umano)
-        this.primo_di_mano = 1 // chi era primo di mano (0=PC, 1=umano)
-        this.carte_giocate = [] // le 2 carte giocate in una mano
-        this.cronologia = [] // cronologia delle mani della smazzata
-        this.giocatore_pc = new Giocatore()
-        this.punti_pc = 0
-        this.punti_me = 0
-        this.animazione = 0 // se è in corso un'animazione
         this.carica_carte()
     }
 
-    avvia() {
-        this.gfx_mazzo = [] // immagini dei dorsi e della briscola componenti il mazzo
-        this.gfx_manopc = [] // immagini della mano del PC
-        this.gfx_manome = [] // immagini della mano umana
-        this.gfx_banco = [] // immagini del banco
+    // azzera i parametri di partita
+    svuota() {
         this.mazzo = new Mazzo()
         this.mani = [[], []] // array di array con le 3 carte simboliche in mano (0=PC, 1=umano)
         this.giocate = [] // carte giocate sul banco (0=PC, 1=umano)
@@ -239,11 +227,14 @@ class Tavolo {
         this.primo_di_mano = 1 // chi era primo di mano (0=PC, 1=umano)
         this.carte_giocate = [] // le 2 carte giocate in una mano
         this.cronologia = [] // cronologia delle mani della smazzata
-        this.giocatore_pc = new Giocatore()
-        this.punti_pc = 0
-        this.punti_me = 0
-        this.animazione = 0 // se è in corso un'animazione
-        document.querySelector('#tavolo').replaceChildren()
+        this.giocatore_pc = new IA()
+        this.punti_pc = this.punti_me = 0
+    }
+
+    riavvia() {
+        this.svuota()
+        $('img').each(function() {$(this).hide()}) // nasconde qualsiasi carta visibile
+        $('img[class="fronte"]').each(function() {$(this).off('click')}) // rimuove qualsiasi gestore di evento
         this.disegna()
     }
 
@@ -254,198 +245,76 @@ class Tavolo {
 
     // precarica le immagini di tutte le carte, la prima volta
     carica_carte() {
-        for (var i of this.mazzo.mazzo.concat('Dorso')) {
-            this.imgs[i] = new Image()
-            this.imgs[i].onload = this.imgs[i].onerror = this.onLoad.bind(this)
-            this.imgs[i].src = `trieste/${i}.webp`
-        }
+        for (var i of this.mazzo.mazzo.concat('Dorso'))
+            $(`<img src="trieste/${i}.webp" id="${i}" class="fronte" width="150px" height="277px" style="position:absolute">`)
+            .on("load", this.onLoad.bind(this))
+            .hide()
+            .appendTo('body')
+
+        for (var i=1; i < 40; i++)
+            $(`<img src="trieste/Dorso.webp" id="Dorso${i}" class="dorso" width="150px" height="277px" style="position:absolute">`)
+            .hide()
+            .appendTo('body')
+
+        // disegna un div informativo con il numero di carte restanti e i punti in basso a destra
+        $('body').append('<div id="info" style="position:absolute;color:white;background-color:transparent;font-weight:bold;width:fit-content;align:center;font-family:Arial;font-size:120%;zindex:100"/>')
+        $('#info').css({top: this.coord[1].y, left: this.coord[1].x - 150})
+        .text(`${this.punti_pc} - ${this.punti_me} [${this.mazzo.carte()}]`)
     }
 
     disegna() {
-        if (DEBUG) console.log('Dorso:', this.imgs['Dorso'].width, this.imgs['Dorso'].height)
-        // area visibile del browser
-        this.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth
-        this.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
-        // cerca di risolvere l'anomalia di scala in Chrome per Android
-        if (window.outerHeight && (window.innerHeight - window.outerHeight) > 100) {
-            this.height = window.outerHeight
-            this.width = window.outerWidth
-        }
-        // stima dell'area occupata dal tavolo con le carte a pieno formato
-        var max_width = 5*300
-        var max_height = 3.5*554
-    
-        // fattore di scala delle carte
-        this.ratio = Math.min(Math.min(max_width,this.width)/Math.max(max_width,this.width), Math.min(max_height,this.height)/Math.max(max_height,this.height))
-        this.ratio = Math.floor(this.ratio*10)/10
-        if (DEBUG) console.log('width, height, ratio', this.width, this.height,this.ratio)
         this.disegnaMazzo()
-        this.disegnaCarte()
         this.daiCarte()
-    
-    }
-
-    fill_div(div) {
-        div.style.position='absolute'
-        div.style.color='white'
-        div.style.backgroundColor='red'
-        div.style.fontWeight='bold'
-        div.style.width='fit-content'
-        div.style.alignContent='center'
-        div.style.fontFamily='Arial'
-        div.style.zIndex = 100
-        document.querySelector('#tavolo').appendChild(div)
     }
 
     disegnaMazzo() {
-        // posizione iniziale
-        var x = this.width/24, y = this.height/3
-        if (DEBUG) console.log('X Y mazzo:',x,y)
+        // posizione del mazzo in pixel
+        var x=10, y=293, img
 
         // disegna la briscola trasversalmente a metà mazzo
-        var img = new Image()
-        img.src = `trieste/${this.mazzo.briscola}.webp`
-        img.width *= this.ratio
-        img.height *= this.ratio
-        this.carta_w = img.width
-        this.carta_h = img.height
-        img.style.transform = 'rotate(90deg)'
-        img.style.position = 'absolute'
-        img.style.left = (x+(img.height-img.width)/2)+'px'
-        img.style.top = y+'px'
-        if (DEBUG) console.log('.left .top briscola:',img.style.left,img.style.top)
-        this.gfx_mazzo.push(img) // primo elemento
-        document.querySelector('#tavolo').appendChild(img)
+        $('#'+this.mazzo.briscola)
+        .show()
+        .css({'left': (x+(277-150)/2), 'top': y, 'transform': 'rotate(90deg)', 'zIndex': -1})
 
-        // disegna i dorsi soprastanti, simulando il 3D
-        for (var i=0; i < 39; i++) {
-            img = new Image()
-            img.src = 'trieste/Dorso.webp'
-            img.width = this.carta_w
-            img.height = this.carta_h
-            img.style.position = 'absolute'
-            img.style.left = x+'px'
-            img.style.top = y+'px'
-            x += 0.1
-            y += 0.1
-            this.gfx_mazzo.push(img)
-            document.querySelector('#tavolo').appendChild(img)
-        }
-    
-        // disegna un div informativo con il numero di carte restanti
-        img = this.gfx_mazzo.slice(-1)[0]
-        var div = document.createElement('div')
-        div.id='carte'
-        //~ div.style.left = `${img.x+8}px`
-        //~ div.style.top = `${img.y+8}px`
-        div.style.left = `${img.style.left+8}px`
-        div.style.top = `${img.style.top+8}px`
-        div.innerHTML = this.mazzo.mazzo.length
-        this.fill_div(div)
+        // disegna i dorsi sovrapposti, simulando il 3D
+        $('img[class="dorso"]').each( function() {
+            $(this).css({left: x, top: y}).show()
+            x -= 0.1
+            y -= 0.1
+        })
     }
 
-    // aggiorna la sovraimpressione sul mazzo con il numero di carte restanti e i punti
-    disegnaRestanti() {
-        document.querySelector('#punti_pc').innerHTML = this.punti_pc
-        document.querySelector('#punti_me').innerHTML = this.punti_me
-    
-        var len = this.mazzo.mazzo.length
-        var img = this.gfx_mazzo.slice(-1)[0]
-        var div = document.querySelector('#carte')
-        if (!len) {
-            div.style.visibility = 'hidden'
-            return
-        }
-        div.style.left = `${img.x+8}px`
-        div.style.top = `${img.y+8}px`
-        div.innerHTML = len
-    }
-
-    disegnaCarte() {
-        // posizioni delle mani e del banco
-        var x_pc = this.width/24 + 2*this.carta_w
-        var y_pc = this.height/3 - this.carta_h*1.2
-    
-        var x_me = x_pc
-        var y_me = this.height/3 + this.carta_h*1.2
-    
-        var x_banco = x_pc + 0.6*this.carta_w
-        var y_banco = this.height/3
-    
-        // aggiunge gli elementi grafici per mani e banco nelle posizioni volute
-        for(var i=0; i<3; i++) {
-            var img = new Image()
-            img.style.visibility = 'hidden'
-            img.style.position = 'absolute'
-            img.style.left = x_pc+'px'
-            img.style.top = y_pc+'px'
-            x_pc += this.carta_w*0.6
-            this.gfx_manopc.push(img)
-            document.querySelector('#tavolo').appendChild(img)
-        }
-    
-        for(var i=0; i<3; i++) {
-            var img = new Image()
-            img.style.position = 'absolute'
-            img.style.left = x_me+'px'
-            img.style.top = y_me+'px'
-            x_me += this.carta_w*0.6
-            this.gfx_manome.push(img)
-            document.querySelector('#tavolo').appendChild(img)
-        }
-    
-        for(var i=0; i<2; i++) {
-            var img = new Image()
-            img.style.position = 'absolute'
-            img.style.left = x_banco+'px'
-            img.style.top = y_banco+'px'
-            x_banco += this.carta_w*0.6
-            this.gfx_banco.push(img)
-            document.querySelector('#tavolo').appendChild(img)
-        }
-    
-        // disegna div informativi con i punti dei giocatori
-        img = this.gfx_manopc.slice(-1)[0]
-        var div = document.createElement('div')
-        div.id='punti_pc'
-        div.style.left = `${img.x+this.carta_w+8}px`
-        div.style.top = `${img.y+8}px`
-        div.innerHTML = this.punti_pc
-        this.fill_div(div)
-        img = this.gfx_manome.slice(-1)[0]
-        div = document.createElement('div')
-        div.id='punti_me'
-        div.style.left = `${img.x+this.carta_w+8}px`
-        div.style.top = `${img.y+8}px`
-        div.innerHTML = this.punti_me
-        this.fill_div(div)
-    }
+    // aggiorna le info con il numero di carte restanti e i punti
+    disegnaRestanti() { $('#info').text(`${this.punti_pc} - ${this.punti_me} [${this.mazzo.carte()}]`) }
 
     // dà una carta al giocatore (0=PC, 1=umano). indice è la posizione nella mano (0-2).
     // tempo è la durata dell'animazione in ms
     daiCarta(giocatore, indice, tempo=1000) {
-        if (this.mazzo.vuoto()) return
         var carta = this.mazzo.pesca()
+        if (! carta) return
+        var vuoto = this.mazzo.vuoto()
         this.mani[giocatore][indice] = carta
-        if (DEBUG) console.log(`giocatore ${giocatore} riceve ${carta} in posizione ${indice}`)
-        if (DEBUG) console.log(this.mani[giocatore])
-        var img = this.gfx_mazzo.pop() // img graficamente in cima al mazzo, ma in fondo all'array
-        var gfx = (giocatore==0)? this.gfx_manopc : this.gfx_manome
-        // se è la briscola (ultima), mostra il dorso e ripristina l'orientamento
-        if (img.style.transform != '') {
-            img.src = 'trieste/Dorso.webp'
-            img.style.transform = ''
-        }
-        this.animaImmagine(img, {x: gfx[indice].x, y: gfx[indice].y}, tempo)
-        if (giocatore) {
-            img.src = `trieste/${carta}.webp`
-            img.setAttribute('onclick', `partita.gioca(1,${indice})`) // assegna un evento onclick
-        }
-        img.style.zIndex = indice // la carta successiva è sovrapposta alla precedente
-        // la carta voltata è un oggetto diverso da quella, invisibile, già in gfx_manoXX
-        // perciò la registriamo, per poterla successivamente muovere verso il banco
-        gfx[indice+10] = img 
-        // aggiorna il conteggio delle carte nel mazzo e i punti
+        if (DEBUG) console.log(`giocatore ${giocatore} riceve ${carta} in posizione ${indice}: ${this.mani[giocatore]}`)
+        // se è la briscola (ultima), ripristina l'orientamento; altrimenti seleziona un dorso
+        var img = vuoto? $('#'+this.mazzo.briscola).css({transform: ''}) : $('#Dorso'+this.mazzo.carte())
+        img.animate( {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y},
+                        tempo,
+                        function () { // eseguita al termine dell'animazione
+                            if (giocatore) {
+                                var p = $(this).position()
+                                $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
+                                $(`#${carta}`).click(function() {partita.gioca(1,indice)})
+                                if (!vuoto)
+                                    $(this).hide() // nasconde il dorso (fade/ rotateY per simulare la girata?)
+                            }
+                            else {
+                                $(this).css({zIndex: indice}) // sposta il dorso del PC al livello corretto nel ventaglio
+                                if (vuoto) {
+                                    $('#Dorso38').show().css({left: $(this).position().left, top: $(this).position().top, zIndex: indice})
+                                    $(this).hide()
+                                }
+                            }
+                        } )
         this.disegnaRestanti()
     }
 
@@ -453,48 +322,30 @@ class Tavolo {
     daiCarte() {
         var tempo = 500 // la durata dell'animazione è leggermente diversa per ogni carta, così da distinguerle
         for (var i=0; i<3; i++) {
-            this.daiCarta(0, i, tempo) // al PC
-            tempo += 500
+            this.daiCarta(0, i, tempo-100) // al PC
             this.daiCarta(1, i, tempo) // a me
-            tempo += 600
+            tempo += 500
         }
-    }
-
-    animaImmagine(img, puntoB, durata, passo=0.01) {
-        var progresso=0
-        this.animazione = 1
-        const animazione = setInterval(() => {
-            // nuova posizione
-            const x = img.x + (puntoB.x - img.x) * progresso
-            const y = img.y + (puntoB.y - img.y) * progresso
-
-            // aggiorna l'immagine
-            img.style.left = x + 'px'
-            img.style.top = y + 'px'
-
-            // finito?
-            if (progresso >= 1) {
-                clearInterval(animazione)
-                this.animazione = 0
-            }
-            progresso += passo
-        }, durata / 100)
     }
 
     // gioca la carta indice=0..2 del giocatore=0..1
     gioca(giocatore, indice) {
+        if (this.cronologia.length == 40) return
         // impedisce il gioco umano finché ci sono animazioni in corso
-        if (giocatore && this.animazione) return
+        if (giocatore && $(":animated").length) return
         var pausa = 0
-        // anima la carta giocata da mano a banco
-        var gfx = (giocatore==0)? this.gfx_manopc : this.gfx_manome
-        gfx[indice+10].onclick = undefined // elimina il gestore di onclick per sicurezza
-        // se gioca il PC, rende visibile la sua carta
-        if (giocatore == 0) gfx[indice+10].src = `trieste/${this.mani[0][indice]}.webp`
-        this.animaImmagine(gfx[indice+10], {x: this.gfx_banco[giocatore].x, y: this.gfx_banco[giocatore].y}, 1500)
-        this.gfx_banco[giocatore+10] = gfx[indice+10] // registra la carta visibile giocata sul banco
-        // la seconda giocata sarà sovrapposta all'altra
-        this.gfx_banco[giocatore+10].style.zIndex = this.giocate.length
+        var d_banco = this.giocate.length? 90:0 // seleziona una delle 2 posizioni sul banco
+        var C = {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y } // coordinate della carta in mano
+        // mostra e anima la carta giocata da mano a banco
+        $(`#${this.mani[giocatore][indice]}`)
+            .show()
+            .css({left: C.left, top: C.top, zIndex: d_banco})
+            .animate({left: this.coord[2].x + d_banco, top: this.coord[2].y}, 500)
+        // nasconde il dorso della carta giocata dal PC
+        if (!giocatore)
+            $('img')
+                .filter(function() {return $(this).attr('id').includes('Dorso') && $(this).offset().left == C.left})
+                .hide()
         // aggiorna mano e banco
         this.giocate[giocatore] = this.mani[giocatore][indice]
         // la posizione nella mano rimane undefined fino all'eventuale pescata successiva
@@ -522,11 +373,6 @@ class Tavolo {
         var r = this.mazzo.prende(this.giocate[0], this.giocate[1], this.primo_di_mano)
         // calcola i punti presi
         var punti = this.mazzo.punti(this.giocate[0]) + this.mazzo.punti(this.giocate[1])
-        // identifica le carte sul banco
-        let c1 = this.gfx_banco[10], c2 = this.gfx_banco[11]
-        // sovrappone le carte prese ad altri oggetti
-        c1.style.zOrder = 101
-        c2.style.zOrder = 101
         var indici = []
         indici[this.cronologia.slice(-1)[0].giocatore] = this.cronologia.slice(-1)[0].indice
         indici[this.cronologia.slice(-2,-1)[0].giocatore] = this.cronologia.slice(-2,-1)[0].indice
@@ -536,10 +382,14 @@ class Tavolo {
             this.punti_me += punti
             this.di_turno = this.primo_di_mano = 1
             // anima la presa
-            this.animaImmagine(c1, {x: c1.x, y: c1.y + 1.75*c1.height}, 500)
-            this.animaImmagine(c2, {x: c2.x, y: c2.y + 1.75*c2.height}, 500)
-            // nasconde le carte prese
-            setTimeout((a,b) => {a.style.visibility = b.style.visibility = 'hidden'}, 500, c1, c2)
+            $(`#${this.giocate[0]}`)
+                .css({zIndex: 100})
+                .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
+                .fadeOut()
+            $(`#${this.giocate[1]}`)
+                .css({zIndex: 100})
+                .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
+                .fadeOut()
             // pesca (l'animazione del 2° è leggermente più lenta, per distinguere visivamente i turni di pescata)
             setTimeout(this.daiCarta.bind(this), 500, 1, indici[1])
             setTimeout(this.daiCarta.bind(this), 900, 0, indici[0], 600)
@@ -548,9 +398,14 @@ class Tavolo {
             if (DEBUG) console.log(`PC prende ${punti} punti`)
             this.punti_pc += punti
             this.di_turno = this.primo_di_mano = 0
-            this.animaImmagine(c1, {x: c1.x, y: c1.y - 1.75*c1.height}, 500)
-            this.animaImmagine(c2, {x: c2.x, y: c2.y - 1.75*c2.height}, 500)
-            setTimeout((a,b) => {a.style.visibility = b.style.visibility = 'hidden'}, 500, c1, c2)
+            $(`#${this.giocate[0]}`)
+                .css({zIndex: 100})
+                .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
+                .fadeOut()
+            $(`#${this.giocate[1]}`)
+                .css({zIndex: 100})
+                .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
+                .fadeOut()
             setTimeout(this.daiCarta.bind(this), 500, 0, indici[0])
             setTimeout(this.daiCarta.bind(this), 900, 1, indici[1])
             setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), 2000, this)
@@ -567,6 +422,6 @@ class Tavolo {
             if (this.punti_me == this.punti_pc) window.alert('Pareggio!')
             if (this.punti_me > this.punti_pc) window.alert(`${this.punti_me} a ${this.punti_pc}: hai vinto tu!`)
             if (this.punti_me < this.punti_pc) window.alert(`${this.punti_pc} a ${this.punti_me}: ho vinto io!`)
-            this.avvia()
+            this.riavvia()
     }
-};
+}
