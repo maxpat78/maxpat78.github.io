@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.110"
+const revisione = "$Revisione: 1.111"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -54,12 +54,12 @@ class Mazzo {
     // ritorna un numero positivo se carta1 prende carta2, negativo in caso contrario
     // tiene conto del seme di briscola
     // se i semi sono diversi, prende la carta giocata prima
-    prende(carta1, carta2, prima_giocata) {
+    prende(carta1, carta2, prima) {
         // una sola briscola?
         if (carta1[1] == this.briscola[1] && carta2[1] != this.briscola[1]) return 1
         if (carta1[1] != this.briscola[1] && carta2[1] == this.briscola[1]) return -1
         // semi diversi?
-        if (carta1[1] != carta2[1]) return (prima_giocata==0)? 1 : -1
+        if (carta1[1] != carta2[1]) return (prima==0)? 1 : -1
         // semi uguali: compara i valori di presa
         return this.valore(carta1) - this.valore(carta2) 
     }
@@ -213,6 +213,7 @@ class Tavolo {
         {x: 320, y: 585}, // Umano
         {x: 410, y: 293} // Banco
         ]
+        this.attesa = 0 // il giocatore umano deve attendere l'esito della mano
         this.svuota()
         this.gfx_load = 0 // indica se le carte sono state completamente caricate
         this.carica_carte()
@@ -292,6 +293,7 @@ class Tavolo {
     daiCarta(giocatore, indice, tempo=1000) {
         var carta = this.mazzo.pesca()
         if (! carta) return
+        this.attesa = 1
         var vuoto = this.mazzo.vuoto()
         this.mani[giocatore][indice] = carta
         if (DEBUG) console.log(`giocatore ${giocatore} riceve ${carta} in posizione ${indice}: ${this.mani[giocatore]}`)
@@ -316,23 +318,24 @@ class Tavolo {
                             }
                         } )
         this.disegnaRestanti()
+        this.attesa = 0
     }
 
     // fa la distribuzione iniziale delle carte
     daiCarte() {
-        var tempo = 500 // la durata dell'animazione è leggermente diversa per ogni carta, così da distinguerle
+        var tempo = 700 // la durata dell'animazione è leggermente diversa per ogni carta, così da distinguerle
         for (var i=0; i<3; i++) {
             this.daiCarta(0, i, tempo-100) // al PC
             this.daiCarta(1, i, tempo) // a me
-            tempo += 500
         }
     }
 
     // gioca la carta indice=0..2 del giocatore=0..1
     gioca(giocatore, indice) {
         if (this.cronologia.length == 40) return
-        // impedisce il gioco umano finché ci sono animazioni in corso
-        if (giocatore && $(":animated").length) return
+        // non elabora i click sulle carte fino all'esito della mano
+        if (giocatore && this.attesa) return
+        if (giocatore) this.attesa = 1
         var pausa = 0
         var d_banco = this.giocate.length? 90:0 // seleziona una delle 2 posizioni sul banco
         var C = {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y } // coordinate della carta in mano
@@ -413,6 +416,7 @@ class Tavolo {
     
         this.disegnaRestanti()
         this.giocate = []
+        this.attesa = 0
         
         if (this.cronologia.length == 40) setTimeout(this.vittoria.bind(this), 1700)
         
