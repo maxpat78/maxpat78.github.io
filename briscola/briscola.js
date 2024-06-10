@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.112"
+const revisione = "$Revisione: 1.113"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -102,23 +102,14 @@ class IA {
     // determina chi fa presa e quanti punti riceve, ritornando un dizionario con i dati
     compara2(mia_carta, sua_carta, briscola, primo) {
         let punti = this.partita.mazzo.punti
-        // prende = 1 (io), 0 (lui)
+        // prendo = 1 (io), 0 (lui)
         // briscola = se mia_carta è una briscola
-        var o = {carta:mia_carta, prende:0, punti:0, guadagno:0, briscola:mia_carta[1]==briscola}
+        var o = {carta:mia_carta, prendo:0, punti:0, guadagno:0, briscola:mia_carta[1]==briscola}
         o.punti = punti(mia_carta) + punti(sua_carta)
-        // verifica se prendo io
-        // una sola briscola?
-        if (mia_carta[1] == briscola && sua_carta[1] != briscola)
-            o.prende = 1
-        // semi diversi?
-        else if (mia_carta[1] != sua_carta[1]) {
-            if (primo) o.prende = 1
-        }
-        // stesso seme?
-        else
-            o.prende = (this.partita.mazzo.prende(mia_carta, sua_carta) > 0)? 1 : 0
+        // determina se prendo
+        o.prendo = this.partita.mazzo.prende(mia_carta, sua_carta, this.partita.primo_di_mano) > 0? 1:0
         // calcola il guadagno come punti presi da lui o persi da me
-        if (o.prende)
+        if (o.prendo)
             o.guadagno = punti(sua_carta)
         else
             o.guadagno = punti(mia_carta)
@@ -136,7 +127,7 @@ class IA {
         var mano = this.partita.mani[0]
     
         // separa prese e lasciate
-        for (var i in casi) casi[i].prende ? prese.push(casi[i]) : perse.push(casi[i])
+        for (var i in casi) casi[i].prendo ? prese.push(casi[i]) : perse.push(casi[i])
 
         if (prese.length) {
             var con_punti = prese.filter((a) => a.punti)
