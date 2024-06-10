@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.111"
+const revisione = "$Revisione: 1.112"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -342,7 +342,7 @@ class Tavolo {
         // mostra e anima la carta giocata da mano a banco
         $(`#${this.mani[giocatore][indice]}`)
             .show()
-            .css({left: C.left, top: C.top, zIndex: d_banco})
+            .css({left: C.left, top: C.top, zIndex: d_banco+3}) // zIndex+3 sovrappone la giocata alla mano
             .animate({left: this.coord[2].x + d_banco, top: this.coord[2].y}, 500)
         // nasconde il dorso della carta giocata dal PC
         if (!giocatore)
@@ -361,11 +361,10 @@ class Tavolo {
             pausa=1600
             this.di_turno = 0
             // evita che la risposta del PC sia contemporanea all'animazione della giocata umana
-            setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), pausa, this)
+            if (this.cronologia.length < 40) setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), pausa, this)
         }
         // se ambedue hanno giocato, determina chi prende
-        if (this.giocate.length == 2)
-            setTimeout(this.arbitra.bind(this), pausa+1500, 0)
+        if (this.giocate.length == 2) setTimeout(this.arbitra.bind(this), pausa+1500, 0)
     }
 
     // determina chi ha vinto la mano, sposta le carte, pesca e prepara la prossima  mano
@@ -411,14 +410,15 @@ class Tavolo {
                 .fadeOut()
             setTimeout(this.daiCarta.bind(this), 500, 0, indici[0])
             setTimeout(this.daiCarta.bind(this), 900, 1, indici[1])
-            setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), 2000, this)
+            if (this.cronologia.length < 40) setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), 2000, this)
         }
     
         this.disegnaRestanti()
         this.giocate = []
         this.attesa = 0
-        
-        if (this.cronologia.length == 40) setTimeout(this.vittoria.bind(this), 1700)
+
+        // se sono state giocate tutte le mani, designa il vincitore
+         if (this.cronologia.length == 40) setTimeout(this.vittoria.bind(this), 1700)
         
     }
     
