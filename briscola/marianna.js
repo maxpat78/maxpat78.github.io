@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.000b"
+const revisione = "$Revisione: 1.001"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -18,7 +18,8 @@ const nome_valori = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Caval
 const nome_semi = ['Bastoni', 'Coppe', 'Danari', 'Spade']
 
 // punti crescenti per Marianna dichiarata (indipendentemente dal giocatore)
-const marianna_punti = [20,40,60,80]
+//~ const marianna_punti = [20,40,60,80]
+const marianna_punti = [40,60,80,100]
 
 
 // differenza di array: rimuove gli elementi in arr
@@ -90,22 +91,80 @@ class IA {
 
     // seleziona una carta con il criterio massimo beneficio, minimo danno
     algo2() {
-        var p = this.partita
-        var casi = []
-        if (p.primo_di_mano == 0)
+        if (this.partita.primo_di_mano == 0)
             return this.gioca_primo()
-        else {
-            var casi2 = this.casi()
-            for (var i=0; i < p.mani[0].length; i++) {
-                if (!p.mani[0][i]) continue // se la carta è undefined
-                let o = casi2.filter((x) => x.carta == p.mani[0][i])[0] // trova il dizionario relativo alla carta
-                casi.push( this.compara2(o, p.mani[0][i], p.giocate[1], p.mazzo.briscola[1], 0) )
-            }
-            var r = this.analizza4(casi)
-            return r
-        }
+        else
+            return this.gioca_secondo()
         if (DEBUG) console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
         return this.algo1()
+    }
+
+    // gioca primo di mano:
+    // - la carta di maggior valore che non può essere presa o
+    // - la carta di minor valore
+    // briscole o membri di marianne valgono di più
+    gioca_primo() {
+        // ottiene i casi per ogni giocata possibile
+        var casi = this.casi()
+        // cerca una carta che non può essere presa, ma non dia marianna (tiene R e C a oltranza)
+        casi.sort((a,b) => a.maggiori - b.maggiori)
+        console.log('casi (1)', casi)
+        for (var i=0; i < casi.length; i++) {
+            if (!casi[i].maggiori && !casi[i].pm) return this.partita.mani[0].indexOf(casi[i].carta)
+        }
+        // riordina per valore e restituisce la carta che vale meno
+        casi.sort((a,b) => a.valore - b.valore)
+        console.log('casi (2)', casi)
+        return this.partita.mani[0].indexOf(casi[0].carta)
+    }
+
+    // gioca secondo di mano, analizzando punti e probabilità per ogni carta giocabile
+    gioca_secondo() {
+        var p = this.partita
+        var casi = []
+        var casi2 = this.casi()
+        for (var i=0; i < p.mani[0].length; i++) {
+            if (!p.mani[0][i]) continue // se la carta è undefined
+            let o = casi2.filter((x) => x.carta == p.mani[0][i])[0] // trova il dizionario relativo alla carta
+            casi.push( this.compara2(o, p.mani[0][i], p.giocate[1], p.mazzo.briscola[1], 0) )
+        }
+        var r = this.analizza4(casi)
+        return r
+    }
+
+    // per ogni carta della mano, determina quante carte può ancora prendere e da quante può essere presa
+    // valuta le marianne ancora possibili
+    // assegna un valore conseguente
+    casi() {
+        var casi = [], pm=0
+        var m = this.partita.mazzo
+        var mano_mia = this.partita.mani[0].filter((x) => x != undefined)
+        var mano_sua = this.partita.mani[1].filter((x) => x != undefined)
+        var ignote = [...m.mazzo].concat(mano_sua)
+        for (var carta of mano_mia) {
+            pm=0
+            var maggiori = ignote.map((x) => {if (m.prende(x, carta, 1) > 0) return x})
+            .filter((x) => x != undefined)
+            var minori = ignote.map((x) => {if (m.prende(carta, x, 1) > 0) return x})
+            .filter((x) => x != undefined)
+            var punti = Math.max(...minori.map((x) => m.punti(x))) // punti massimi che potrebbe prendere
+            if (punti == -Infinity) punti = 0
+            // se è un Re o Cavallo, e la relativa marianna non è stata ancora dichiarata...
+            if ('RC'.includes(carta[0]) && !this.partita.marianne_dichiarate.includes(carta[1])) {
+                // ...ma potrebbe realizzarla... (non nelle ultime 5 mani)
+                if (this.partita.ha_marianne(ignote.concat(mano_mia)).length && this.partita.cronologia.length < 30)
+                    // ...i punti che potrebbe "prendere" possono essere superiori
+                    // MA ridotti al calare della probabilità di fare marianna (che cala all'avanzare della partita)
+                    // stima tale probabilità come rapporto tra le carte restanti nel mazzo e le carte totali iniziali ignote (30 nel mazzo, 5 avversarie)
+                    //~ punti = Math.max(punti, Math.ceil(marianna_punti[this.partita.marianne] * (this.partita.mazzo.carte()/35)))
+                    pm = this.partita.mazzo.carte()/35
+            }
+            var v = m.punti(carta) + m.valore(carta) // somma del valore in punti e della forza di presa
+            // valore max carte normali: 11 (punti A) + 9 (presa A) = 20; min: 2 (punti F) + 5 (presa F) = 7
+            casi.push({carta: carta, valore: v, minori: minori.length, maggiori: maggiori.length, pm: pm})
+        }
+        casi.sort((a,b) => a.valore - b.valore)
+        return casi
     }
 
     // determina chi fa presa e quanti punti riceve, ritornando un dizionario con i dati
@@ -127,82 +186,45 @@ class IA {
     }
 
     // ritorna l'indice della migliore mossa possibile, rapportato alla mano del PC
+    // Re e Cavallo sono conservati a oltranza finché è possibile la marianna
     analizza4(casi) {
-        var casi2 = this.casi()
-        if (DEBUG) console.log('analizza4:', casi, casi2)
+        if (DEBUG) console.log('analizza4:\n', casi)
         var prese=[], perse=[]
         var mano = this.partita.mani[0]
 
         // separa prese e lasciate
         for (var i in casi) casi[i].prendo ? prese.push(casi[i]) : perse.push(casi[i])
 
-        // cerca una presa che dia punti, senza sacrificare un'eventuale marianna
+        // cerca una presa che dia punti
         prese.sort((a,b) => b.punti - a.punti) // ordina per punti, dalla più conveniente
         for (var i=0; i < prese.length; i++) {
-            if (prese[i].punti) {
-                if (prese[i].valore < 29) return mano.indexOf(prese[i].carta)
-                // sacrifica la potenziale marianna solo per prendere un carico (A, 3)
-                if (prese[i].punti > 8) return mano.indexOf(prese[i].carta)
-            }
+            if (prese[i].punti && !prese[i].pm) return mano.indexOf(prese[i].carta)
         }
     
-        // cerca la carta di minor valore che non sacrifichi un'eventuale marianna
-        if (perse.length) {
-            perse.sort((a,b) => a.valore - b.valore) // ordina per valore, dalla meno preziosa
-            return mano.indexOf(perse[0].carta)
-        }
-        prese.sort((a,b) => a.valore - b.valore)
-        if (prese.length) return mano.indexOf(prese[0].carta)
-        perse.sort((a,b) => a.valore - b.valore)
-        if (perse.length) return mano.indexOf(perse[0].carta)
-    }
+        // se ci sono possibili prese senza punti che agevolano il successivo gioco 
+        // di carte imprendibili, tipo gli A, le realizza
+        console.log('PSP:', prese.filter((x) => x.punti == 0), prese.filter((x) => x.maggiori == 0))
+        var psp = prese.filter((x) => x.punti == 0)
+        if (perse.filter((x) => x.maggiori == 0 && x.pm == 0).length && psp.length) return mano.indexOf(psp[0].carta)
 
-    // gioca primo di mano:
-    // - la carta di maggior valore che non può essere presa o
-    // - la carta di minor valore
-    // briscole o membri di marianne valgono di più
-    gioca_primo() {
-        // ottiene i casi per ogni giocata possibile
-        var casi = this.casi()
-        // cerca una carta che non può essere presa ma non dia marianna
-        casi.sort((a,b) => b.maggiori - a.maggiori)
-        for (var i=0; i < casi.length; i++) {
-            if (!casi[i].maggiori && casi[i].valore < 29) return this.partita.mani[0].indexOf(casi[i].carta)
+        // nella fase finale, adotta un approccio diverso
+        if (this.partita.cronologia.length > 37)
+            perse.sort((a,b) => b.minori - a.minori || a.valore - b.valore) // riordina per possibilità di presa ed, eventualmente, per valore
+        else 
+            // cerca la carta di minor valore
+            //~ perse.sort((a,b) => a.valore - b.valore || a.minori - b.minori) // riordina per valore e possibilità di presa, dalla meno preziosa
+            perse.sort((a,b) => a.valore - b.valore) // riordina per valore, dalla meno preziosa
+        for (var i=0; i < perse.length; i++) {
+            if (!perse[i].pm) return mano.indexOf(perse[i].carta)
         }
-        // riordina per valore e restituisce la carta che vale meno
-        casi.sort((a,b) => a.valore - b.valore)
-        return this.partita.mani[0].indexOf(casi[0].carta)
-    }
 
-    // per ogni carta della mano, determina quante carte può ancora prendere e da quante può essere presa
-    // valuta le marianne ancora possibili
-    // assegna un valore conseguente
-    casi() {
-        var casi = []
-        var m = this.partita.mazzo
-        var mano_mia = this.partita.mani[0].filter((x) => x != undefined)
-        var mano_sua = this.partita.mani[1].filter((x) => x != undefined)
-        var ignote = [...m.mazzo].concat(mano_sua)
-        for (var carta of mano_mia) {
-            var maggiori = ignote.map((x) => {if (m.prende(x, carta, 1) > 0) return x})
-            .filter((x) => x != undefined)
-            var minori = ignote.map((x) => {if (m.prende(carta, x, 1) > 0) return x})
-            .filter((x) => x != undefined)
-            var punti = Math.max(...minori.map((x) => m.punti(x))) // punti massimi che potrebbe prendere
-            if (punti == -Infinity) punti = 0
-            // se è un Re o Cavallo, e la relativa marianna non è stata ancora dichiarata...
-            if ('RC'.includes(carta[0]) && !this.partita.marianne_dichiarate.includes(carta[1])) {
-                // ...ma potrebbe realizzarla... (non nelle ultime 5 mani)
-                if (this.partita.ha_marianne(ignote.concat(mano_mia)).length && this.partita.cronologia.length < 31)
-                    // ...i punti che potrebbe "prendere" sono superiori
-                    punti = marianna_punti[this.partita.marianne]
-            }
-            var v = m.punti(carta) + m.valore(carta) // somma del valore in punti e della forza di presa
-            casi.push({carta: carta, valore: punti+v, minori: minori.length, maggiori: maggiori.length})
+        // se non è stato ancora possibile scegliere...
+        if (prese.length) {
+            prese.sort((a,b) => a.valore - b.valore)
+            return mano.indexOf(prese[0].carta)
         }
-        casi.sort((a,b) => a.valore - b.valore)
-        if (DEBUG) console.log('casi:', casi)
-        return casi
+
+        return mano.indexOf(perse[0].carta)
     }
 
     // conta le eventuali briscole in mano
@@ -426,11 +448,11 @@ class Tavolo {
             this.di_turno = this.primo_di_mano = 1
             // anima la presa
             $(`#${this.giocate[0]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
                 .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
                 .fadeOut()
             $(`#${this.giocate[1]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
                 .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
                 .fadeOut()
             // pesca (l'animazione del 2° è leggermente più lenta, per distinguere visivamente i turni di pescata)
@@ -442,11 +464,11 @@ class Tavolo {
             this.punti_pc += punti
             this.di_turno = this.primo_di_mano = 0
             $(`#${this.giocate[0]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
                 .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
                 .fadeOut()
             $(`#${this.giocate[1]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
                 .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
                 .fadeOut()
             setTimeout(this.daiCarta.bind(this), 500, 0, indici[0])
@@ -474,10 +496,10 @@ class Tavolo {
     // cerca la Marianna nella mano
     ha_marianne(m) {
         var marianne = []
-        if (m.includes('RD') && m.includes('CD')) marianne.push('D')
-        if (m.includes('RS') && m.includes('CS')) marianne.push('S')
-        if (m.includes('RB') && m.includes('CB')) marianne.push('B')
-        if (m.includes('RC') && m.includes('CC')) marianne.push('C')
+        if (m.includes('RD') && m.includes('CD') && !this.marianne_dichiarate.includes('D')) marianne.push('D')
+        if (m.includes('RS') && m.includes('CS') && !this.marianne_dichiarate.includes('S')) marianne.push('S')
+        if (m.includes('RB') && m.includes('CB') && !this.marianne_dichiarate.includes('B')) marianne.push('B')
+        if (m.includes('RC') && m.includes('CC') && !this.marianne_dichiarate.includes('C')) marianne.push('C')
         //~ console.log('ha_marianne returns', marianne)
         return marianne
     }
@@ -487,7 +509,8 @@ class Tavolo {
         if (this.marianne_dichiarate.includes(seme)) return
         this.marianne_dichiarate.push(seme)
         this.mazzo.briscola = '2'+seme // cambia briscola
-        window.alert(`Dichiaro marianna di ${this.mazzo.seme(this.mazzo.briscola)}! (da ${marianna_punti[this.marianne]} punti)`)
+        var sogg = giocatore? 'Giocatore' : 'PC'
+        window.alert(`${sogg} dichiara marianna di ${this.mazzo.seme(this.mazzo.briscola)}! (da ${marianna_punti[this.marianne]} punti)`)
         if (giocatore)
             this.punti_me += marianna_punti[this.marianne]
         else
