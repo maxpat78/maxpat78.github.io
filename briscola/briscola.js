@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.113"
+const revisione = "$Revisione: 1.114"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -18,6 +18,16 @@ const nome_valori = ['Due', 'Quattro', 'Cinque', 'Sei', 'Sette', 'Fante', 'Caval
 const nome_semi = ['Bastoni', 'Coppe', 'Danari', 'Spade']
 
 
+// differenza di array: rimuove gli elementi in arr
+Array.prototype.diff = function(arr) {
+    for (a of arr) {
+        var i = this.indexOf(a)
+        if (i > -1) this.splice(i, 1)
+    }
+    return this
+}
+
+
 class Mazzo {
     constructor() {
         this.mazzo = []
@@ -25,9 +35,7 @@ class Mazzo {
             for (let j in mazzo_valori)
                 this.mazzo.push(mazzo_valori[j]+mazzo_semi[i])
         this.mazzo.sort((a,b) => 0.5 - Math.random()) // ordina a caso (=mescola)
-        this.briscola = this.mazzo.slice(-1)[0] // la carta di briscola sarà l'ultima pescata nel mazzo riordinato
-        // per la Marianna senza briscola, usare 'NN'
-        if (DEBUG) console.log(`La briscola è ${this.seme(this.briscola)}`)
+        this.briscola = this.mazzo.slice(-1)[0]
     }
 
     // pesca una carta, rimuovendola dalla pila
@@ -53,7 +61,7 @@ class Mazzo {
 
     // ritorna un numero positivo se carta1 prende carta2, negativo in caso contrario
     // tiene conto del seme di briscola
-    // se i semi sono diversi, prende la carta giocata prima
+    // se i semi sono diversi, prende la carta giocata prima (0=carta1)
     prende(carta1, carta2, prima) {
         // una sola briscola?
         if (carta1[1] == this.briscola[1] && carta2[1] != this.briscola[1]) return 1
@@ -70,7 +78,6 @@ class IA {
     gioca(partita) {
         this.partita = partita
         var carta = this.algo2()
-        //~ console.log(`algo2 ha selezionato la possibile mossa in posizione ${carta}`)
         partita.gioca(0, carta)
         this.di_turno = 1
     }
@@ -80,31 +87,89 @@ class IA {
 
     // seleziona una carta con il criterio massimo beneficio, minimo danno
     algo2() {
-        var p = this.partita
-        var possibili = []
-        // se il PC gioca primo di mano...
-        if (p.primo_di_mano == 0) {
-            // ...sceglie la carta di minor valore
-            return this.minore()
-        }
-        // ...altrimenti, cerca la mossa migliore
-        else {
-            for (var i=0; i < p.mani[0].length; i++) {
-                if (!p.mani[0][i]) continue // se la carta è undefined
-                possibili.push( this.compara2(p.mani[0][i], p.giocate[1], p.mazzo.briscola[1], 0) )
-            }
-            return this.analizza3(possibili)
-        }
+        if (this.partita.primo_di_mano == 0)
+            return this.gioca_primo()
+        else
+            return this.gioca_secondo()
         if (DEBUG) console.log('ATTENZIONE: algo2 risponde a caso, non dovrebbe succedere MAI!!!')
         return this.algo1()
     }
 
+    // gioca primo di mano:
+    // - la carta di maggior valore che non può essere presa o
+    // - la carta di minor valore
+    // le briscole valgono di più
+    gioca_primo() {
+        // ottiene i casi per ogni giocata possibile
+        var casi = this.casi()
+        // cerca una carta che non può essere presa
+        casi.sort((a,b) => a.maggiori - b.maggiori)
+        if (DEBUG) console.log('casi (1)', casi)
+        if (this.partita.cronologia.length == 32) {
+            if (DEBUG) console.log('valuta la presa della briscola')
+            var punti_mano = this.conta_punti(this.partita.mani[0])
+            var punti_presi = this.partita.cronologia.reduce((tot, x) => tot + this.partita.mazzo.punti(x.carta), 0)
+            if (DEBUG) console.log('punti presi, mano:', punti_presi, punti_mano)
+            if (this.partita.mazzo.punti(this.partita.mazzo.briscola)) {
+                // riordina per valore e restituisce la carta di maggior valore, per indurre l'avversario a prendere
+                casi.sort((a,b) => b.valore - a.valore)
+                return this.partita.mani[0].indexOf(casi[0].carta)
+            }
+        }
+        for (var i=0; i < casi.length; i++) {
+            if (!casi[i].maggiori) return this.partita.mani[0].indexOf(casi[i].carta)
+        }
+        // riordina per valore e restituisce la carta che vale meno
+        casi.sort((a,b) => a.valore - b.valore)
+        if (DEBUG) console.log('casi (2)', casi)
+        return this.partita.mani[0].indexOf(casi[0].carta)
+    }
+
+    // gioca secondo di mano, analizzando punti e probabilità per ogni carta giocabile
+    gioca_secondo() {
+        var p = this.partita
+        var casi = []
+        var casi2 = this.casi()
+        for (var i=0; i < p.mani[0].length; i++) {
+            if (!p.mani[0][i]) continue // se la carta è undefined
+            let o = casi2.filter((x) => x.carta == p.mani[0][i])[0] // trova il dizionario relativo alla carta
+            casi.push( this.compara2(o, p.mani[0][i], p.giocate[1], p.mazzo.briscola[1], 0) )
+        }
+        var r = this.analizza4(casi)
+        return r
+    }
+
+    // per ogni carta della mano, determina quante carte può ancora prendere e da quante può essere presa
+    // valuta le marianne ancora possibili
+    // assegna un valore conseguente
+    casi() {
+        var casi = [], pm=0
+        var m = this.partita.mazzo
+        var mano_mia = this.partita.mani[0].filter((x) => x != undefined)
+        var mano_sua = this.partita.mani[1].filter((x) => x != undefined)
+        var ignote = [...m.mazzo].concat(mano_sua)
+        for (var carta of mano_mia) {
+            var maggiori = ignote.map((x) => {if (m.prende(x, carta, 1) > 0) return x})
+            .filter((x) => x != undefined)
+            var minori = ignote.map((x) => {if (m.prende(carta, x, 1) > 0) return x})
+            .filter((x) => x != undefined)
+            var punti = Math.max(...minori.map((x) => m.punti(x))) // punti massimi che potrebbe prendere
+            if (punti == -Infinity) punti = 0
+            var v = m.punti(carta) + m.valore(carta) // somma del valore in punti e della forza di presa
+            // valore max carte normali: 11 (punti A) + 9 (presa A) = 20; min: 2 (punti F) + 5 (presa F) = 7
+            casi.push({carta: carta, valore: v, minori: minori.length, maggiori: maggiori.length})
+        }
+        casi.sort((a,b) => a.valore - b.valore)
+        return casi
+    }
+
     // determina chi fa presa e quanti punti riceve, ritornando un dizionario con i dati
-    compara2(mia_carta, sua_carta, briscola, primo) {
+    compara2(dict, mia_carta, sua_carta, briscola, primo) {
         let punti = this.partita.mazzo.punti
         // prendo = 1 (io), 0 (lui)
         // briscola = se mia_carta è una briscola
         var o = {carta:mia_carta, prendo:0, punti:0, guadagno:0, briscola:mia_carta[1]==briscola}
+        o = {...dict, ...o}
         o.punti = punti(mia_carta) + punti(sua_carta)
         // determina se prendo
         o.prendo = this.partita.mazzo.prende(mia_carta, sua_carta, this.partita.primo_di_mano) > 0? 1:0
@@ -117,82 +182,71 @@ class IA {
     }
 
     // ritorna l'indice della migliore mossa possibile, rapportato alla mano del PC
-    // miglior mossa è quella che dà più punti al PC, o meno punti all'avversario
-    // tenta di conservare le briscole
-    analizza3(casi) {
-        if (DEBUG) console.log('mosse possibili:', casi)
+    // Re e Cavallo sono conservati a oltranza finché è possibile la marianna
+    analizza4(casi) {
+        if (DEBUG) console.log('analizza4:\n', casi)
         var prese=[], perse=[]
-        var miglior_punto = null
-        var miglior_senza = null
         var mano = this.partita.mani[0]
-    
+
         // separa prese e lasciate
         for (var i in casi) casi[i].prendo ? prese.push(casi[i]) : perse.push(casi[i])
 
-        if (prese.length) {
-            var con_punti = prese.filter((a) => a.punti)
-            var senza_briscola = prese.filter((a) => !a.briscola)
-            if (con_punti.length) {
-                con_punti.sort((a,b) => b.punti - a.punti) // ordina per punti
-                miglior_punto = con_punti[0]
-                con_punti.sort((a,b) => { // per briscola
-                    if (a.briscola && !b.briscola) return 1
-                    if (b.briscola && !a.briscola) return -1
-                    return this.partita.mazzo.valore(a.carta) - this.partita.mazzo.valore(b.carta)
-                })
-                // preferisce il miglior punto senza briscola o con briscola minore
-                if (miglior_punto.briscola && miglior_punto != con_punti[0])
-                    miglior_punto = con_punti[0]
+        // cerca una presa che dia punti
+        prese.sort((a,b) => b.punti - a.punti) // ordina per punti, dalla più conveniente
+    
+        if (this.partita.cronologia.length == 33) {
+            if (DEBUG) console.log('valuta la presa della briscola')
+            // cerca di lasciare se la briscola ha valore intrinseco
+            if (this.partita.mazzo.punti(this.partita.mazzo.briscola)) {
+                if (perse.length) {
+                    perse.sort((a,b) => a.valore - b.valore)
+                    return mano.indexOf(perse[0].carta)
+                }
             }
-            if (senza_briscola.length) {
-                senza_briscola.sort((a,b) => b.punti - a.punti) 
-                miglior_senza = senza_briscola[0]
-            }
-            if (DEBUG) console.log('prese:',prese,'\n','migliore senza:',miglior_senza,'\n','miglior punto:', miglior_punto)
-            // preferisce la miglior presa senza briscola che dà punti
-            if (miglior_senza && miglior_senza.punti)
-                return mano.indexOf(miglior_senza.carta)
-            // preferisce la presa che dà punti e o non è di briscola o, essendolo, dà un valore aggiunto
-            if (miglior_punto && miglior_punto.punti && (!miglior_punto.briscola || miglior_punto.guadagno))
-                return mano.indexOf(miglior_punto.carta)
         }
-        // se non può lasciare...
-        if (!perse.length) {
-            if (miglior_senza) return mano.indexOf(miglior_senza.carta)
-            if (miglior_punto) return mano.indexOf(miglior_punto.carta)
+
+        for (var i=0; i < prese.length; i++) {
+            if (prese[i].punti) return mano.indexOf(prese[i].carta)
+        }
+    
+        // se ci sono possibili prese senza punti che agevolano il successivo gioco 
+        // di carte imprendibili, tipo gli A, le realizza
+        if (DEBUG) console.log('PSP:', prese.filter((x) => x.punti == 0), prese.filter((x) => x.maggiori == 0))
+        var psp = prese.filter((x) => x.punti == 0)
+        if (perse.filter((x) => x.maggiori == 0).length && psp.length) return mano.indexOf(psp[0].carta)
+
+        // nella fase finale, adotta un approccio diverso
+        if (this.partita.cronologia.length > 34)
+            perse.sort((a,b) => a.minori - b.minori || a.valore - b.valore) // carta con meno possibilità di presa e valore
+        else 
+            // cerca la carta di minor valore e possibilità di presa
+            perse.sort((a,b) => a.valore - b.valore + b.minori - a.minori)
+    
+        if (perse.length) return mano.indexOf(perse[0].carta)
+
+        // se non è stato ancora possibile scegliere...
+        if (prese.length) {
+            prese.sort((a,b) => a.valore - b.valore)
             return mano.indexOf(prese[0].carta)
         }
 
-        // come valutare la perdita di una briscola?
-        perse.sort( (a,b) => (a.guadagno + (a.briscola? 2:0)) - (b.guadagno + (b.briscola? 2:0)))
-        if (DEBUG) console.log('perse:', perse)
-        // prende anche se la carta lasciata darebbe punti extra
-        if (prese.length && perse[0].guadagno)
-            return mano.indexOf(miglior_punto? miglior_punto.carta : prese[0].carta)
-        // altrimenti, lascia
         return mano.indexOf(perse[0].carta)
     }
 
-    // ritorna il valore di una carta, +5 se è di briscola
-    // se puro=1, non distingue le briscole
-    valore(carta, puro=0) {
-        var valore = this.partita.mazzo.punti(carta)
-        if (carta[1] == this.partita.mazzo.briscola[1] && !puro) valore += 5
-        return valore
+    // conta le eventuali briscole in mano
+    briscole() {
+        var briscole = 0
+        for (var c of this.partita.mani[0])
+            if (c && c[1] == this.partita.mazzo.briscola[1]) briscole++
+        return briscole
     }
-    
-    // determina quale delle carte in mano ha minor valore
-    minore() {
-        var c, c1, c2
-        var mano = this.partita.mani[0].filter((x) => x) // clona in un array locale le sole carte valide
-        mano.sort( (a,b) => this.valore(a,1) - this.valore(b,1) )
-        c1 = mano[0]
-        mano.sort( (a,b) => this.valore(a) - this.valore(b) )
-        c2 = mano[0]
-        c = c1
-        if (c1[1] == this.partita.mazzo.briscola[1]) c = c2
-        if (DEBUG) console.log(c, 'è la carta minore fra', mano)
-        return this.partita.mani[0].indexOf(c)
+
+    // conta i punti contenuti in un array di carte
+    conta_punti(mano) {
+        var punti = 0
+        for (var c of mano)
+            if (c) punti += this.partita.mazzo.punti(c)
+        return punti
     }
 }
 
@@ -208,11 +262,35 @@ class Tavolo {
         this.svuota()
         this.gfx_load = 0 // indica se le carte sono state completamente caricate
         this.carica_carte()
+
+        $.ajax({
+          url: "aiuto_briscola.txt",
+          dataType: "text",
+          success: function(testo) {
+            mostra(testo)
+          }
+        })
+        var popup = $("<div>").css({
+          position: "absolute",
+          top: 0.25 * window.outerHeight,
+          left: 0.25 * window.innerWidth,
+          width: 0.5 * window.innerWidth,
+          height: 0.75 * window.outerHeight,
+          backgroundColor: "rgba(255, 255, 255, 1)",
+          zIndex: 1000
+        })
+        .click(function() {popup.remove()})
+        function mostra(data) {
+          var contenutoTesto = $("<p>").html(data)
+          popup.append(contenutoTesto)
+          $("body").append(popup)
+        }
     }
 
     // azzera i parametri di partita
     svuota() {
         this.mazzo = new Mazzo()
+        if (DEBUG) console.log(`La briscola è ${this.mazzo.seme(this.mazzo.briscola)}`)
         this.mani = [[], []] // array di array con le 3 carte simboliche in mano (0=PC, 1=umano)
         this.giocate = [] // carte giocate sul banco (0=PC, 1=umano)
         this.di_turno = 1 // chi deve fare la mossa corrente (0=PC, 1=umano)
@@ -298,7 +376,7 @@ class Tavolo {
                                 $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
                                 $(`#${carta}`).click(function() {partita.gioca(1,indice)})
                                 if (!vuoto)
-                                    $(this).hide() // nasconde il dorso (fade/ rotateY per simulare la girata?)
+                                    $(this).hide() // nasconde il dorso
                             }
                             else {
                                 $(this).css({zIndex: indice}) // sposta il dorso del PC al livello corretto nel ventaglio
@@ -376,11 +454,11 @@ class Tavolo {
             this.di_turno = this.primo_di_mano = 1
             // anima la presa
             $(`#${this.giocate[0]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
                 .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
                 .fadeOut()
             $(`#${this.giocate[1]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
                 .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
                 .fadeOut()
             // pesca (l'animazione del 2° è leggermente più lenta, per distinguere visivamente i turni di pescata)
@@ -392,11 +470,11 @@ class Tavolo {
             this.punti_pc += punti
             this.di_turno = this.primo_di_mano = 0
             $(`#${this.giocate[0]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
                 .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
                 .fadeOut()
             $(`#${this.giocate[1]}`)
-                .css({zIndex: 100})
+                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
                 .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
                 .fadeOut()
             setTimeout(this.daiCarta.bind(this), 500, 0, indici[0])
