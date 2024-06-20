@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.001"
+const revisione = "$Revisione: 1.002"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -108,13 +108,13 @@ class IA {
         var casi = this.casi()
         // cerca una carta che non può essere presa, ma non dia marianna (tiene R e C a oltranza)
         casi.sort((a,b) => a.maggiori - b.maggiori)
-        console.log('casi (1)', casi)
+        if (DEBUG) console.log('casi (1)', casi)
         for (var i=0; i < casi.length; i++) {
             if (!casi[i].maggiori && !casi[i].pm) return this.partita.mani[0].indexOf(casi[i].carta)
         }
         // riordina per valore e restituisce la carta che vale meno
         casi.sort((a,b) => a.valore - b.valore)
-        console.log('casi (2)', casi)
+        if (DEBUG) console.log('casi (2)', casi)
         return this.partita.mani[0].indexOf(casi[0].carta)
     }
 
@@ -203,7 +203,7 @@ class IA {
     
         // se ci sono possibili prese senza punti che agevolano il successivo gioco 
         // di carte imprendibili, tipo gli A, le realizza
-        console.log('PSP:', prese.filter((x) => x.punti == 0), prese.filter((x) => x.maggiori == 0))
+        if (DEBUG) console.log('PSP:', prese.filter((x) => x.punti == 0), prese.filter((x) => x.maggiori == 0))
         var psp = prese.filter((x) => x.punti == 0)
         if (perse.filter((x) => x.maggiori == 0 && x.pm == 0).length && psp.length) return mano.indexOf(psp[0].carta)
 
@@ -211,9 +211,9 @@ class IA {
         if (this.partita.cronologia.length > 37)
             perse.sort((a,b) => b.minori - a.minori || a.valore - b.valore) // riordina per possibilità di presa ed, eventualmente, per valore
         else 
-            // cerca la carta di minor valore
+            // cerca la carta di minor valore e possibilità di presa
             //~ perse.sort((a,b) => a.valore - b.valore || a.minori - b.minori) // riordina per valore e possibilità di presa, dalla meno preziosa
-            perse.sort((a,b) => a.valore - b.valore) // riordina per valore, dalla meno preziosa
+            perse.sort((a,b) => a.valore - b.valore + b.minori - a.minori) // riordina per valore, dalla meno preziosa
         for (var i=0; i < perse.length; i++) {
             if (!perse[i].pm) return mano.indexOf(perse[i].carta)
         }
@@ -253,6 +253,32 @@ class Tavolo {
         this.carica_carte()
         this.punti_pc = this.punti_me = 0
         this.marianne = 0
+        $.ajax({
+          url: "aiuto_marianna.txt",
+          dataType: "text",
+          success: function(testo) {
+            mostra(testo)
+          }
+        })
+        var popup = $("<div>").css({
+          position: "absolute",
+          //~ top: "25%",
+          //~ left: "25%",
+          //~ width: "50%",
+          //~ height: "65%",
+          top: 0.25 * window.outerHeight,
+          left: 0.25 * window.innerWidth,
+          width: 0.5 * window.innerWidth,
+          height: 0.75 * window.outerHeight,
+          backgroundColor: "rgba(255, 255, 255, 1)",
+          zIndex: 1000
+        })
+        .click(function() {popup.remove()})
+        function mostra(data) {
+          var contenutoTesto = $("<p>").html(data)
+          popup.append(contenutoTesto)
+          $("body").append(popup)
+        }
     }
 
     continua() {
