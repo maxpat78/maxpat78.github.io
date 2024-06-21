@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.002"
+const revisione = "$Revisione: 1.003"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -209,7 +209,7 @@ class IA {
 
         // nella fase finale, adotta un approccio diverso
         if (this.partita.cronologia.length > 37)
-            perse.sort((a,b) => b.minori - a.minori || a.valore - b.valore) // riordina per possibilità di presa ed, eventualmente, per valore
+            perse.sort((a,b) => a.minori - b.minori || a.valore - b.valore) // riordina per possibilità di presa ed, eventualmente, per valore
         else 
             // cerca la carta di minor valore e possibilità di presa
             //~ perse.sort((a,b) => a.valore - b.valore || a.minori - b.minori) // riordina per valore e possibilità di presa, dalla meno preziosa
