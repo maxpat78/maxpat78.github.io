@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.114"
+const revisione = "$Revisione: 1.115"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -262,29 +262,19 @@ class Tavolo {
         this.svuota()
         this.gfx_load = 0 // indica se le carte sono state completamente caricate
         this.carica_carte()
-
+    
+        $('<div id="dialog" title="Regole della Briscola">').appendTo("body")
+    
         $.ajax({
           url: "aiuto_briscola.txt",
           dataType: "text",
-          success: function(testo) {
-            mostra(testo)
+          success: function(s) {
+            $("#dialog")
+            .append($("<p>").html(s))
+            .dialog()
           }
         })
-        var popup = $("<div>").css({
-          position: "absolute",
-          top: 0.25 * window.outerHeight,
-          left: 0.25 * window.innerWidth,
-          width: 0.5 * window.innerWidth,
-          height: 0.75 * window.outerHeight,
-          backgroundColor: "rgba(255, 255, 255, 1)",
-          zIndex: 1000
-        })
-        .click(function() {popup.remove()})
-        function mostra(data) {
-          var contenutoTesto = $("<p>").html(data)
-          popup.append(contenutoTesto)
-          $("body").append(popup)
-        }
+
     }
 
     // azzera i parametri di partita

@@ -1,6 +1,4 @@
-﻿REGOLE DELLA MARIANNA<br/>
-<br/>
-La Marianna (o Cinquecento) si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
+﻿La Marianna (o Cinquecento) si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
 <br/>
 I giocatori ricevono 5 carte ognuno e, a turno, ne giocano una con l'obiettivo di prendere quella avversaria e fare punti.<br/>
 <br/>
@@ -14,6 +12,4 @@ Quindi ciascuno, a cominciare da chi ha preso, pesca una carta e gioca nuovament
 <br/>
 Prese tutte le carte, si ricomincia dall'avversario e si procede di smazzata in smazzata finché alcuno supera i 500 punti.<br/>
 <br/>
-In questa versione del gioco, le marianne sono dichiarate automaticamente anche per il giocatore umano. Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC), il numero di carte nel mazzo e il seme di briscola.<br/>
-<br/>
-[CLICK PER CHIUDERE]
+In questa versione del gioco, le marianne sono dichiarate automaticamente anche per il giocatore umano. Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC), il numero di carte nel mazzo e il seme di briscola.

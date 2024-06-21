@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.003"
+const revisione = "$Revisione: 1.004"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -253,32 +253,17 @@ class Tavolo {
         this.carica_carte()
         this.punti_pc = this.punti_me = 0
         this.marianne = 0
+        $('<div id="dialog" title="Regole della Marianna">').appendTo("body")
+    
         $.ajax({
           url: "aiuto_marianna.txt",
           dataType: "text",
-          success: function(testo) {
-            mostra(testo)
+          success: function(s) {
+            $("#dialog")
+            .append($("<p>").html(s))
+            .dialog()
           }
         })
-        var popup = $("<div>").css({
-          position: "absolute",
-          //~ top: "25%",
-          //~ left: "25%",
-          //~ width: "50%",
-          //~ height: "65%",
-          top: 0.25 * window.outerHeight,
-          left: 0.25 * window.innerWidth,
-          width: 0.5 * window.innerWidth,
-          height: 0.75 * window.outerHeight,
-          backgroundColor: "rgba(255, 255, 255, 1)",
-          zIndex: 1000
-        })
-        .click(function() {popup.remove()})
-        function mostra(data) {
-          var contenutoTesto = $("<p>").html(data)
-          popup.append(contenutoTesto)
-          $("body").append(popup)
-        }
     }
 
     continua() {

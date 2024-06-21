@@ -1,6 +1,4 @@
-﻿REGOLE DELLA BRISCOLA<br/>
-<br/>
-La Briscola si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
+﻿La Briscola si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
 <br/>
 La prima carta del mazzo è collocata di traverso, scoperta, sotto ad esso e designa il seme di briscola, ultima carta da pescare.<br/>
 <br/>
@@ -14,6 +12,4 @@ Quindi ciascuno, iniziando da chi ha preso, pesca una carta e gioca nuovamente.<
 <br/>
 Vince la smazzata chi fa 61 punti.<br/>
 <br/>
-Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC) e il numero di carte nel mazzo.<br/>
-<br/>
-[CLICK PER CHIUDERE]
+Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC) e il numero di carte nel mazzo.
