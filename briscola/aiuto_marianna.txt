@@ -12,4 +12,5 @@ Quindi ciascuno, a cominciare da chi ha preso, pesca una carta e gioca nuovament
 <br/>
 Prese tutte le carte, si ricomincia dall'avversario e si procede di smazzata in smazzata finché alcuno supera i 500 punti.<br/>
 <br/>
-In questa versione del gioco, le marianne sono dichiarate automaticamente anche per il giocatore umano. Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC), il numero di carte nel mazzo e il seme di briscola.
+Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC), il numero di carte nel mazzo e l'eventuale seme di briscola.<br/>
+Per dichiarare marianna, fare click su Re o Cavallo e scegliere l'apposita voce dal menù a comparsa.

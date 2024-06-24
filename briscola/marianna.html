@@ -10,8 +10,45 @@
     <script type="text/javascript" src="marianna.js"></script>
 </head>
 
+<style>
+    #popup-menu {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none;
+        background-color: #f9f9f9;
+        min-width: 20px;
+        box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+
+    #popup-menu ul {
+        list-style: none;
+        font-family: Arial, Sans-Serif
+    }
+
+    #popup-menu li {
+        margin-top: 20px;
+        margin-bottom: 20px;
+        margin-right: 20px;
+    }
+
+    #popup-menu a {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+</style>
+
 <body style="background-color:mediumseagreen;">
 </body>
+
+<div id="popup-menu">
+    <ul>
+      <li><a href="">Gioca</a></li>
+      <li><a href="">Dichiara Marianna</a></li>
+    </ul>
+</div>
 
 <script>
 partita = new Tavolo()

@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.004"
+const revisione = "$Revisione: 1.005"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -31,6 +31,13 @@ Array.prototype.diff = function(arr) {
     return this
 }
 
+// scambia sul posto gli elementi di un array
+const swapElements = (array, index1, index2) => {
+    let temp = array[index1]
+    array[index1] = array[index2]
+    array[index2] = temp
+}
+
 
 class Mazzo {
     constructor() {
@@ -39,6 +46,11 @@ class Mazzo {
             for (let j in mazzo_valori)
                 this.mazzo.push(mazzo_valori[j]+mazzo_semi[i])
         this.mazzo.sort((a,b) => 0.5 - Math.random()) // ordina a caso (=mescola)
+        // assegna subito una marianna di Danari per test
+        if (DEBUG) {
+            swapElements(this.mazzo, 1, this.mazzo.indexOf('RD'))
+            swapElements(this.mazzo, 3, this.mazzo.indexOf('CD'))
+        }
         this.briscola = 'NN'
     }
 
@@ -213,7 +225,7 @@ class IA {
         else 
             // cerca la carta di minor valore e possibilità di presa
             //~ perse.sort((a,b) => a.valore - b.valore || a.minori - b.minori) // riordina per valore e possibilità di presa, dalla meno preziosa
-            perse.sort((a,b) => a.valore - b.valore + b.minori - a.minori) // riordina per valore, dalla meno preziosa
+            perse.sort((a,b) => a.valore - b.valore + a.minori - b.minori) // riordina per valore, dalla meno preziosa
         for (var i=0; i < perse.length; i++) {
             if (!perse[i].pm) return mano.indexOf(perse[i].carta)
         }
@@ -370,7 +382,7 @@ class Tavolo {
                             if (giocatore) {
                                 var p = $(this).position()
                                 $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
-                                $(`#${carta}`).click(function() {partita.gioca(1,indice)})
+                                $(`#${carta}`).click(function() {$('#popup-menu').hide(); partita.gioca(1,indice)})
                                 $(this).hide() // nasconde il dorso
                             }
                             else {
@@ -387,13 +399,48 @@ class Tavolo {
 
     esaminaMarianne(giocatore) {
         var marianne = this.ha_marianne(this.mani[giocatore])
-        // se il giocatore ha marianne ed è di turno, accusa automaticamente la prima disponibile
+        // se il giocatore ha marianne ed è di turno, accusa automaticamente la prima disponibile (PC)
         // NON si accusa più a mazzo esaurito
         if (marianne.length && this.cronologia.length < 31) {
-            this.accusa(giocatore, marianne[0])
-            this.disegnaRestanti()
+            if (giocatore == 0) {
+                this.accusa(giocatore, marianne[0])
+                this.disegnaRestanti()
+            } else {
+                // se è un Re o Cavallo papabile per una marianna, riassegna il gestore di .click
+                for (var i=0; i < 5; i++) {
+                    var carta = this.mani[1][i]
+                    if (carta && (carta[0]=='R' || carta[0]=='C') && marianne.includes(carta[1])) {
+                        if (DEBUG) console.log('altero .click per', carta)
+                        $(`#${carta}`).off('click')
+                        $(`#${carta}`).click(function(e) {
+                            // aggiorna i tag <a> in relazione alla carta
+                            $('#popup-menu li:nth-child(1) a').attr("href", `javascript:partita.gioca_speciale('${e.target.id}', 'gioca')`)
+                            $('#popup-menu li:nth-child(2) a').attr("href", `javascript:partita.gioca_speciale('${e.target.id}', 'accusa')`)
+                            $('#popup-menu')
+                            .css({top: e.pageY, left: e.pageX, zIndex: 1000})
+                            .fadeIn()
+                            .click(function() {$(this).fadeOut()})
+                        })
+                    }
+                }
+            }
         }
     }
+
+    // chiamata da Re o Cavallo quando è possibile accusare marianna
+    gioca_speciale(carta, operazione) {
+        if (operazione == 'gioca')
+            this.gioca(1, this.mani[1].indexOf(carta))
+        else
+            this.accusa(1, carta[1])
+        // normalizza il gestore dei click una volta dichiarata o rotta la marianna
+        var altra = (carta[0]=='R'? 'C' : 'R') + carta[1]
+        console.log('altra carta della coppia:', altra)
+        $(`#${carta}`).off('click')
+        $(`#${carta}`).click(function(e) {partita.gioca(1, partita.mani[1].indexOf(`${carta}`))})
+        $(`#${altra}`).off('click')
+        $(`#${altra}`).click(function(e) {partita.gioca(1, partita.mani[1].indexOf(`${altra}`))})
+}
 
     // fa la distribuzione iniziale delle carte
     daiCarte() {
@@ -521,12 +568,14 @@ class Tavolo {
         this.marianne_dichiarate.push(seme)
         this.mazzo.briscola = '2'+seme // cambia briscola
         var sogg = giocatore? 'Giocatore' : 'PC'
-        window.alert(`${sogg} dichiara marianna di ${this.mazzo.seme(this.mazzo.briscola)}! (da ${marianna_punti[this.marianne]} punti)`)
+        if (giocatore == 0)
+            window.alert(`${sogg} dichiara marianna di ${this.mazzo.seme(this.mazzo.briscola)}! (da ${marianna_punti[this.marianne]} punti)`)
         if (giocatore)
             this.punti_me += marianna_punti[this.marianne]
         else
             this.punti_pc += marianna_punti[this.marianne]
         this.marianne += 1
         if (DEBUG) console.log(`Giocatore ${giocatore} accusa marianna di ${this.mazzo.seme(this.mazzo.briscola)}`)
+        this.disegnaRestanti()
     }
 }
