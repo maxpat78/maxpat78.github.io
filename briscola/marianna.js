@@ -545,9 +545,16 @@ class Tavolo {
     
     vittoria() {
             if (this.punti_me < 500 && this.punti_pc < 500) return this.continua()
-            if (this.punti_me == this.punti_pc) window.alert('Pareggio!')
-            if (this.punti_me > this.punti_pc) window.alert(`${this.punti_me} a ${this.punti_pc}: hai vinto tu!`)
-            if (this.punti_me < this.punti_pc) window.alert(`${this.punti_pc} a ${this.punti_me}: ho vinto io!`)
+            var s
+            if (this.punti_me == this.punti_pc) s = 'Pareggio!'
+            if (this.punti_me > this.punti_pc) s = `${this.punti_me} a ${this.punti_pc}: hai vinto tu!`
+            if (this.punti_me < this.punti_pc) s = `${this.punti_pc} a ${this.punti_me}: ho vinto io!`
+            $('<div title="Partita finita!"/>')
+            .text(s)
+            .dialog({
+                    modal: true,
+                    buttons: {Ok: function() { $( this ).dialog( "close" )} }
+                    })
             this.riavvia()
     }
 
@@ -568,8 +575,12 @@ class Tavolo {
         this.marianne_dichiarate.push(seme)
         this.mazzo.briscola = '2'+seme // cambia briscola
         var sogg = giocatore? 'Giocatore' : 'PC'
-        if (giocatore == 0)
-            window.alert(`${sogg} dichiara marianna di ${this.mazzo.seme(this.mazzo.briscola)}! (da ${marianna_punti[this.marianne]} punti)`)
+        if (giocatore == 0) {
+            var s = `Dichiaro marianna di <b>${this.mazzo.seme(this.mazzo.briscola)}</b>, da ${marianna_punti[this.marianne]} punti.`
+            $('<div title="Accusa"/>')
+            .html(s)
+            .dialog({modal: true, buttons: {Ok: function() { $( this ).dialog( "close" )} }})
+        }
         if (giocatore)
             this.punti_me += marianna_punti[this.marianne]
         else
