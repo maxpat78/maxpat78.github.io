@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.005"
+const revisione = "$Revisione: 1.006"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -279,7 +279,7 @@ class Tavolo {
     }
 
     continua() {
-        $('img').each(function() {$(this).hide()}) // nasconde qualsiasi carta visibile
+        $('img').each(function() {$(this).hide(); $(this).css({zIndex:0})}) // nasconde qualsiasi carta visibile
         $('img[class="fronte"]').each(function() {$(this).off('click')}) // rimuove qualsiasi gestore di evento
         this.mazzo = new Mazzo()
         if (DEBUG) console.log(`La briscola è ${this.mazzo.seme(this.mazzo.briscola)}`)
