@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.115"
+const revisione = "$Revisione: 1.116"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -293,7 +293,7 @@ class Tavolo {
 
     riavvia() {
         this.svuota()
-        $('img').each(function() {$(this).hide()}) // nasconde qualsiasi carta visibile
+        $('img').each(function() {$(this).hide(); $(this).css({zIndex:0})}) // nasconde qualsiasi carta visibile
         $('img[class="fronte"]').each(function() {$(this).off('click')}) // rimuove qualsiasi gestore di evento
         this.disegna()
     }
@@ -482,9 +482,16 @@ class Tavolo {
     }
     
     vittoria() {
-            if (this.punti_me == this.punti_pc) window.alert('Pareggio!')
-            if (this.punti_me > this.punti_pc) window.alert(`${this.punti_me} a ${this.punti_pc}: hai vinto tu!`)
-            if (this.punti_me < this.punti_pc) window.alert(`${this.punti_pc} a ${this.punti_me}: ho vinto io!`)
+        var s
+            if (this.punti_me == this.punti_pc) s = 'Pareggio!'
+            if (this.punti_me > this.punti_pc) s = `${this.punti_me} a ${this.punti_pc}: hai vinto tu!`
+            if (this.punti_me < this.punti_pc) s = `${this.punti_pc} a ${this.punti_me}: ho vinto io!`
+            $('<div title="Partita finita!"/>')
+            .text(s)
+            .dialog({
+                    modal: true,
+                    buttons: {Ok: function() { $( this ).dialog( "close" )} }
+                    })
             this.riavvia()
     }
 }
