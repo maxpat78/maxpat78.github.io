@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.116"
+const revisione = "$Revisione: 1.117"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -306,13 +306,13 @@ class Tavolo {
     // precarica le immagini di tutte le carte, la prima volta
     carica_carte() {
         for (var i of this.mazzo.mazzo.concat('Dorso'))
-            $(`<img src="trieste/${i}.webp" id="${i}" class="fronte" width="150px" height="277px" style="position:absolute">`)
+            $(`<img src="../trieste/${i}.webp" id="${i}" class="fronte" width="150px" height="277px" style="position:absolute">`)
             .on("load", this.onLoad.bind(this))
             .hide()
             .appendTo('body')
 
         for (var i=1; i < 40; i++)
-            $(`<img src="trieste/Dorso.webp" id="Dorso${i}" class="dorso" width="150px" height="277px" style="position:absolute">`)
+            $(`<img src="../trieste/Dorso.webp" id="Dorso${i}" class="dorso" width="150px" height="277px" style="position:absolute">`)
             .hide()
             .appendTo('body')
 

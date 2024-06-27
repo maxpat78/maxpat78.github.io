@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.006"
+const revisione = "$Revisione: 1.007"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -215,17 +215,16 @@ class IA {
     
         // se ci sono possibili prese senza punti che agevolano il successivo gioco 
         // di carte imprendibili, tipo gli A, le realizza
-        if (DEBUG) console.log('PSP:', prese.filter((x) => x.punti == 0), prese.filter((x) => x.maggiori == 0))
+        if (DEBUG) console.log('PSP:', prese.filter((x) => x.punti == 0), perse.filter((x) => x.maggiori == 0 && x.pm == 0))
         var psp = prese.filter((x) => x.punti == 0)
         if (perse.filter((x) => x.maggiori == 0 && x.pm == 0).length && psp.length) return mano.indexOf(psp[0].carta)
 
         // nella fase finale, adotta un approccio diverso
-        if (this.partita.cronologia.length > 37)
+        if (this.partita.cronologia.length > 30)
             perse.sort((a,b) => a.minori - b.minori || a.valore - b.valore) // riordina per possibilità di presa ed, eventualmente, per valore
         else 
             // cerca la carta di minor valore e possibilità di presa
-            //~ perse.sort((a,b) => a.valore - b.valore || a.minori - b.minori) // riordina per valore e possibilità di presa, dalla meno preziosa
-            perse.sort((a,b) => a.valore - b.valore + a.minori - b.minori) // riordina per valore, dalla meno preziosa
+            perse.sort((a,b) => a.valore - b.valore + a.minori - b.minori)
         for (var i=0; i < perse.length; i++) {
             if (!perse[i].pm) return mano.indexOf(perse[i].carta)
         }
@@ -236,7 +235,9 @@ class IA {
             return mano.indexOf(prese[0].carta)
         }
 
-        return mano.indexOf(perse[0].carta)
+        if (perse.length) return mano.indexOf(perse[0].carta)
+
+        console.log('BUG in analizza4, non si dovrebbe mai arrivare qui!')
     }
 
     // conta le eventuali briscole in mano
@@ -279,8 +280,10 @@ class Tavolo {
     }
 
     continua() {
-        $('img').each(function() {$(this).hide(); $(this).css({zIndex:0})}) // nasconde qualsiasi carta visibile
-        $('img[class="fronte"]').each(function() {$(this).off('click')}) // rimuove qualsiasi gestore di evento
+        // nasconde qualsiasi carta visibile e rimuove qualsiasi gestore di evento e trasformazione
+        $('img').each(function() {
+            $(this).hide().off('click').css({"transition": "", "transform": "", "transform-origin": "", "transform-style": "", zIndex: 0})
+        })
         this.mazzo = new Mazzo()
         if (DEBUG) console.log(`La briscola è ${this.mazzo.seme(this.mazzo.briscola)}`)
         this.mani = [[], []] // array di array con le 3 carte simboliche in mano (0=PC, 1=umano)
@@ -322,13 +325,13 @@ class Tavolo {
     // precarica le immagini di tutte le carte, la prima volta
     carica_carte() {
         for (var i of this.mazzo.mazzo.concat('Dorso'))
-            $(`<img src="trieste/${i}.webp" id="${i}" class="fronte" width="150px" height="277px" style="position:absolute">`)
+            $(`<img src="../trieste/${i}.webp" id="${i}" class="fronte" width="150px" height="277px" style="position:absolute">`)
             .on("load", this.onLoad.bind(this))
             .hide()
             .appendTo('body')
 
         for (var i=1; i < 41; i++)
-            $(`<img src="trieste/Dorso.webp" id="Dorso${i}" class="dorso" width="150px" height="277px" style="position:absolute">`)
+            $(`<img src="../trieste/Dorso.webp" id="Dorso${i}" class="dorso" width="150px" height="277px" style="position:absolute">`)
             .hide()
             .appendTo('body')
 
@@ -345,13 +348,14 @@ class Tavolo {
 
     disegnaMazzo() {
         // posizione del mazzo in pixel
-        var x=10, y=293, img
+        var x=10, y=293, z=-100, img
 
         // disegna i dorsi sovrapposti, simulando il 3D
         $('img[class="dorso"]').each( function() {
-            $(this).css({left: x, top: y}).show()
+            $(this).css({left: x, top: y, zIndex: z}).show()
             x -= 0.1
             y -= 0.1
+            z += 1
         })
     }
 
@@ -371,19 +375,27 @@ class Tavolo {
         this.attesa = 1
         var vuoto = this.mazzo.vuoto()
         this.mani[giocatore][indice] = carta
-        setTimeout(this.esaminaMarianne.bind(this), tempo+20, giocatore)
+        // differisce l'esame delle marianne al termine delle animazioni (scorrimento carta *e* girata all'umano)
+        setTimeout(this.esaminaMarianne.bind(this), tempo+500+20, giocatore)
         if (DEBUG) console.log(`giocatore ${giocatore} riceve ${carta} in posizione ${indice}: ${this.mani[giocatore]}`)
         // determina se ha una marianna
         // seleziona un dorso
-        var img = vuoto? $('#Dorso40') : $('#Dorso'+this.mazzo.carte())
-        img.animate( {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y},
+        var img = $('#Dorso'+(this.mazzo.carte()+1))
+        img
+        .css({zIndex: indice}) // porta subito il dorso al livello corretto della mano
+        .animate( {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y},
                         tempo,
                         function () { // eseguita al termine dell'animazione
+                            var p = $(this).position()
                             if (giocatore) {
-                                var p = $(this).position()
-                                $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
-                                $(`#${carta}`).click(function() {$('#popup-menu').hide(); partita.gioca(1,indice)})
-                                $(this).hide() // nasconde il dorso
+                                // Il dorso è ruotato di 90° in 1/2s sull'asse sx a circa 1/3 e 1/2
+                                // Al termine della rotazione viene nascosto, e mostrato il fronte della carta sottostante
+                                $(this).css({"transition": "0.5s", "transform": "rotateY(90deg)", "transform-origin": "33% 50%", "transform-style": "preserve-3d"})
+                                setTimeout(function() {
+                                    $(this).hide() // nasconde il dorso
+                                    $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
+                                    $(`#${carta}`).click(function() {$('#popup-menu').hide(); partita.gioca(1,indice)})
+                                }, 500)
                             }
                             else {
                                 $(this).css({zIndex: indice}) // sposta il dorso del PC al livello corretto nel ventaglio
@@ -463,7 +475,7 @@ class Tavolo {
         // mostra e anima la carta giocata da mano a banco
         $(`#${this.mani[giocatore][indice]}`)
             .show()
-            .css({left: C.left, top: C.top, zIndex: d_banco+3}) // zIndex+3 sovrappone la giocata alla mano
+            .css({left: C.left, top: C.top, zIndex: d_banco+5}) // zIndex+5 sovrappone la giocata alla mano
             .animate({left: this.coord[2].x + d_banco, top: this.coord[2].y}, 500)
         // nasconde il dorso della carta giocata dal PC
         if (!giocatore)
