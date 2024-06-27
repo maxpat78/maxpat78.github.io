@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.117"
+const revisione = "$Revisione: 1.118"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -293,8 +293,10 @@ class Tavolo {
 
     riavvia() {
         this.svuota()
-        $('img').each(function() {$(this).hide(); $(this).css({zIndex:0})}) // nasconde qualsiasi carta visibile
-        $('img[class="fronte"]').each(function() {$(this).off('click')}) // rimuove qualsiasi gestore di evento
+        // nasconde qualsiasi carta visibile e rimuove qualsiasi gestore di evento e trasformazione
+        $('img').each(function() {
+            $(this).hide().off('click').css({"transition": "", "transform": "", "transform-origin": "", "transform-style": "", zIndex: 0})
+        })
         this.disegna()
     }
 
@@ -329,18 +331,19 @@ class Tavolo {
 
     disegnaMazzo() {
         // posizione del mazzo in pixel
-        var x=10, y=293, img
+        var x=10, y=293, z=-100, img
 
         // disegna la briscola trasversalmente a metà mazzo
         $('#'+this.mazzo.briscola)
         .show()
-        .css({'left': (x+(277-150)/2), 'top': y, 'transform': 'rotate(90deg)', 'zIndex': -1})
+        .css({'left': (x+(277-150)/2), 'top': y, 'transform': 'rotate(90deg)', 'zIndex': -101})
 
         // disegna i dorsi sovrapposti, simulando il 3D
         $('img[class="dorso"]').each( function() {
-            $(this).css({left: x, top: y}).show()
+            $(this).css({left: x, top: y, zIndex: z}).show()
             x -= 0.1
             y -= 0.1
+            z += 1
         })
     }
 
@@ -358,20 +361,26 @@ class Tavolo {
         if (DEBUG) console.log(`giocatore ${giocatore} riceve ${carta} in posizione ${indice}: ${this.mani[giocatore]}`)
         // se è la briscola (ultima), ripristina l'orientamento; altrimenti seleziona un dorso
         var img = vuoto? $('#'+this.mazzo.briscola).css({transform: ''}) : $('#Dorso'+this.mazzo.carte())
-        img.animate( {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y},
+        img
+        .css({zIndex: indice}) // porta subito il dorso al livello corretto della mano
+        .animate( {left: this.coord[giocatore].x + indice*90, top: this.coord[giocatore].y},
                         tempo,
                         function () { // eseguita al termine dell'animazione
+                            var p = $(this).position()
                             if (giocatore) {
-                                var p = $(this).position()
-                                $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
-                                $(`#${carta}`).click(function() {partita.gioca(1,indice)})
-                                if (!vuoto)
-                                    $(this).hide() // nasconde il dorso
+                                // Il dorso è ruotato di 90° in 1/2s sull'asse sx a circa 1/3 e 1/2
+                                // Al termine della rotazione viene nascosto, e mostrato il fronte della carta sottostante
+                                if (!vuoto) $(this).css({"transition": "0.5s", "transform": "rotateY(90deg)", "transform-origin": "33% 50%", "transform-style": "preserve-3d"})
+                                setTimeout(function() {
+                                    $(`#${carta}`).show().css({left: p.left, top: p.top, zIndex: indice})
+                                    $(`#${carta}`).click(function() {partita.gioca(1,indice)})
+                                    if (!vuoto) $(this).hide() // nasconde il dorso
+                                }, 500)
                             }
                             else {
                                 $(this).css({zIndex: indice}) // sposta il dorso del PC al livello corretto nel ventaglio
                                 if (vuoto) {
-                                    $('#Dorso38').show().css({left: $(this).position().left, top: $(this).position().top, zIndex: indice})
+                                    $('#Dorso39').show().css({left: $(this).position().left, top: $(this).position().top, zIndex: indice})
                                     $(this).hide()
                                 }
                             }
