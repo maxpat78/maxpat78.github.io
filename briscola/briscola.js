@@ -4,7 +4,7 @@
 // (C)2024, maxpat78. Licenziato in conformità alla GNU GPL v3.
 //
 
-const revisione = "$Revisione: 1.118"
+const revisione = "$Revisione: 1.119"
 DEBUG = 0
 
 // costruisce un mazzo simbolico di 40 carte regionali italiane
@@ -446,20 +446,32 @@ class Tavolo {
         var indici = []
         indici[this.cronologia.slice(-1)[0].giocatore] = this.cronologia.slice(-1)[0].indice
         indici[this.cronologia.slice(-2,-1)[0].giocatore] = this.cronologia.slice(-2,-1)[0].indice
-    
+
+        // fa scorrere la carta dietro un angolo del giocatore e, al termine, ruota la carta, la nasconde progressivamente,
+        // mostra il dorso al suo posto e lo nasconde progressivamente
+        function _animaCarta(c, g, o) {
+            var x=o.coord[g].x-100, y=o.coord[g].y + (g==0? -100:100)
+            $(`#${c}`)
+                .css({zIndex: $(`#${c}`).css('zIndex')+100})
+                .animate({left: x, top: y}, 500, function() {
+                    $(this).css({"transition": "0.5s all ease-out", "transform": "rotateY(90deg)", "transform-origin": "33% 50%", "transform-style": "preserve-3d"})
+                    .fadeOut(500)
+                    setTimeout(function() {
+                        $('#Dorso39')
+                        .css({left: x, top: y, zIndex: $(`#${c}`).css('zIndex')+100})
+                        .show()
+                        .fadeOut(500)
+                    }, 500)
+                })
+        }
+
         if (r < 0) {
             if (DEBUG) console.log(`UMANO prende ${punti} punti`)
             this.punti_me += punti
             this.di_turno = this.primo_di_mano = 1
             // anima la presa
-            $(`#${this.giocate[0]}`)
-                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
-                .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
-                .fadeOut()
-            $(`#${this.giocate[1]}`)
-                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
-                .animate({left: this.coord[1].x, top: this.coord[1].y}, 500)
-                .fadeOut()
+            _animaCarta(this.giocate[0], 1, this)
+            _animaCarta(this.giocate[1], 1, this)
             // pesca (l'animazione del 2° è leggermente più lenta, per distinguere visivamente i turni di pescata)
             setTimeout(this.daiCarta.bind(this), 500, 1, indici[1])
             setTimeout(this.daiCarta.bind(this), 900, 0, indici[0], 600)
@@ -468,14 +480,8 @@ class Tavolo {
             if (DEBUG) console.log(`PC prende ${punti} punti`)
             this.punti_pc += punti
             this.di_turno = this.primo_di_mano = 0
-            $(`#${this.giocate[0]}`)
-                .css({zIndex: $(`#${this.giocate[0]}`).css('zIndex')+100})
-                .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
-                .fadeOut()
-            $(`#${this.giocate[1]}`)
-                .css({zIndex: $(`#${this.giocate[1]}`).css('zIndex')+100})
-                .animate({left: this.coord[0].x, top: this.coord[0].y}, 500)
-                .fadeOut()
+            _animaCarta(this.giocate[0], 0, this)
+            _animaCarta(this.giocate[1], 0, this)
             setTimeout(this.daiCarta.bind(this), 500, 0, indici[0])
             setTimeout(this.daiCarta.bind(this), 900, 1, indici[1])
             if (this.cronologia.length < 40) setTimeout(this.giocatore_pc.gioca.bind(this.giocatore_pc), 2000, this)
