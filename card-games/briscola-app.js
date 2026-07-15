@@ -21,8 +21,8 @@ class BriscolaApp {
         this.renderer = new TableRenderer(this.engine, {
             humanIndex: HUMAN_INDEX,
             aiIndex: AI_INDEX,
-            imagePath: (id) => `../trieste/${id}.webp`,
-            backImagePath: `../trieste/Dorso.webp`,
+            imagePath: (id) => `./trieste/${id}.webp`,
+            backImagePath: `./trieste/Dorso.webp`,
             coord: {
                 0: { x: 320, y: 1 },      // PC
                 1: { x: 320, y: 585 },    // Umano

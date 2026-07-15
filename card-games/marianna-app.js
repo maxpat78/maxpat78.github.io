@@ -27,8 +27,8 @@ export class MariannaApp {
         this.renderer = new MariannaTableRenderer(this.engine, {
             humanIndex: HUMAN_INDEX,
             aiIndex: AI_INDEX,
-            imagePath: (cardId) => `trieste/${cardId}.webp`,
-            backImagePath: 'trieste/Dorso.webp',
+            imagePath: (cardId) => `./trieste/${cardId}.webp`,
+            backImagePath: './trieste/Dorso.webp',
             coord: {
                 0: { x: 320, y: 585 },     // Umano
                 1: { x: 320, y: 1 },       // PC

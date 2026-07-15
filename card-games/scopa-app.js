@@ -63,8 +63,8 @@ class ScopaApp {
         this.renderer = new ScopaRenderer(this.engine, {
             humanIndex: HUMAN_INDEX,
             aiIndex: AI_INDEX,
-            imagePath: (id) => `../trieste/${id}.webp`,
-            backImagePath: `../trieste/Dorso.webp`,
+            imagePath: (id) => `./trieste/${id}.webp`,
+            backImagePath: `./trieste/Dorso.webp`,
             coord: {
                 human: { x: 320, y: 585 },
                 ai: { x: 320, y: 1 },
