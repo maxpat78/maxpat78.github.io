@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scopa</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.2/jquery-ui.js"></script>
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #222; /* Colore di sfondo extra (fuori dal tavolo) */
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden; /* Nasconde per sempre le barre di scorrimento! */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #game-board {
+        width: 1200px;
+        height: 900px;
+        position: relative; /* Fondamentale: le coordinate assolute delle carte faranno riferimento a questo div, non alla pagina */
+        /* transform-origin definisce da dove parte lo zoom */
+        transform-origin: center center; 
+    }
+    </style>
+</head>
+
+<body style="background-color:mediumseagreen;">
+    <div id="game-board"></div>
+</body>
+
+<script type="module" src="scopa-app.js"></script>
+
+</html>

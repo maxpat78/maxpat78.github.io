@@ -11,5 +11,3 @@ Se le carte sono di ugual seme, fa presa quella più alta; altrimenti la briscol
 Quindi ciascuno, iniziando da chi ha preso, pesca una carta e gioca nuovamente.<br/>
 <br/>
 Vince la smazzata chi fa 61 punti.<br/>
-<br/>
-Nell'angolo inferiore del mazzo appaiono il punteggio corrente (primo il PC) e il numero di carte nel mazzo.

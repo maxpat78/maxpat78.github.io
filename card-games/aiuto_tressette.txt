@@ -1,0 +1,13 @@
+﻿Il Tressette si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
+<br/>
+I giocatori ricevono 10 carte ognuno e, a turno, ne giocano una per prendere quella avversaria e fare punti.<br/>
+<br/>
+Le carte, in ordine di forza di presa, sono: Tre (1/3 di punto), Due (1/3), Asso (1 punto), Re (1/3), Cavallo (1/3), Fante (1/3), 7, 6, 5, 4 (0).<br/>
+<br/>
+Se le carte sono di ugual seme, fa presa quella più alta; altrimenti, la prima. Si deve rispondere al seme calato per primo, il "palo".<br/>
+<br/>
+Quindi ciascuno, iniziando da chi ha preso, pesca una carta, la mostra all'avversario e gioca nuovamente.<br/>
+<br/>
+Al termine della smazzata, si contano i punti interi.<br/>
+Chi ha preso per ultimo riceve 1 punto di bonus; fa "cappotto", e riceve 6 punti bonus, chi ha realizzato tutti i punti della smazzata (10 di mazzo e 1 di ultima).<br/>
+Vince la partita chi raggiunge 21 punti.<br/>

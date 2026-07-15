@@ -1,0 +1,20 @@
+﻿La Scopa si gioca con un mazzo da 40 carte regionali italiane (qui: triestine, nei semi di Bastoni, Coppe, Danari e Spade).<br/>
+<br/>
+I giocatori ricevono 3 carte e 4 sono scoperte sul tavolo.<br/>
+A turno alterno calano una carta per fare presa o evitare quella altrui: si fa presa se sul tavolo c'è una carta di identico valore o, in mancanza, più carte che, sommate, eguagliano tale valore.<br/>
+L'Asso vale 1; Fante, Cavallo e Re valgono 8, 9 e 10.<br/>
+<br/>
+Giocate le 3 carte, se ne distribuiscono altre 3, fino a esaurimento.<br/>
+<br/>
+Chi prende tutte le carte sul tavolo segna una Scopa, tranne che con l'ultima carta della smazzata.<br/>
+<br/>
+L'ultima presa della smazzata attribuisce tutte le carte rimaste.<br/>
+<br/>
+Si riceve 1 punto per gli obiettivi realizzati con le carte prese:<br/>
+- Scopa (per ognuna)<br/>
+- Settebello: avere il Sette di Danari<br/>
+- Carte: avere il maggior numero di carte<br/>
+- Danari: avere il maggior numero di Danari<br/>
+- Primiera: avere il punteggio più alto con 4 carte di seme diverso, il cui valore viene desunto dal gioco 
+della Stoppa (10 per una figura; 12, 13, 14 e 15 per le carte Due, Tre, Quattro e Cinque; 16 per l'Asso; 18 per 
+il Sei; 21 per il Sette).
