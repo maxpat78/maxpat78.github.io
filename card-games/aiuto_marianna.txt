@@ -4,7 +4,7 @@ I giocatori ricevono 5 carte ognuno e, a turno, ne giocano una con l'obiettivo d
 <br/>
 Le carte, in ordine di forza di presa, sono: Asso (11 punti), Tre (10 punti), Re (4), Cavallo (3), Fante (2), 7, 6, 5, 4, 2 (0).<br/>
 <br/>
-Può accusare marianna chi ha in mano Re e Cavallo di un seme, per renderlo prevalente (briscola) e fare punti (40, 60, 80 o 100 secondo il numero di accuse).<br/>
+Può accusare <b>marianna</b> chi ha in mano Re e Cavallo di un seme, per renderlo prevalente (briscola) e fare punti (40, 60, 80 o 100 secondo il numero di accuse).<br/>
 <br/>
 Se le carte sono di ugual seme, fa presa quella più alta; altrimenti la briscola o, in mancanza, la prima.<br/>
 <br/>

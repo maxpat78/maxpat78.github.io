@@ -1,15 +1,10 @@
-// Questo e' l'UNICO file specifico dell'app Tressette che "sa" come collegare
-// fra loro i pezzi generici (engine, player, deck) con quelli specifici del
-// gioco (regole, IA) e con la UI. Per creare un'app Briscola o Marianna si
-// scrive un file analogo a questo, riusando tutto cio' che sta in
-// card-engine/ e (con opportune sostituzioni) lo stesso TableRenderer.
-
 import { TrickTakingEngine } from './card-engine/TrickTakingEngine.js'
 import { HumanPlayer } from './card-engine/HumanPlayer.js'
 import { AIPlayer } from './card-engine/AIPlayer.js'
 import { TressetteRules } from './games/tressette/TressetteRules.js'
 import { TressetteAI } from './games/tressette/TressetteAI.js'
 import { TableRenderer } from './ui/TableRenderer.js'
+import { responsiveDialogWidth } from './ui/dialogUtils.js'
 
 const AI_INDEX = 0     // "PC" - stessa convenzione dell'originale (0=PC, 1=umano)
 const HUMAN_INDEX = 1
@@ -33,17 +28,22 @@ export class TressetteApp {
             imagePath: (id) => `./trieste/${id}.webp`,
             backImagePath: `./trieste/Dorso.webp`,
             coord: {
-                0: { x: 320, y: 1 },      // PC
-                1: { x: 320, y: 585 },    // Umano
-                table: { x: 410, y: 293 },
-                info: { top: 565, left: 10 }, // angolo del mazzo: lontano dalla mano (che parte da x:320)
+                // punto verso cui volano le carte vinte in una presa (fuori
+                // vista, poi dissolvenza): PC in alto, Umano in basso, in
+                // corrispondenza dei rispettivi badge "prese"
+                pile: {
+                    [AI_INDEX]: { x: 640, y: 330 },
+                    [HUMAN_INDEX]: { x: 640, y: 1010 },
+                },
+                info: { top: 15, left: '50%', transform: 'translateX(-50%)' },
             },
             // ordina la mano dell'umano per seme/valore: facile da disattivare
             // mettendo sortHand:false, per chi preferisce l'ordine di pescata
             sortHand: true,
-            handSpacing: 90,
-            // per attivare lo scorrimento orizzontale (utile con mani piu' lunghe
-            // di quanto entri a schermo, es. altri giochi) basta decommentare:
+            // niente handSpacing esplicito: con le 10 carte del Tressette
+            // TableRenderer restringe da solo la spaziatura per farle entrare
+            // nella fascia bassa (720px), niente scorrimento necessario.
+            // Per riattivarlo comunque basta decommentare:
             // handScroll: { maxWidth: 720 },
             formatInfo: (engine) => this._formatInfo(engine),
             onRoundOver: (result) => this._onRoundOver(result),
@@ -146,7 +146,7 @@ export class TressetteApp {
             .then(r => r.text())
             .then(html => {
                 $('<div title="Regole del Tressette">').html(html).dialog({
-                    modal: true, width: 500,
+                    modal: true, width: responsiveDialogWidth(500),
                     close: function () { $(this).dialog('destroy').remove() },
                 })
             })
@@ -158,8 +158,8 @@ function resizeGame() {
     if (!board) return;
 
     // Dimensioni logiche fisse del tavolo (quelle messe nel CSS)
-    const GAME_WIDTH = 1200;
-    const GAME_HEIGHT = 900;
+    const GAME_WIDTH = 720;
+    const GAME_HEIGHT = 1280;
 
     // Dimensioni reali dello schermo in questo momento
     const windowWidth = window.innerWidth;

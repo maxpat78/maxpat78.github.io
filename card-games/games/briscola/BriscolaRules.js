@@ -1,5 +1,3 @@
-// games/briscola/BriscolaRules.js
-//
 // Implementa il "contratto" richiesto da TrickTakingEngine per la Briscola,
 // seguendo ESATTAMENTE il testo di regole fornito (nessuna variante aggiunta
 // di iniziativa: niente obbligo di seguire il seme, niente bonus ultima

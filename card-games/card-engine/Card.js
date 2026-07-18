@@ -1,5 +1,3 @@
-// card-engine/Card.js
-//
 // Rappresentazione generica di una carta da gioco.
 // Non contiene alcuna nozione di "punti" o "forza di presa":
 // quelle sono responsabilità del RuleSet del gioco specifico (vedi games/*).

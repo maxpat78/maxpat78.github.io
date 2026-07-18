@@ -1,4 +1,3 @@
-// card-engine/TrickTakingEngine.js
 import { Deck } from './Deck.js'
 
 // Un RuleSet (vedi games/tressette/TressetteRules.js) deve fornire:
@@ -96,13 +95,13 @@ export class TrickTakingEngine {
     // il giocatore playerIndex gioca la carta in posizione slot della propria mano
     // ritorna {ok:true} oppure {ok:false, reason:'...'} se la mossa e' illegale
     playCard(playerIndex, slot) {
-        if (playerIndex !== this.turnIndex) return { ok: false, reason: 'non e\' il tuo turno' }
+        if (playerIndex !== this.turnIndex) return { ok: false, reason: 'Non e\' il tuo turno!' }
         const player = this.players[playerIndex]
         const card = player.hand[slot]
         if (!card) return { ok: false, reason: 'slot vuoto' }
         const leadSuit = this.trick.length ? this.trick[0].card.suit : null
         if (!this.rules.isLegalPlay(player.hand, card, this.trick, leadSuit))
-            return { ok: false, reason: 'mossa non consentita da regolamento' }
+            return { ok: false, reason: 'Mossa non consentita' }
 
         player.play(slot)
         this._forgetRevealed(playerIndex, card)

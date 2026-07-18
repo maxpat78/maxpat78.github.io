@@ -6,15 +6,19 @@ L'Asso vale 1; Fante, Cavallo e Re valgono 8, 9 e 10.<br/>
 <br/>
 Giocate le 3 carte, se ne distribuiscono altre 3, fino a esaurimento.<br/>
 <br/>
-Chi prende tutte le carte sul tavolo segna una Scopa, tranne che con l'ultima carta della smazzata.<br/>
+Chi prende tutte le carte sul tavolo segna una <b>Scopa</b>, tranne che con l'ultima carta della smazzata.<br/>
 <br/>
 L'ultima presa della smazzata attribuisce tutte le carte rimaste.<br/>
 <br/>
 Si riceve 1 punto per gli obiettivi realizzati con le carte prese:<br/>
 - Scopa (per ognuna)<br/>
 - Settebello: avere il Sette di Danari<br/>
-- Carte: avere il maggior numero di carte<br/>
-- Danari: avere il maggior numero di Danari<br/>
-- Primiera: avere il punteggio più alto con 4 carte di seme diverso, il cui valore viene desunto dal gioco 
-della Stoppa (10 per una figura; 12, 13, 14 e 15 per le carte Due, Tre, Quattro e Cinque; 16 per l'Asso; 18 per 
-il Sei; 21 per il Sette).
+- <b>Carte</b>: avere più carte<br/>
+- <b>Danari</b>: avere più Danari<br/>
+- <b>Primiera</b>: avere il punteggio più alto con 4 carte di seme diverso, il cui valore viene desunto dal gioco 
+della Stoppa (figure: 10; Due-Cinque: 12-15; Asso: 16; Sei: 18; Sette: 21).<br/>
+<br/>
+Con il pulsante in alto a destra è possibile configurare una o più tra le popolari <b>varianti</b> del gioco:<br/>
+- <b>Asso pigliatutto</b>: chi cala un Asso prende tutte le carte e segna Scopa (Scopa d'Assi)<br/>
+- <b>Rebello</b>: chi prende il Re di Danari fa 1 punto<br/>
+- <b>Napola</b>: chi ha preso Asso, Due e Tre di Danari o una maggior sequenza, guadagna 1 punto per ogni Danaro della sequenza<br/>

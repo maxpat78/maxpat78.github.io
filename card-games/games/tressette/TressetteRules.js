@@ -1,6 +1,4 @@
-// games/tressette/TressetteRules.js
-//
-// Implementa il "contratto" richiesto da TrickTakingEngine per il Tressette.
+﻿// Implementa il "contratto" richiesto da TrickTakingEngine per il Tressette.
 //
 // NOTE SUL REGOLAMENTO (esistono molte varianti locali, cfr. Wikipedia):
 //  - obbligo di rispondere al seme calato per primo, se lo si possiede:

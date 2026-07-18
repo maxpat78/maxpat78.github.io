@@ -1,5 +1,3 @@
-// ui/HandLayout.js
-//
 // Calcola SOLO l'ordine e la posizione orizzontale delle carte in una mano.
 // Nessuna dipendenza da jQuery/DOM: e' testabile in isolamento (vedi
 // tests/test-hand-layout.mjs) e riusabile per qualunque gioco di carte, non

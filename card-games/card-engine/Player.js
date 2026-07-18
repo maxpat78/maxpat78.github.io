@@ -1,5 +1,3 @@
-// card-engine/Player.js
-//
 // Player e' solo un contenitore di mano + identita'. Non sa nulla di
 // regole di presa/punteggio (quello e' nel RuleSet) ne' di grafica (quello e' nella UI).
 

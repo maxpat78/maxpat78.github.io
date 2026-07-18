@@ -1,5 +1,3 @@
-// games/scopa/ScopaRules.js
-//
 // Implementa il contratto richiesto da CaptureEngine per la Scopa, secondo
 // le regole fornite. Stesso mazzo triestino gia' usato per Tressette/Briscola
 // (suits B,C,D,S), qui pero' il "valore" di una carta serve per l'abbinamento
@@ -18,6 +16,27 @@ const DENARI_SUIT = 'D'
 const SETTEBELLO = { rank: '7', suit: 'D' }
 
 export class ScopaRules {
+    /**
+     * @param {object} options varianti opzionali di gioco, tutte disattivate
+     *   di default (Scopa "classica"):
+     *   - assoPigliatutto: chi cala un Asso prende TUTTE le carte sul tavolo
+     *     (invece del solo eventuale Asso presente)
+     *   - rebello: il Re di Denari vale 1 punto a chi lo cattura, come il
+     *     Settebello
+     *   - napola: chi cattura Asso+2+3 di Denari guadagna 3 punti, +1 per
+     *     ogni carta successiva della sequenza catturata (4, 5, 6...)
+     *   E' un oggetto mutabile e referenziato (non copiato) da chi lo passa:
+     *   la UI puo' cambiarlo a partita in corso semplicemente scrivendo sui
+     *   suoi campi, senza dover ricreare le regole o l'IA.
+     */
+    constructor(options = {}) {
+        this.options = { assoPigliatutto: false, rebello: false, napola: false, ...options }
+    }
+
+    assoPigliattuttoEnabled() { return this.options.assoPigliatutto }
+    rebelloEnabled() { return this.options.rebello }
+    napolaEnabled() { return this.options.napola }
+
     deckConfig() { return { suits: SUITS, ranks: RANKS } }
 
     handSize() { return 3 }
@@ -40,12 +59,41 @@ export class ScopaRules {
 
     isSettebello(card) { return card.rank === SETTEBELLO.rank && card.suit === SETTEBELLO.suit }
 
+    // variante "rebello": il Re di Denari vale 1 punto come il Settebello
+    isRebello(card) { return card.rank === 'R' && card.suit === DENARI_SUIT }
+
+    // variante "napola": lunghezza della sequenza di Denari (a partire da
+    // Asso-2-3) presente in un insieme di carte catturate. 0 se non e'
+    // presente l'intera tripletta iniziale (che e' condizione necessaria:
+    // avere solo l'Asso, o l'Asso e il 2, non vale nulla). Da 3 in su conta
+    // quante carte consecutive seguono (4, poi 5, poi 6, ...), fermandosi al
+    // primo buco nella sequenza.
+    napolaLength(cards) {
+        const denariRanks = new Set(cards.filter(c => c.suit === DENARI_SUIT).map(c => c.rank))
+        if (!(denariRanks.has('A') && denariRanks.has('2') && denariRanks.has('3'))) return 0
+        let length = 3
+        for (let i = 3; i < RANKS.length; i++) {
+            if (!denariRanks.has(RANKS[i])) break
+            length++
+        }
+        return length
+    }
+
+
     // "c'e' una carta di identico valore facciale o, in mancanza, vi sono
     // piu' carte che, sommate, eguagliano tale valore": la corrispondenza
     // singola ha SEMPRE priorita' sulla somma, non vanno mai mescolate.
     // Ritorna un array di combinazioni valide (ognuna un sottoinsieme del
     // tavolo); array vuoto se non c'e' alcuna presa possibile.
     findCaptures(playedCard, table) {
+        // variante "asso piglia tutto": ha SEMPRE la precedenza sul normale
+        // abbinamento per valore/somma quando la carta calata e' un Asso e il
+        // tavolo non e' vuoto (su tavolo vuoto l'Asso resta un semplice
+        // scarto, non c'e' nulla da prendere)
+        if (this.options.assoPigliatutto && playedCard.rank === 'A' && table.length > 0) {
+            return [[...table]]
+        }
+
         const v = this.faceValue(playedCard)
 
         const singles = table.filter(c => this.faceValue(c) === v)
@@ -108,11 +156,32 @@ export class ScopaRules {
         const primiera = primieraScores[0] > primieraScores[1] ? 0 : primieraScores[1] > primieraScores[0] ? 1 : null
         if (primiera !== null) scores[primiera]++
 
+        // variante "rebello": stesso meccanismo del settebello, un'altra carta
+        let rebello = null
+        if (this.options.rebello) {
+            const hasRe = i => capturedCards[i].some(c => this.isRebello(c))
+            rebello = hasRe(0) ? 0 : hasRe(1) ? 1 : null
+            if (rebello !== null) scores[rebello]++
+        }
+
+        // variante "napola": punti pari alla lunghezza della sequenza (vedi
+        // napolaLength). Puo' averla al massimo un giocatore solo, dato che
+        // ogni carta appartiene alla presa di uno solo dei due
+        let napola = null
+        if (this.options.napola) {
+            const napolaLengths = capturedCards.map(cs => this.napolaLength(cs))
+            const winnerIdx = napolaLengths[0] > 0 ? 0 : napolaLengths[1] > 0 ? 1 : null
+            if (winnerIdx !== null) {
+                scores[winnerIdx] += napolaLengths[winnerIdx]
+                napola = { playerIndex: winnerIdx, length: napolaLengths[winnerIdx] }
+            }
+        }
+
         return {
             scores,
             breakdown: {
                 scope: [...scopeCount],
-                settebello, carte, denari, primiera,
+                settebello, carte, denari, primiera, rebello, napola,
                 cardCount, denariCount, primieraScores,
             },
         }

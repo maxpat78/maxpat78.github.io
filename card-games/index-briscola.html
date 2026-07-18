@@ -5,34 +5,39 @@
     <meta http-equiv=Content-Type content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Briscola</title>
+    <link rel="icon" type="image/png" href="favicon.ico">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.2/jquery-ui.js"></script>
     <style>
     body {
         margin: 0;
         padding: 0;
-        background-color: #222; /* Colore di sfondo extra (fuori dal tavolo) */
+        background-color: #1a1a1a; /* Sfondo scuro per far risaltare il telefono */
         width: 100vw;
         height: 100vh;
-        overflow: auto;
+        overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
     }
 
     #game-board {
-        width: 680px;
-        height: 860px;
-        position: relative; /* Fondamentale: le coordinate assolute delle carte faranno riferimento a questo div, non alla pagina */
-        /* transform-origin definisce da dove parte lo zoom */
-        transform-origin: center center; 
-        /*border: 2px solid red; /* <--- Bordo di test */
+        width: 720px;   /* Proporzione verticale ottimale per smartphone, come la Scopa */
+        height: 1280px;
+        position: absolute; /* Isolato dal flusso flex: le coordinate assolute delle carte fanno riferimento a questo div */
+        flex-shrink: 0;
+        transform-origin: center center;
+        background: radial-gradient(circle, #2a6a43 0%, #153c24 100%); /* Panno verde sfumato */
+        border: 12px solid #5d4037; /* Cornice in legno */
+        border-radius: 28px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        box-sizing: border-box;
     }
     </style>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.2/themes/base/jquery-ui.css">
-    <script src="https://code.jquery.com/jquery-4.0.0.js"></script>
-    <script src="https://code.jquery.com/ui/1.14.2/jquery-ui.js"></script>
 </head>
 
-<body style="background-color:mediumseagreen;">
+<body style="background-color:#1a1a1a;">
     <div id="game-board"></div>
 </body>
 

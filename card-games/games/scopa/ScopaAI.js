@@ -1,5 +1,3 @@
-// games/scopa/ScopaAI.js
-//
 // Strategia euristica per la Scopa. Diversa nella struttura dalle IA di
 // Tressette/Briscola (games/tressette/TressetteAI.js, games/briscola/BriscolaAI.js):
 // li' si sceglieva SOLO quale carta giocare; qui bisogna scegliere sia quale
@@ -42,10 +40,16 @@ export class ScopaAI {
 
         // 1) una scopa e' SEMPRE conveniente (punto garantito, nessun
         //    rischio: il tavolo resta comunque vuoto dopo). Fra piu' scope
-        //    possibili, quella che porta via il maggior valore.
+        //    possibili, quella che porta via il maggior valore. Con "asso
+        //    piglia tutto" attivo, un Asso calato su tavolo non vuoto e'
+        //    SEMPRE una scopa (findCaptures lo fa gia' coincidere con
+        //    l'intero tavolo): finisce qui automaticamente, senza bisogno di
+        //    logica dedicata.
         const scopas = moves.filter(m => m.isScopa)
         if (scopas.length) {
-            scopas.sort((a, b) => this._captureValue([b.card, ...b.capture], rules) - this._captureValue([a.card, ...a.capture], rules))
+            scopas.sort((a, b) =>
+                this._captureValue([b.card, ...b.capture], rules, view.capturedCards) -
+                this._captureValue([a.card, ...a.capture], rules, view.capturedCards))
             return scopas[0]
         }
 
@@ -54,7 +58,7 @@ export class ScopaAI {
         const captures = moves.filter(m => m.capture)
         if (captures.length) {
             const scored = captures.map(m => {
-                const gain = this._captureValue([m.card, ...m.capture], rules)
+                const gain = this._captureValue([m.card, ...m.capture], rules, view.capturedCards)
                 const remainingTable = view.table.filter(c => !m.capture.some(x => x.id === c.id))
                 const risk = this._opponentRisk(remainingTable, view, rules)
                 return { ...m, score: gain - risk }
@@ -69,7 +73,11 @@ export class ScopaAI {
         const discards = moves.map(m => {
             const hypotheticalTable = [...view.table, m.card]
             const risk = this._opponentRisk(hypotheticalTable, view, rules)
-            const cost = this._captureValue([m.card], rules)
+            let cost = this._captureValue([m.card], rules, view.capturedCards)
+            // "asso piglia tutto": un Asso in mano e' un potenziale scopone
+            // futuro (basta aspettare che il tavolo si riempia), quindi va
+            // scartato solo se non c'e' alternativa migliore in mano
+            if (rules.assoPigliattuttoEnabled?.() && m.card.rank === 'A') cost += 8
             return { ...m, score: -(risk + cost) }
         })
         discards.sort((a, b) => b.score - a.score)
@@ -77,14 +85,28 @@ export class ScopaAI {
     }
 
     // valore "strategico" di un insieme di carte (giocata + eventuale presa):
-    // pesa le carte in base a cosa contano per il punteggio di fine smazzata
-    _captureValue(cards, rules) {
+    // pesa le carte in base a cosa contano per il punteggio di fine smazzata.
+    // alreadyCaptured (opzionale): il resto delle carte gia' catturate dal
+    // giocatore in questa smazzata, usato SOLO per valutare l'avanzamento
+    // della sequenza "napola" (che dipende da cosa si ha gia' in pila, non
+    // solo da questa singola presa). Quando manca (es. nella stima del
+    // rischio per l'avversario, la cui pila non e' visibile), si valuta la
+    // presa come se fosse isolata: un'approssimazione prudente, non un
+    // errore, dato che comunque segnala il rischio di una tripletta
+    // catturata tutta in un colpo.
+    _captureValue(cards, rules, alreadyCaptured = []) {
         let v = 0
         for (const c of cards) {
             v += 1                                    // ogni carta conta per il conteggio "carte"
             if (c.suit === DENARI_SUIT) v += 2         // "denari" pesa nel conteggio di quel seme
             if (rules.isSettebello(c)) v += 12         // il settebello e' un punto quasi sempre conteso
+            if (rules.rebelloEnabled?.() && rules.isRebello(c)) v += 12 // stesso peso del settebello
             v += rules.primieraValue(c) / 3            // contributo proporzionale al valore da primiera
+        }
+        if (rules.napolaEnabled?.()) {
+            const before = rules.napolaLength(alreadyCaptured)
+            const after = rules.napolaLength([...alreadyCaptured, ...cards])
+            if (after > before) v += (after - before) * 6 // ogni punto di napola vale quanto mezza scopa
         }
         return v
     }

@@ -1,5 +1,3 @@
-// games/tressette/TressetteAI.js
-//
 // Strategia euristica per il Tressette, usata da un AIPlayer (vedi card-engine/AIPlayer.js).
 // Riceve solo una "view" del gioco: mano propria, carta/e sul tavolo, l'insieme
 // aggregato delle carte MAI viste (utile solo per stime probabilistiche) e le

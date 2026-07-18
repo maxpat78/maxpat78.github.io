@@ -1,4 +1,3 @@
-// card-engine/HumanPlayer.js
 import { Player } from './Player.js'
 
 // Non aggiunge comportamento: la "decisione" di quale carta giocare arriva

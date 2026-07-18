@@ -4,7 +4,9 @@ import { AIPlayer } from './card-engine/AIPlayer.js'
 import { MariannaRules } from './games/marianna/MariannaRules.js'
 import { MariannaAI } from './games/marianna/MariannaAI.js'
 import { MariannaTableRenderer } from './ui/MariannaRenderer.js'
+import { responsiveDialogWidth } from './ui/dialogUtils.js'
 
+const LOG_ENABLED = 0
 const HUMAN_INDEX = 0
 const AI_INDEX = 1
 
@@ -30,13 +32,22 @@ export class MariannaApp {
             imagePath: (cardId) => `./trieste/${cardId}.webp`,
             backImagePath: './trieste/Dorso.webp',
             coord: {
-                0: { x: 320, y: 585 },     // Umano
-                1: { x: 320, y: 1 },       // PC
-                table: { x: 410, y: 293 },  // Tavolo
-                info: { top: 565, left: 10 },
+                // punto verso cui volano le carte vinte in una presa (fuori
+                // vista, poi dissolvenza): PC in alto, Umano in basso, in
+                // corrispondenza dei rispettivi badge "prese"
+                pile: {
+                    [AI_INDEX]: { x: 640, y: 330 },
+                    [HUMAN_INDEX]: { x: 640, y: 1010 },
+                },
+                info: { top: 15, left: '50%', transform: 'translateX(-50%)' },
             },
             sortHand: true,
-            handSpacing: 90,
+            // punti complessivi di partita, aggiornati in tempo reale con
+            // quelli della smazzata in corso: totalScores conta solo le
+            // smazzate gia' concluse, engine.rawPoints riparte da 0 ad ogni
+            // nuova smazzata, quindi la somma e' sempre il totale "vero" al
+            // momento, anche a meta' della primissima smazzata
+            badgeScore: (engine, idx) => this.totalScores[idx] + engine.rawPoints[idx],
             formatInfo: (engine) => this._formatInfo(engine),
             onRoundOver: (result) => this._handleRoundOver(result),
             onHelp: () => this._showHelp(),
@@ -48,6 +59,7 @@ export class MariannaApp {
     }
 
     _log(message) {
+        if (!LOG_ENABLED) return
         this.logs.push(message)
         console.log(message)
     }
@@ -67,7 +79,7 @@ export class MariannaApp {
             const cardsOnTable = this.engine.trick ? this.engine.trick.length : 0
 
             if (cardsOnTable === 1) {
-                this._log(`--- Turno ${this.engine.history.length + 1}. Abre: ${playerIndex === HUMAN_INDEX ? 'Umano' : 'PC'} ---`)
+                this._log(`--- Turno ${this.engine.history.length + 1}. Apre: ${playerIndex === HUMAN_INDEX ? 'Umano' : 'PC'} ---`)
             }
 
             const playerName = playerIndex === HUMAN_INDEX ? 'Umano' : 'PC'
@@ -104,7 +116,7 @@ export class MariannaApp {
             if (!isHuman && this.renderer && typeof this.renderer.showMessage === 'function') {
                 this.renderer.showMessage(
                     'Accusa del PC!',
-                    `Il Computer ha dichiarato MARIANNA di ${suitName}!\n+${bonusPoints} punti bonus.\nLa nuova briscola è ${suitName}.`
+                    `Il Computer ha dichiarato MARIANNA di ${suitName}!<br/>+${bonusPoints} punti bonus.<br/>La nuova briscola è ${suitName}.`
                 )
             }
         })
@@ -117,8 +129,7 @@ export class MariannaApp {
             : 'nessuna'
 
         return [
-            `Briscola: ${trump} [Mazzo: ${engine.deck.count()}]`,
-            `Punti Tu/PC: ${engine.rawPoints[HUMAN_INDEX]} (${this.totalScores[HUMAN_INDEX]}) / ${engine.rawPoints[AI_INDEX]} (${this.totalScores[AI_INDEX]})`
+            `Briscola: ${trump}`,
         ].join('\n')
     }
 
@@ -169,7 +180,7 @@ export class MariannaApp {
         this._log("=== FINE SMAZZATA ===")
 
         // Download automatico del log a fine smazzata
-        this._downloadLogFile()
+        if (LOG_ENABLED) this._downloadLogFile()
 
         let msg = `Fine smazzata!\nPunti smazzata (Tu-PC): ${humanRoundPts} - ${aiRoundPts}\nPunti totali partita:\nTu: ${humanTot}\nPC: ${aiTot}`
 
@@ -178,7 +189,7 @@ export class MariannaApp {
             if (humanTot > aiTot) {
                 matchWinnerMsg = "COMPLIMENTI! Hai vinto la partita superando i 500 punti! 🏆"
             } else if (aiTot > humanTot) {
-                matchWinnerMsg = "Il Computer ha vinto la partita superando i 500 punti! 🤖"
+                matchWinnerMsg = "Il PC ha vinto la partita superando i 500 punti! 🤖"
             } else {
                 matchWinnerMsg = "Pareggio oltre i 500 punti!"
             }
@@ -225,7 +236,7 @@ export class MariannaApp {
             .then(r => r.text())
             .then(html => {
                 $('<div title="Regole della Marianna">').html(html).dialog({
-                    modal: true, width: 500,
+                    modal: true, width: responsiveDialogWidth(500),
                     close: function () { $(this).dialog('destroy').remove() },
                 })
             })
@@ -239,8 +250,8 @@ function resizeGame() {
     if (!board) return;
 
     // Dimensioni logiche fisse del tavolo (quelle messe nel CSS)
-    const GAME_WIDTH = 850;
-    const GAME_HEIGHT = 860;
+    const GAME_WIDTH = 720;
+    const GAME_HEIGHT = 1280;
 
     // Dimensioni reali dello schermo in questo momento
     const windowWidth = window.innerWidth;

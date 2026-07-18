@@ -1,4 +1,3 @@
-// card-engine/AIPlayer.js
 import { Player } from './Player.js'
 
 // AIPlayer NON contiene alcuna euristica di gioco: quella vive in una

@@ -4,7 +4,9 @@ import { AIPlayer } from './card-engine/AIPlayer.js'
 import { BriscolaRules } from './games/briscola/BriscolaRules.js'
 import { BriscolaAI } from './games/briscola/BriscolaAI.js'
 import { TableRenderer } from './ui/TableRenderer.js'
+import { responsiveDialogWidth } from './ui/dialogUtils.js'
 
+const LOG_ENABLED = 0
 const AI_INDEX = 0     // "PC" (0=PC, 1=umano)
 const HUMAN_INDEX = 1
 const TARGET_HANDS_TO_WIN = 3 // Al meglio di 5 = primo che vince 3 smazzate
@@ -24,13 +26,16 @@ class BriscolaApp {
             imagePath: (id) => `./trieste/${id}.webp`,
             backImagePath: `./trieste/Dorso.webp`,
             coord: {
-                0: { x: 320, y: 1 },      // PC
-                1: { x: 320, y: 585 },    // Umano
-                table: { x: 410, y: 293 },
-                info: { top: 565, left: 10 },
+                // punto verso cui volano le carte vinte in una presa (fuori
+                // vista, poi dissolvenza): PC in alto, Umano in basso, in
+                // corrispondenza dei rispettivi badge "prese"
+                pile: {
+                    [AI_INDEX]: { x: 640, y: 330 },
+                    [HUMAN_INDEX]: { x: 640, y: 1010 },
+                },
+                info: { top: 15, left: '50%', transform: 'translateX(-50%)' },
             },
             sortHand: false,
-            handSpacing: 90,
             formatInfo: (engine) => this._formatInfo(engine),
             onRoundOver: (result) => this._onRoundOver(result),
             onHelp: () => this._showHelp(),
@@ -52,6 +57,7 @@ class BriscolaApp {
     }
 
     _log(message) {
+        if (!LOG_ENABLED) return;
         this.logs.push(message)
         console.log(message)
     }
@@ -96,8 +102,8 @@ class BriscolaApp {
         const human = engine.rawPoints[HUMAN_INDEX]
         const suitNames = { B: 'Bastoni', C: 'Coppe', D: 'Danari', S: 'Spade' }
         return [
-            `Briscola: ${suitNames[this.rules.trumpSuit]} [${engine.deck.count()}]`,
-            `Punti (Tu-PC): ${human} - ${pc} (${this.handsWon[HUMAN_INDEX]} - ${this.handsWon[AI_INDEX]})`,
+            `Briscola: ${suitNames[this.rules.trumpSuit]}`,
+            `Vittorie: TU  ${this.handsWon[HUMAN_INDEX]}   -   PC  ${this.handsWon[AI_INDEX]}`,
         ].join('\n')
     }
 
@@ -137,29 +143,29 @@ class BriscolaApp {
 
         let msg = ""
         if (winnerIndex === null) {
-            msg = `${pcPoints} a ${humanPoints}: pareggio! Nessuno ha raggiunto 61 punti.`
-            this._log(`RISULTATO SMAZZATA: Pareggio (${pcPoints} - ${humanPoints})`)
+            msg = `${pcPoints} a ${humanPoints}: pareggio!`
+            this._log(`Pareggio (${pcPoints} - ${humanPoints})`)
         } else if (winnerIndex === HUMAN_INDEX) {
             this.handsWon[HUMAN_INDEX]++
-            msg = `${humanPoints} a ${pcPoints}: hai vinto tu la smazzata!`
-            this._log(`RISULTATO SMAZZATA: Vittoria Umano (${humanPoints} a ${pcPoints})`)
+            msg = `${humanPoints} a ${pcPoints}: hai vinto tu!`
+            this._log(`Hai vinto! (${humanPoints} a ${pcPoints})`)
         } else {
             this.handsWon[AI_INDEX]++
-            msg = `${pcPoints} a ${humanPoints}: ho vinto io la smazzata!`
-            this._log(`RISULTATO SMAZZATA: Vittoria PC (${pcPoints} a ${humanPoints})`)
+            msg = `${pcPoints} a ${humanPoints}: ho vinto io!`
+            this._log(`Hai perso! (${pcPoints} a ${humanPoints})`)
         }
 
         this._log(`Totale smazzate vinte nella partita -> PC: ${this.handsWon[AI_INDEX]}, Umano: ${this.handsWon[HUMAN_INDEX]}`)
         this._log("=== FINE SMAZZATA ===")
 
-        this._downloadLogFile()
+        if (LOG_ENABLED) this._downloadLogFile()
 
         // Verifica se la PARTITA è terminata (primo a 3 smazzate)
         const isMatchOver = this.handsWon[HUMAN_INDEX] >= TARGET_HANDS_TO_WIN || this.handsWon[AI_INDEX] >= TARGET_HANDS_TO_WIN
 
         if (isMatchOver) {
             const matchWinner = this.handsWon[HUMAN_INDEX] >= TARGET_HANDS_TO_WIN ? "HAI VINTO LA PARTITA! 🏆" : "IL PC HA VINTO LA PARTITA! 🤖"
-            const finalMsg = `${msg}\n\n=== ${matchWinner} ===\nRisultato finale smazzate: Tu ${this.handsWon[HUMAN_INDEX]} – PC ${this.handsWon[AI_INDEX]}\n\nClicca per iniziare una nuova partita.`
+            const finalMsg = `${msg}<br/><br/>=== ${matchWinner} ===<br/>Risultato finale: Tu ${this.handsWon[HUMAN_INDEX]} – PC ${this.handsWon[AI_INDEX]}`
 
             this.renderer.showMessage('Partita Conclusa!', finalMsg, () => {
                 this.engine.startNewHand()
@@ -167,12 +173,12 @@ class BriscolaApp {
                 this._startNewMatch()
             })
         } else {
-            msg += `\n\nSmazzate vinte nella partita: Tu ${this.handsWon[HUMAN_INDEX]} – PC ${this.handsWon[AI_INDEX]}`
+            msg += `<br/><br/>Smazzate vinte: Tu ${this.handsWon[HUMAN_INDEX]} – PC ${this.handsWon[AI_INDEX]}`
             
             // ALTERNA il giocatore che apre la prossima smazzata
             this.currentHandLeader = 1 - this.currentHandLeader
 
-            this.renderer.showMessage('Risultato Smazzata', msg, () => this._newHand())
+            this.renderer.showMessage('Risultato smazzata', msg, () => this._newHand())
         }
     }
 
@@ -206,7 +212,7 @@ class BriscolaApp {
             .then(r => r.text())
             .then(html => {
                 $('<div title="Regole della Briscola">').html(html).dialog({
-                    modal: true, width: 500,
+                    modal: true, width: responsiveDialogWidth(500),
                     close: function () { $(this).dialog('destroy').remove() },
                 })
             })
@@ -218,8 +224,8 @@ function resizeGame() {
     if (!board) return;
 
     // Dimensioni logiche fisse del tavolo (quelle messe nel CSS)
-    const GAME_WIDTH = 680;
-    const GAME_HEIGHT = 860;
+    const GAME_WIDTH = 720;
+    const GAME_HEIGHT = 1280;
 
     // Dimensioni reali dello schermo in questo momento
     const windowWidth = window.innerWidth;

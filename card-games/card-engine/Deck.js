@@ -1,4 +1,3 @@
-// card-engine/Deck.js
 import { Card } from './Card.js'
 
 // Mescolamento Fisher-Yates: l'unico algoritmo che garantisce una
