@@ -115,6 +115,11 @@ export class CaptureEngine {
 
         let isScopa = false
         if (chosen) {
+            // va calcolato PRIMA di rimuovere le carte dal tavolo: la presa
+            // speciale "asso pigliatutto" si riconosce dal tavolo cosi' com'era
+            // al momento della giocata (Asso su tavolo non vuoto, variante attiva)
+            const wasAssoPigliatutto = this.rules.isAssoPigliatuttoCapture?.(card, this.table) ?? false
+
             const chosenIds = new Set(chosen.map(c => c.id))
             this.table = this.table.filter(c => !chosenIds.has(c.id))
             this.captured[playerIndex].push(card, ...chosen)
@@ -123,6 +128,11 @@ export class CaptureEngine {
             // Vale scopa solo se il tavolo si svuota E NON è l'ultima giocata della smazzata
             isScopa = (this.table.length === 0) && !isLastCardOfHand
             //isScopa = this.table.length === 0 // eccezione per l'ultima presa gestita in _finishHand
+            // "asso pigliatutto" raccoglie sempre tutto il tavolo, ma segna
+            // scopa solo se la variante assoPigliattuttoScopa e' attiva
+            if (isScopa && wasAssoPigliatutto && !(this.rules.assoPigliattuttoScopaEnabled?.())) {
+                isScopa = false
+            }
             if (isScopa) this.scopeCount[playerIndex]++
         } else {
             this.table.push(card)

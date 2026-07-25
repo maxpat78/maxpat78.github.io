@@ -3,6 +3,9 @@ const RANKS = ['2', '4', '5', '6', '7', 'F', 'C', 'R', '3', 'A']
 const RANK_POINTS = { '2': 0, '4': 0, '5': 0, '6': 0, '7': 0, 'F': 2, 'C': 3, 'R': 4, '3': 10, 'A': 11 }
 const RANK_NAMES = { '2': 'Due', '3': 'Tre', '4': 'Quattro', '5': 'Cinque', '6': 'Sei', '7': 'Sette', 'F': 'Fante', 'C': 'Cavallo', 'R': 'Re', 'A': 'Asso' }
 const SUIT_NAMES = { B: 'Bastoni', C: 'Coppe', D: 'Danari', S: 'Spade' }
+// punti bonus per l'accusa di Marianna: crescono a ogni nuova accusa (di
+// chiunque), fino a un tetto di 100
+const MARIANNA_POINTS = [40, 60, 80, 100]
 
 export class MariannaRules {
     constructor() {
@@ -51,11 +54,22 @@ export class MariannaRules {
         return SUITS.filter(suit => this.canDeclareMarianna(hand, suit, deckCount))
     }
 
-    declareMarianna(playerIndex, suit, engine = null) {
-        const MARIANNA_POINTS = [40, 60, 80, 100]
+    // true se per questo seme la Marianna e' gia' stata dichiarata (da uno
+    // qualsiasi dei due giocatori): usato anche dall'IA per smettere di
+    // proteggere un Re/Cavallo che non ha piu' nulla da guadagnare
+    isMariannaDeclared(suit) { return this.declaredSuits.has(suit) }
+
+    // quanti punti varrebbe un'accusa fatta ORA (cresce con le accuse gia'
+    // avvenute, fino al tetto di MARIANNA_POINTS): utile per stimare il
+    // guadagno atteso di trattenere un pezzo spaiato in attesa del compagno
+    nextMariannaBonus() {
         const pointsIndex = Math.min(this.totalAccuseCount, MARIANNA_POINTS.length - 1)
-        const bonus = MARIANNA_POINTS[pointsIndex]
-        
+        return MARIANNA_POINTS[pointsIndex]
+    }
+
+    declareMarianna(playerIndex, suit, engine = null) {
+        const bonus = this.nextMariannaBonus()
+
         this.totalAccuseCount++
         this.trumpSuit = suit
         this.declaredSuits.add(suit) // Segna il seme come già accusato

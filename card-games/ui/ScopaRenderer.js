@@ -14,6 +14,20 @@ export class ScopaRenderer {
         this._pendingOptions = []       // combinazioni di presa legali per quella carta
         this._selectedTableIds = new Set()
 
+        // il banner "SCOPA" e' un momento che l'utente deve poter osservare
+        // senza interferenze: mentre e' a schermo, le distribuzioni di nuove
+        // carte (evento 'deal' per una ripescata) vengono accodate qui e
+        // rieseguite solo a banner sparito (vedi _showScopaBanner/_flushPendingDeals)
+        this._scopaBannerActive = false
+        this._pendingDeals = []
+
+        // contatore delle animazioni di presa/scopone finale ancora in volo:
+        // il box di riepilogo smazzata (onHandOver) resta in attesa finche'
+        // non torna a zero, cosi' si vede sempre chi ha fatto l'ultima presa
+        // prima che il box compaia (vedi _beginAnim/_endAnim/_onHandOver)
+        this._animLock = 0
+        this._pendingHandOver = null
+
         this.handLayout = new HandLayout({
             rules: engine.rules,
             sorted: opts.sortHand !== false,
@@ -142,7 +156,21 @@ export class ScopaRenderer {
     }
 
     // --- distribuzione ---
-    _animateDeal({ target, playerIndex, slot, card }) {
+    _animateDeal(payload) {
+        if (this._scopaBannerActive) {
+            this._pendingDeals.push(payload)
+            return
+        }
+        this._doAnimateDeal(payload)
+    }
+
+    _flushPendingDeals() {
+        const queued = this._pendingDeals
+        this._pendingDeals = []
+        for (const payload of queued) this._doAnimateDeal(payload)
+    }
+
+    _doAnimateDeal({ target, playerIndex, slot, card }) {
         this._slideDeck(true);
 
         clearTimeout(this._deckSlideTimeout);
@@ -391,6 +419,28 @@ export class ScopaRenderer {
         }
     }
 
+    // --- sincronizzazione fra animazioni e box di riepilogo ---
+
+    // ogni animazione di volo verso una pila di presa (giocata normale o
+    // scopone finale) si registra qui prima di partire e si de-registra al
+    // termine: il box di riepilogo smazzata resta in sospeso finche' il
+    // contatore non torna a zero, cosi' l'utente vede sempre chi ha fatto
+    // l'ultima presa prima che il box compaia sopra
+    _beginAnim() { this._animLock++ }
+
+    _endAnim() {
+        this._animLock = Math.max(0, this._animLock - 1)
+        this._maybeFireHandOver()
+    }
+
+    _maybeFireHandOver() {
+        if (this._animLock === 0 && this._pendingHandOver) {
+            const result = this._pendingHandOver
+            this._pendingHandOver = null
+            if (this.opts.onHandOver) this.opts.onHandOver(result)
+        }
+    }
+
     // --- animazione della giocata ---
 
     _animatePlay({ playerIndex, card, slot, captured, isScopa }) {
@@ -431,7 +481,8 @@ export class ScopaRenderer {
         }
 
         const delayBeforeFly = isHuman ? 0 : 750
-    
+
+        this._beginAnim()
         setTimeout(() => {
             const pile = this.opts.coord.pile[playerIndex]
             const flying = [card, ...captured]
@@ -452,6 +503,7 @@ export class ScopaRenderer {
                 this._layoutTable()
                 this.updateInfo(this.opts.formatInfo(this.engine))
                 if (isScopa) this._showScopaBanner()
+                this._endAnim()
             }, 400 + flying.length * 60 + 250)
         }, delayBeforeFly)
     }
@@ -467,6 +519,7 @@ export class ScopaRenderer {
         }).join('')
 
         $('#scopa-banner').remove() // nel caso (raro) di due scope ravvicinate, non accavallarle
+        this._scopaBannerActive = true
         const $banner = $(`<div id="scopa-banner">${letters}</div>`).css({
             position: 'absolute', left: '50%', top: '50%',
             transform: 'translate(-50%, -50%) scale(0.4)',
@@ -483,12 +536,20 @@ export class ScopaRenderer {
 
         setTimeout(() => {
             $banner.css({ transition: 'opacity 0.25s', opacity: 0 })
-            setTimeout(() => $banner.remove(), 250)
+            setTimeout(() => {
+                $banner.remove()
+                this._scopaBannerActive = false
+                this._flushPendingDeals()
+            }, 250)
         }, 1000)
     }
 
     _animateFinalSweep({ playerIndex, cards }) {
+        if (!cards.length) return
         const pile = this.opts.coord.pile[playerIndex]
+        const self = this
+        self._beginAnim()
+        let remaining = cards.length
         cards.forEach((c, i) => {
             $(`#${c.id}`).stop(true, false)
                 .css('zIndex', 300) // <-- Forza il volo in primo piano anche a fine smazzata
@@ -497,12 +558,22 @@ export class ScopaRenderer {
                     top: pile.y,
                     width: 80,
                     height: 148
-                }, 400 + i * 60, function () { $(this).fadeOut(200) })
+                }, 400 + i * 60, function () {
+                    $(this).fadeOut(200, function () {
+                        remaining--
+                        if (remaining === 0) self._endAnim()
+                    })
+                })
         })
     }
 
+    // il box di riepilogo non compare subito: resta "in sospeso" finche' le
+    // animazioni di presa/scopone finale ancora in corso non sono terminate
+    // (vedi _beginAnim/_endAnim), cosi' l'utente fa sempre in tempo a vedere
+    // chi ha effettuato l'ultima presa della smazzata
     _onHandOver(result) {
-        if (this.opts.onHandOver) this.opts.onHandOver(result)
+        this._pendingHandOver = result
+        this._maybeFireHandOver()
     }
 
     _showDialog(title, text, onClose) {
@@ -599,6 +670,12 @@ export class ScopaRenderer {
         this._aiHandBack = {};
         this._backCounter = this._totalDeckSize();
         this._clearSelection();
+
+        this._scopaBannerActive = false
+        this._pendingDeals = []
+        this._animLock = 0
+        this._pendingHandOver = null
+        $('#scopa-banner').remove()
         
         // Rimuove tutte le classi di stato dai dorsi per rimetterli nel mazzo
         $('img.dorso').removeClass('in-ai-hand spent'); 

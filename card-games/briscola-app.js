@@ -212,7 +212,9 @@ class BriscolaApp {
             .then(r => r.text())
             .then(html => {
                 $('<div title="Regole della Briscola">').html(html).dialog({
-                    modal: true, width: responsiveDialogWidth(500),
+                    modal: true, width: responsiveDialogWidth(460),
+                    maxHeight: Math.max(280, window.innerHeight - 160),
+                    open: function () { $(this).css('overflow-y', 'auto') },
                     close: function () { $(this).dialog('destroy').remove() },
                 })
             })

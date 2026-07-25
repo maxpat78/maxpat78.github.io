@@ -33,7 +33,15 @@ export class ScopaAI {
                 moves.push({ slot, card, capture: null, isScopa: false })
             } else {
                 for (const capture of captures) {
-                    moves.push({ slot, card, capture, isScopa: capture.length === view.table.length })
+                    const clearsTable = capture.length === view.table.length
+                    // svuotare il tavolo conta come scopa, TRANNE quando e'
+                    // l'effetto dell'"asso piglia tutto" e la variante
+                    // assoPigliattuttoScopa non e' attiva: in tal caso la
+                    // presa resta comunque ottima (nessun rischio residuo,
+                    // vedi punto 2), ma non garantisce il punto
+                    const isAssoCapture = rules.isAssoPigliatuttoCapture?.(card, view.table) ?? false
+                    const scoresScopa = clearsTable && (!isAssoCapture || rules.assoPigliattuttoScopaEnabled?.())
+                    moves.push({ slot, card, capture, isScopa: scoresScopa })
                 }
             }
         }

@@ -1,8 +1,4 @@
-﻿// Stesso schema di tressette-app.js/briscola-app.js: unico file che collega
-// i pezzi generici (CaptureEngine, Player, Deck) con quelli specifici della
-// Scopa (regole, IA, interfaccia dedicata ScopaRenderer).
-
-import { CaptureEngine } from './card-engine/CaptureEngine.js'
+﻿import { CaptureEngine } from './card-engine/CaptureEngine.js'
 import { HumanPlayer } from './card-engine/HumanPlayer.js'
 import { AIPlayer } from './card-engine/AIPlayer.js'
 import { ScopaRules } from './games/scopa/ScopaRules.js'
@@ -171,7 +167,7 @@ class ScopaApp {
                         <td style="padding: 6px; text-align: center;">${breakdown.denariCount[1]}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #ddd;">
-                        <td style="padding: 6px;"><strong>Primiera</strong></td>
+                        <td style="padding: 6px;"><strong><a href="#" id="primiera-link" style="color:#1565c0; text-decoration:underline; cursor:pointer;">Primiera</a></strong></td>
                         <td style="padding: 6px; text-align: center;">${breakdown.primieraScores[0]}</td>
                         <td style="padding: 6px; text-align: center;">${breakdown.primieraScores[1]}</td>
                     </tr>
@@ -222,6 +218,11 @@ class ScopaApp {
             note = `<p style="margin-top: 10px; color: orange;"><strong>Pareggio a ${this.matchScores[HUMAN_INDEX]} punti-partita:</strong> si continua per decidere.</p>`
         }
 
+        $(document).off('click', '#primiera-link').on('click', '#primiera-link', (e) => {
+            e.preventDefault()
+            this._showPrimieraDetail(breakdown)
+        })
+
         this.renderer.showMessage('Risultato smazzata', htmlTable + note, () => {
             this._dealerIndex = 1 - this._dealerIndex
             if (matchOver) {
@@ -239,6 +240,28 @@ class ScopaApp {
                 this._newHand()
             }
         })
+    }
+
+    _showPrimieraDetail(breakdown) {
+        const cardsList = (cards) => cards.length
+            ? cards.map(c => `${this.rules.cardName(c)} <span style="color:#888;">(${this.rules.primieraValue(c)})</span>`).join('<br>')
+            : '<em>Nessuna carta</em>'
+
+        const html = `
+            <div style="font-family:Arial; font-size:14px; line-height:1.5;">
+                <div style="display:flex; gap:24px;">
+                    <div style="flex:1;">
+                        <strong>PC (${breakdown.primieraScores[AI_INDEX]})</strong><br>
+                        ${cardsList(breakdown.primieraCardsUsed[AI_INDEX])}
+                    </div>
+                    <div style="flex:1;">
+                        <strong>Tu (${breakdown.primieraScores[HUMAN_INDEX]})</strong><br>
+                        ${cardsList(breakdown.primieraCardsUsed[HUMAN_INDEX])}
+                    </div>
+                </div>
+            </div>`
+
+        this.renderer.showMessage('Dettaglio Primiera', html)
     }
 
     _downloadLogFile() {
@@ -283,6 +306,10 @@ class ScopaApp {
             <div style="font-family:Arial; font-size:14px; line-height:1.4;">
                 ${variant('opt-asso', opts.assoPigliatutto, 'Asso piglia tutto',
                     'Chi cala un Asso prende tutte le carte sul tavolo')}
+                <label id="opt-asso-scopa-wrap" style="display:block; margin:-8px 0 14px 24px; cursor:pointer;">
+                    <input type="checkbox" id="opt-asso-scopa" ${opts.assoPigliattuttoScopa ? 'checked' : ''} style="margin-right:8px; transform:scale(1.1); vertical-align:middle;">
+                    <span>... e segna Scopa</span>
+                </label>
                 ${variant('opt-rebello', opts.rebello, 'Rebello',
                     'Chi ha preso il Re di Danari guadagna 1 punto')}
                 ${variant('opt-napola', opts.napola, 'Napola',
@@ -295,6 +322,7 @@ class ScopaApp {
             buttons: {
                 Applica: () => {
                     opts.assoPigliatutto = $('#opt-asso').is(':checked')
+                    opts.assoPigliattuttoScopa = $('#opt-asso-scopa').is(':checked')
                     opts.rebello = $('#opt-rebello').is(':checked')
                     opts.napola = $('#opt-napola').is(':checked')
                     this.renderer.updateInfo(this._formatInfo(this.engine))
@@ -304,6 +332,15 @@ class ScopaApp {
             },
             close: function () { $(this).dialog('destroy').remove() },
         })
+
+        // la sotto-opzione ha senso solo se "Asso piglia tutto" e' attiva
+        const syncAssoScopaState = () => {
+            const enabled = $('#opt-asso').is(':checked')
+            $('#opt-asso-scopa').prop('disabled', !enabled)
+            $('#opt-asso-scopa-wrap').css('opacity', enabled ? 1 : 0.5)
+        }
+        $dialog.on('change', '#opt-asso', syncAssoScopaState)
+        syncAssoScopaState()
     }
 
     _showHelp() {
@@ -311,7 +348,12 @@ class ScopaApp {
             .then(r => r.text())
             .then(html => {
                 $('<div title="Regole della Scopa">').html(html).dialog({
-                    modal: true, width: responsiveDialogWidth(340),
+                    modal: true,
+                    width: responsiveDialogWidth(460),
+                    // testo lungo: il contenuto scorre invece di far crescere
+                    // il dialog oltre lo schermo
+                    maxHeight: Math.max(280, window.innerHeight - 160),
+                    open: function () { $(this).css('overflow-y', 'auto') },
                     close: function () { $(this).dialog('destroy').remove() },
                 })
             })

@@ -21,6 +21,12 @@ export class ScopaRules {
      *   di default (Scopa "classica"):
      *   - assoPigliatutto: chi cala un Asso prende TUTTE le carte sul tavolo
      *     (invece del solo eventuale Asso presente)
+     *   - assoPigliattuttoScopa: ha effetto SOLO se assoPigliatutto e' attiva.
+     *     Quando true, la presa dell'intero tavolo con l'Asso vale anche
+     *     come Scopa; quando false (default), l'Asso pigliatutto raccoglie
+     *     comunque tutte le carte ma NON segna scopa (variante piu' severa,
+     *     spesso preferita perche' altrimenti l'Asso garantirebbe scopa a
+     *     ripetizione con troppa facilita')
      *   - rebello: il Re di Denari vale 1 punto a chi lo cattura, come il
      *     Settebello
      *   - napola: chi cattura Asso+2+3 di Denari guadagna 3 punti, +1 per
@@ -30,12 +36,26 @@ export class ScopaRules {
      *   suoi campi, senza dover ricreare le regole o l'IA.
      */
     constructor(options = {}) {
-        this.options = { assoPigliatutto: false, rebello: false, napola: false, ...options }
+        this.options = {
+            assoPigliatutto: false, assoPigliattuttoScopa: false,
+            rebello: false, napola: false, ...options,
+        }
     }
 
     assoPigliattuttoEnabled() { return this.options.assoPigliatutto }
+    assoPigliattuttoScopaEnabled() { return this.options.assoPigliattuttoScopa }
     rebelloEnabled() { return this.options.rebello }
     napolaEnabled() { return this.options.napola }
+
+    // true quando la carta appena calata attiva la presa speciale "asso
+    // pigliatutto" (Asso su tavolo non vuoto, con la variante attiva): in tal
+    // caso findCaptures ritorna SEMPRE e SOLO l'intero tavolo come unica
+    // combinazione possibile. Usata anche dal motore (CaptureEngine) per
+    // decidere se la conseguente scopa va segnata, secondo
+    // assoPigliattuttoScopaEnabled().
+    isAssoPigliatuttoCapture(playedCard, table) {
+        return !!(this.options.assoPigliatutto && playedCard.rank === 'A' && table.length > 0)
+    }
 
     deckConfig() { return { suits: SUITS, ranks: RANKS } }
 
@@ -90,7 +110,7 @@ export class ScopaRules {
         // abbinamento per valore/somma quando la carta calata e' un Asso e il
         // tavolo non e' vuoto (su tavolo vuoto l'Asso resta un semplice
         // scarto, non c'e' nulla da prendere)
-        if (this.options.assoPigliatutto && playedCard.rank === 'A' && table.length > 0) {
+        if (this.isAssoPigliatuttoCapture(playedCard, table)) {
             return [[...table]]
         }
 
@@ -144,15 +164,25 @@ export class ScopaRules {
         const denari = denariCount[0] > denariCount[1] ? 0 : denariCount[1] > denariCount[0] ? 1 : null
         if (denari !== null) scores[denari]++
 
-        const primieraTotal = cs => {
+        // per ogni seme, la carta con il valore da primiera piu' alto (se
+        // presente): sia il totale sia le carte stesse servono alla UI, che
+        // mostra su richiesta quali carte hanno determinato il punteggio
+        const primieraDetail = cs => {
             let total = 0
+            const cards = []
             for (const suit of SUITS) {
                 const inSuit = cs.filter(c => c.suit === suit)
-                if (inSuit.length) total += Math.max(...inSuit.map(c => this.primieraValue(c)))
+                if (inSuit.length) {
+                    const best = inSuit.reduce((a, b) => this.primieraValue(b) > this.primieraValue(a) ? b : a)
+                    total += this.primieraValue(best)
+                    cards.push(best)
+                }
             }
-            return total
+            return { total, cards }
         }
-        const primieraScores = capturedCards.map(primieraTotal)
+        const primieraDetails = capturedCards.map(primieraDetail)
+        const primieraScores = primieraDetails.map(d => d.total)
+        const primieraCardsUsed = primieraDetails.map(d => d.cards)
         const primiera = primieraScores[0] > primieraScores[1] ? 0 : primieraScores[1] > primieraScores[0] ? 1 : null
         if (primiera !== null) scores[primiera]++
 
@@ -182,7 +212,7 @@ export class ScopaRules {
             breakdown: {
                 scope: [...scopeCount],
                 settebello, carte, denari, primiera, rebello, napola,
-                cardCount, denariCount, primieraScores,
+                cardCount, denariCount, primieraScores, primieraCardsUsed,
             },
         }
     }
