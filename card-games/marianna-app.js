@@ -16,6 +16,20 @@ export class MariannaApp {
         this.rules = new MariannaRules()
         this.logs = []
         this.currentHandLeader = HUMAN_INDEX
+        // true nella finestra fra la fine di una smazzata (roundOver) e l'inizio
+        // della successiva (startNewHand): in questa finestra totalScores include
+        // gia' i punti della smazzata appena conclusa, ma engine.rawPoints NON e'
+        // ancora stato azzerato (lo sara' solo quando l'utente chiude il box di
+        // riepilogo). Senza questo flag, l'ultimo updateInfo() ritardato da
+        // TableRenderer._animateResolve (scatta ~1.5s dopo l'ultima presa, quindi
+        // spesso a dialogo gia' aperto) sommerebbe totalScores + rawPoints
+        // contando DUE VOLTE i punti della smazzata appena finita nel badge
+        // tondo, finche' la nuova smazzata non riparte
+        this._roundOver = false
+        // quante Marianne ha dichiarato ciascun giocatore nella smazzata IN
+        // CORSO (azzerato a ogni nuova smazzata in _startRound): serve solo
+        // per il box di riepilogo di fine smazzata, non e' un totale di partita
+        this.mariannaCounts = [0, 0]
 
         const human = new HumanPlayer('human', 'Tu')
         const aiStrategy = new MariannaAI()
@@ -46,8 +60,16 @@ export class MariannaApp {
             // quelli della smazzata in corso: totalScores conta solo le
             // smazzate gia' concluse, engine.rawPoints riparte da 0 ad ogni
             // nuova smazzata, quindi la somma e' sempre il totale "vero" al
-            // momento, anche a meta' della primissima smazzata
-            badgeScore: (engine, idx) => this.totalScores[idx] + engine.rawPoints[idx],
+            // momento, anche a meta' della primissima smazzata.
+            // ECCEZIONE: a smazzata gia' conclusa (_roundOver true) i punti
+            // della smazzata sono GIA' dentro totalScores (vedi
+            // _handleRoundOver), ma engine.rawPoints non e' ancora stato
+            // azzerato (accadra' solo al prossimo startNewHand): sommarlo di
+            // nuovo li conterebbe due volte, quindi in questa finestra il
+            // badge mostra il solo totalScores gia' consolidato
+            badgeScore: (engine, idx) => this._roundOver
+                ? this.totalScores[idx]
+                : this.totalScores[idx] + engine.rawPoints[idx],
             formatInfo: (engine) => this._formatInfo(engine),
             onRoundOver: (result) => this._handleRoundOver(result),
             onHelp: () => this._showHelp(),
@@ -104,6 +126,8 @@ export class MariannaApp {
             const playerName = isHuman ? 'Tu' : 'Il Computer'
             const suitName = this.rules.suitName ? this.rules.suitName(suit) : suit
 
+            this.mariannaCounts[playerIndex]++
+
             // 1. Log nella console / file log (per entrambi)
             this._log(`🌟 ACCUSA MARIANNA! ${playerName} accusa il seme di ${suitName} (+${bonusPoints} punti bonus! Nuova briscola)`)
 
@@ -143,6 +167,8 @@ export class MariannaApp {
         this.logs = []
         this._log("=== INIZIO NUOVA SMAZZATA MARIANNA ===")
 
+        this._roundOver = false
+        this.mariannaCounts = [0, 0]
         this.renderer.reset()
         this.engine.deal()
 
@@ -167,9 +193,12 @@ export class MariannaApp {
 
     _handleRoundOver(result) {
         const [humanRoundPts, aiRoundPts] = result.scores
-        
+
         this.totalScores[HUMAN_INDEX] += humanRoundPts
         this.totalScores[AI_INDEX] += aiRoundPts
+        // da qui in poi, e finche' non riparte una nuova smazzata, il badge
+        // deve mostrare solo totalScores (vedi commento su badgeScore sopra)
+        this._roundOver = true
 
         const humanTot = this.totalScores[HUMAN_INDEX]
         const aiTot = this.totalScores[AI_INDEX]
@@ -182,7 +211,9 @@ export class MariannaApp {
         // Download automatico del log a fine smazzata
         if (LOG_ENABLED) this._downloadLogFile()
 
-        let msg = `Fine smazzata!\nPunti smazzata (Tu-PC): ${humanRoundPts} - ${aiRoundPts}\nPunti totali partita:\nTu: ${humanTot}\nPC: ${aiTot}`
+        const scoreLine = `<b>${humanRoundPts}</b> (Tu: ${this._formatMarianneCount(this.mariannaCounts[HUMAN_INDEX])}) a <b>${aiRoundPts}</b> (PC: ${this._formatMarianneCount(this.mariannaCounts[AI_INDEX])})`
+
+        let msg = `${scoreLine}<br/><br/>Punti totali partita:<br/>Tu: ${humanTot} &ndash; PC: ${aiTot}`
 
         if (humanTot >= winScore || aiTot >= winScore) {
             let matchWinnerMsg = ""
@@ -194,7 +225,7 @@ export class MariannaApp {
                 matchWinnerMsg = "Pareggio oltre i 500 punti!"
             }
 
-            msg += `\n\n=== ${matchWinnerMsg} ===\n\nClicca per iniziare una nuova partita.`
+            msg += `<br/><br/>=== ${matchWinnerMsg} ===<br/><br/>Clicca per iniziare una nuova partita.`
 
             this.renderer.showMessage('Partita Conclusa', msg, () => {
                 this.engine.startNewHand()
@@ -206,10 +237,18 @@ export class MariannaApp {
         // Alterna il primo di mano per la smazzata successiva
         this.currentHandLeader = 1 - this.currentHandLeader
 
-        this.renderer.showMessage('Smazzata Conclusa', msg, () => {
+        this.renderer.showMessage('Fine smazzata', msg, () => {
             this.engine.startNewHand()
             this._startRound()
         })
+    }
+
+    // formatta il conteggio Marianne di un giocatore per il box di fine
+    // smazzata, con il singolare/plurale corretto ("Marianna" / "Marianne")
+    _formatMarianneCount(count) {
+        if (count === 0) return 'senza Marianne'
+        if (count === 1) return 'con 1 Marianna'
+        return `con ${count} Marianne`
     }
 
     _downloadLogFile() {
