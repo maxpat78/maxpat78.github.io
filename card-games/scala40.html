@@ -521,17 +521,30 @@ function canUseDiscardNow(pi,top){
   // Uso diretto: nuovo gioco che contenga obbligatoriamente lo scarto e lasci una carta da scartare.
   const temp=[...p.hand,top];
   if(bestMeldPack(temp,false,top.id).length)return true;
-  // Caso speciale: lo scarto naturale sostituisce un jolly. Il jolly recuperato deve a sua volta
-  // poter essere rigiocato nello stesso turno, altrimenti la raccolta non sarebbe completabile.
-  if(!top.joker){
-    for(const m of G.melds){
-      const r=replaceJoker(m,top);if(!r)continue;
-      const afterMelds=G.melds.map(x=>x.id===m.id?{...x,...r.info}:x);
-      if(afterMelds.some(x=>candidateAttach(x,r.joker)))return true;
-      if(bestMeldPack([...p.hand,r.joker],false,r.joker.id).length)return true;
-    }
-  }
+  // Caso speciale: lo scarto naturale sostituisce un Jolly. Simuliamo l'intera catena:
+  // raccolta -> sostituzione -> recupero Jolly -> riuso obbligatorio. Il riuso può essere
+  // un attacco singolo, un attacco insieme ad altre carte o un nuovo gioco.
+  if(discardJokerReplacementPlan(pi,top))return true;
   return false;
+}
+function discardJokerReplacementPlan(pi,top){
+  const p=G.players[pi];
+  if(!top||top.joker||!p.opened)return null;
+  let best=null;
+  for(const m of G.melds){
+    if(m.vanishing||!m.cards.some(c=>c.joker))continue;
+    const r=replaceJoker(m,top);if(!r)continue;
+    // Dopo la raccolta il top entra in mano; sostituendolo viene immediatamente
+    // consumato sul tavolo e il Jolly torna in mano. Quindi la mano simulata è
+    // esattamente la mano precedente + il Jolly recuperato.
+    const simHand=[...p.hand,r.joker];
+    const simMelds=G.melds.map(x=>x.id===m.id?{...x,...r.info}:x);
+    const reuse=cpuBestJokerReusePlan(simHand,simMelds,r.joker.id);
+    if(!reuse)continue;
+    const score=(reuse.remaining===1?100000000:0)+reuse.score;
+    if(!best||score>best.score)best={sourceMeldId:m.id,jokerId:r.joker.id,reuse,score};
+  }
+  return best;
 }
 function humanDrawDiscard(){
   if(G.turn!==0||G.phase!=='draw')return;
@@ -982,10 +995,11 @@ async function cpuExhaustTableTactics(pi,epoch){
   return any;
 }
 function cpuCanUseDiscard(pi,top){
-  const p=G.players[pi];
-  if(!p.opened)return !!(G.rules.openFromDiscard&&bestMeldPack([...p.hand,top],true,top.id).length);
-  if(G.melds.some(m=>candidateAttach(m,top)))return true;
-  return bestMeldPack([...p.hand,top],false,top.id).length>0;
+  // La CPU deve usare lo stesso gate completo dell'umano: oltre a nuovi giochi
+  // e attacchi di gruppo comprende anche sostituzione del Jolly + riuso nello
+  // stesso turno. In questo modo la decisione pozzo/tallone non perde una
+  // tattica che il motore saprebbe poi eseguire nella fase di gioco.
+  return canUseDiscardNow(pi,top);
 }
 function cpuCanReplaceTableJoker(card){
   if(!card||card.joker)return false;
