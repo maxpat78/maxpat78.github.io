@@ -274,6 +274,7 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   <div id="hand"></div>
   <div id="actions">
     <button id="undoDiscardBtn" class="action">↶ Annulla raccolta</button>
+    <button id="undoTurnBtn" class="action">↶ Annulla mosse</button>
     <button id="meldBtn" class="action good">Cala</button>
     <button id="openBtn" class="action primary">Apri</button>
     <button id="cancelPendingBtn" class="action danger">Annulla apertura</button>
@@ -378,11 +379,11 @@ function teamOpened(t){return teamMembers(t).some(i=>G.players[i].opened);}
 function nextPlayer(i){return (i+1)%G.players.length;}
 function startGame(n=2,target=2005,rules={}){
   clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];
-  G={players:makePlayers(n),target,variant:rules.variant==='international'?'international':'classic',round:0,dealer:Math.floor(Math.random()*n),turn:0,phase:'round-end',stock:[],discard:[],pots:[[],[]],potOwner:[null,null],teamTookPot:[false,false],teamScores:[0,0],melds:[],selected:new Set(),targetMeld:null,discardUndo:null,pickupCount:0,singlePickupId:null,mustPlayAfterPickup:false,playedAfterPickup:false,justDrawnId:null,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null};
+  G={players:makePlayers(n),target,variant:rules.variant==='international'?'international':'classic',round:0,dealer:Math.floor(Math.random()*n),turn:0,phase:'round-end',stock:[],discard:[],pots:[[],[]],potOwner:[null,null],teamTookPot:[false,false],teamScores:[0,0],melds:[],selected:new Set(),targetMeld:null,discardUndo:null,turnUndo:null,pickupCount:0,singlePickupId:null,mustPlayAfterPickup:false,playedAfterPickup:false,justDrawnId:null,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null};
   startRound();
 }
 function startRound(){
-  clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];G.round++;G.melds=[];G.discard=[];G.pots=[[],[]];G.potOwner=[null,null];G.teamTookPot=[false,false];G.selected.clear();G.targetMeld=null;G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=null;G.closingTeam=null;G.closingPlayer=null;
+  clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];G.round++;G.melds=[];G.discard=[];G.pots=[[],[]];G.potOwner=[null,null];G.teamTookPot=[false,false];G.selected.clear();G.targetMeld=null;G.discardUndo=null;G.turnUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=null;G.closingTeam=null;G.closingPlayer=null;
   for(const p of G.players){p.hand=[];p.opened=false;p.turns=0;}
   G.stock=shuffle(makeDeck());
   // Due pozzi da 11 carte; in digitale l'alternanza fisica non cambia il contenuto casuale.
@@ -419,7 +420,39 @@ function addToHand(player,cards){player.hand.push(...cards);sortHand(player.hand
 function toast(msg){clearTimeout(toastTimer);$('toast').textContent=msg;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2300);if(navigator.vibrate)try{navigator.vibrate(18);}catch(_){}}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function invalidateDiscardUndo(){G.discardUndo=null;}
-function markTableAction(pi){G.playedAfterPickup=true;G.mustPlayAfterPickup=false;invalidateDiscardUndo();}
+function cloneDiscardUndo(u){return u?{player:u.player,cards:u.cards.slice()}:null;}
+function cloneMeldForUndo(m){return {...m,cards:m.cards.slice()};}
+function captureHumanTurnUndo(){
+  if(!G||G.turn!==0||G.phase!=='play')return;
+  G.turnUndo={
+    dirty:false,
+    hand:G.players[0].hand.slice(),
+    melds:G.melds.map(cloneMeldForUndo),
+    opened:G.players.map(p=>p.opened),
+    pots:G.pots.map(x=>x.slice()),
+    potOwner:G.potOwner.slice(),
+    teamTookPot:G.teamTookPot.slice(),
+    discardUndo:cloneDiscardUndo(G.discardUndo),
+    pickupCount:G.pickupCount,
+    singlePickupId:G.singlePickupId,
+    mustPlayAfterPickup:G.mustPlayAfterPickup,
+    playedAfterPickup:G.playedAfterPickup,
+    lastLog:G.lastLog
+  };
+}
+function undoHumanTurnMoves(){
+  if(!G||G.turn!==0||G.phase!=='play'||!G.turnUndo||!G.turnUndo.dirty)return;
+  const u=G.turnUndo,p=G.players[0];
+  p.hand=u.hand.slice();sortHand(p.hand,sortMode);
+  G.melds=u.melds.map(cloneMeldForUndo);
+  G.players.forEach((pl,i)=>pl.opened=!!u.opened[i]);
+  G.pots=u.pots.map(x=>x.slice());G.potOwner=u.potOwner.slice();G.teamTookPot=u.teamTookPot.slice();
+  G.discardUndo=cloneDiscardUndo(u.discardUndo);
+  G.pickupCount=u.pickupCount;G.singlePickupId=u.singlePickupId;G.mustPlayAfterPickup=u.mustPlayAfterPickup;G.playedAfterPickup=u.playedAfterPickup;
+  G.selected.clear();G.targetMeld=null;G.justDrawnId=null;pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');
+  u.dirty=false;G.lastLog='Mosse del turno annullate: puoi giocare diversamente.';render();
+}
+function markTableAction(pi){G.playedAfterPickup=true;G.mustPlayAfterPickup=false;if(pi===0&&G.turnUndo)G.turnUndo.dirty=true;invalidateDiscardUndo();}
 
 function valueForRunRank(c,aceHigh){if(c.rank===1)return aceHigh?14:1;return c.rank;}
 function runOptions(cards){
@@ -558,14 +591,14 @@ function afterCardsPlayed(pi){if(G.players[pi].hand.length===0&&!G.teamTookPot[t
 
 function humanDrawStock(){
   if(!G||G.turn!==0||G.phase!=='draw')return;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}
-  const c=G.stock.pop();G.players[0].hand.push(c);G.phase='play';G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=c.id;G.selected.clear();sortHand(G.players[0].hand,sortMode);G.lastLog=`Hai pescato ${cardText(c)} dal tallone.`;render();const drawnId=c.id;setTimeout(()=>{if(G&&G.justDrawnId===drawnId){G.justDrawnId=null;const el=$('hand').querySelector(`[data-card="${drawnId}"]`);if(el)el.classList.remove('just-drawn');}},980);
+  const c=G.stock.pop();G.players[0].hand.push(c);G.phase='play';G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=c.id;G.selected.clear();sortHand(G.players[0].hand,sortMode);G.lastLog=`Hai pescato ${cardText(c)} dal tallone.`;captureHumanTurnUndo();render();const drawnId=c.id;setTimeout(()=>{if(G&&G.justDrawnId===drawnId){G.justDrawnId=null;const el=$('hand').querySelector(`[data-card="${drawnId}"]`);if(el)el.classList.remove('just-drawn');}},980);
 }
 function humanDrawDiscard(){
   if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;
-  const p=G.players[0],cards=G.discard.splice(0),snapshot=cards.slice();addToHand(p,cards);G.phase='play';G.selected.clear();G.targetMeld=null;G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;G.discardUndo={player:0,cards:snapshot};G.lastLog=`Hai raccolto il Monte degli scarti (${cards.length} ${cards.length===1?'carta':'carte'}).${G.mustPlayAfterPickup?' Devi subito calare o attaccare almeno una carta.':''}`;render();
+  const p=G.players[0],cards=G.discard.splice(0),snapshot=cards.slice();addToHand(p,cards);G.phase='play';G.selected.clear();G.targetMeld=null;G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;G.discardUndo={player:0,cards:snapshot};G.lastLog=`Hai raccolto il Monte degli scarti (${cards.length} ${cards.length===1?'carta':'carte'}).${G.mustPlayAfterPickup?' Devi subito calare o attaccare almeno una carta.':''}`;captureHumanTurnUndo();render();
 }
 function undoDiscardPickup(){
-  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo)return;const p=G.players[0],u=G.discardUndo,ids=new Set(u.cards.map(c=>c.id));if(!u.cards.every(c=>p.hand.some(x=>x.id===c.id))){invalidateDiscardUndo();render();return;}p.hand=p.hand.filter(c=>!ids.has(c.id));G.discard.push(...u.cards);G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.selected.clear();G.phase='draw';sortHand(p.hand,sortMode);G.lastLog='Raccolta del Monte annullata.';render();
+  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo)return;const p=G.players[0],u=G.discardUndo,ids=new Set(u.cards.map(c=>c.id));if(!u.cards.every(c=>p.hand.some(x=>x.id===c.id))){invalidateDiscardUndo();render();return;}p.hand=p.hand.filter(c=>!ids.has(c.id));G.discard.push(...u.cards);G.discardUndo=null;G.turnUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.selected.clear();G.phase='draw';sortHand(p.hand,sortMode);G.lastLog='Raccolta del Monte annullata.';render();
 }
 
 function stageOrMeld(chosenInfo=null){
@@ -596,7 +629,7 @@ function canDiscardCard(pi,card){
   }
   return {ok:true};
 }
-function passTurn(pi){G.turn=nextPlayer(pi);G.phase='draw';G.targetMeld=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.discardUndo=null;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}render();if(G.players[G.turn].human){G.lastLog='È il tuo turno: pesca dal tallone o raccogli il Monte.';render();}else scheduleCPU();}
+function passTurn(pi){G.turn=nextPlayer(pi);G.phase='draw';G.targetMeld=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.discardUndo=null;G.turnUndo=null;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}render();if(G.players[G.turn].human){G.lastLog='È il tuo turno: pesca dal tallone o raccogli il Monte.';render();}else scheduleCPU();}
 function humanDiscard(cardId=null){
   if(!G||G.turn!==0||G.phase!=='play')return;const p=G.players[0];let card=cardId!==null?p.hand.find(c=>c.id===cardId):selectedCards()[0];if(!card||(cardId===null&&G.selected.size!==1)){toast('Seleziona una sola carta da scartare');return;}const cd=canDiscardCard(0,card);if(!cd.ok){toast(cd.msg);return;}const wasLast=p.hand.length===1,team=teamOf(0);removeFromHand(p,[card]);G.discard.push(card);G.selected.clear();p.turns++;
   if(wasLast){if(!G.teamTookPot[team]){takePot(0,false);G.lastLog=`Hai scartato ${cardText(card)} e sei andato a pozzo.`;passTurn(0);return;}finishRound(team,0,'Chiusura');return;}
@@ -721,11 +754,11 @@ function renderMelds(){
 }
 function layoutHumanHand(){const hand=$('hand'),cards=hand.querySelectorAll('.hand-card'),n=cards.length;if(!n){hand.classList.remove('hand-scroll');return;}const cs=getComputedStyle(hand),pad=parseFloat(cs.paddingLeft||0)+parseFloat(cs.paddingRight||0),available=Math.max(0,hand.clientWidth-pad),cw=cards[0].getBoundingClientRect().width;if(n===1||!cw||!available)return;const fit=(available-cw)/(n-1),min=cw*.20,scroll=fit<min;hand.style.setProperty('--hand-step',`${scroll?min:Math.max(min,fit)}px`);hand.classList.toggle('hand-scroll',scroll);}
 function renderHand(){const p=G.players[0];$('hand').innerHTML=p.hand.map(c=>face(c,`hand-card ${G.selected.has(c.id)?'selected':''} ${G.singlePickupId===c.id?'used-discard':''} ${G.justDrawnId===c.id?'just-drawn':''}`)).join('');layoutHumanHand();}
-function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','cancelPendingBtn','meldBtn','openBtn','sortBtn','discardBtn','drawStockBtn'];for(const id of all){const el=$(id);if(el)el.hidden=!ids.includes(id);}for(const id of ids){const el=$(id);if(el)bar.appendChild(el);}}
+function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','undoTurnBtn','cancelPendingBtn','meldBtn','openBtn','sortBtn','discardBtn','drawStockBtn'];for(const id of all){const el=$(id);if(el)el.hidden=!ids.includes(id);}for(const id of ids){const el=$(id);if(el)bar.appendChild(el);}}
 function renderButtons(){
   const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,p=G.players[0];const selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;
-  $('drawStockBtn').disabled=!draw;$('undoDiscardBtn').disabled=!(play&&G.discardUndo);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('sortBtn').disabled=!p.hand.length;
-  $('sortBtn').textContent=sortMode==='rank'?'Ordine: valore':sortMode==='suit'?'Ordine: seme':'Ordine: manuale';const ids=[];if(p.hand.length)ids.push('sortBtn');if(play&&G.discardUndo)ids.push('undoDiscardBtn');if(play&&sel>=3)ids.push('meldBtn');if(canDiscard)ids.push('discardBtn');if(draw)ids.push('drawStockBtn');setActionBar(ids);
+  $('drawStockBtn').disabled=!draw;$('undoDiscardBtn').disabled=!(play&&G.discardUndo);$('undoTurnBtn').disabled=!(play&&G.turnUndo&&G.turnUndo.dirty);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('sortBtn').disabled=!p.hand.length;
+  $('sortBtn').textContent=sortMode==='rank'?'Ordine: valore':sortMode==='suit'?'Ordine: seme':'Ordine: manuale';const ids=[];if(p.hand.length)ids.push('sortBtn');if(play&&G.discardUndo)ids.push('undoDiscardBtn');if(play&&G.turnUndo&&G.turnUndo.dirty)ids.push('undoTurnBtn');if(play&&sel>=3)ids.push('meldBtn');if(canDiscard)ids.push('discardBtn');if(draw)ids.push('drawStockBtn');setActionBar(ids);
   $('stockPile').classList.toggle('can-draw',draw);$('discardPile').classList.toggle('can-draw',draw&&G.discard.length);$('stockPile').style.opacity=draw?'1':'.62';$('discardPile').style.opacity=draw&&G.discard.length?'1':'.72';
 }
 function updateScrollHint(){const main=$('app').querySelector('main'),up=$('scrollHintUp'),down=$('scrollHintDown');if(!main||!up||!down)return;const max=Math.max(0,main.scrollHeight-main.clientHeight),showUp=max>24&&main.scrollTop>90,showDown=G.melds.length>4&&max>24&&main.scrollTop<max-90;up.hidden=!showUp;up.classList.toggle('show',showUp);down.hidden=!showDown;down.classList.toggle('show',showDown);}
@@ -744,7 +777,7 @@ $('hand').addEventListener('pointerup',e=>{if(handReorder&&e.pointerId===handReo
 $('hand').addEventListener('click',e=>{if(performance.now()<suppressHandClickUntil)return;const el=e.target.closest('[data-card]');if(!el||G.turn!==0||G.phase!=='play')return;const id=+el.dataset.card,now=performance.now(),dbl=id===lastHandTapId&&now-lastHandTapAt<360;lastHandTapId=id;lastHandTapAt=now;if(dbl){lastHandTapId=null;lastHandTapAt=0;humanDiscard(id);return;}if(G.selected.has(id))G.selected.delete(id);else G.selected.add(id);render();});
 $('melds').addEventListener('click',e=>{const el=e.target.closest('[data-meld]');if(!el||!G||G.turn!==0||G.phase!=='play'||!G.selected.size)return;const m=G.melds.find(x=>x.id===el.dataset.meld);if(!m)return;G.targetMeld=m.id;performAttachSelected(m.id);});
 $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G.phase!=='play')return;if(e.target.closest('.card,.meld,.pile,[role="button"],button,a,input,select,label,#turnBanner,#piles'))return;if(G.selected.size>=3)stageOrMeld();});
-$('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('meldBtn').onclick=stageOrMeld;$('discardBtn').onclick=()=>humanDiscard();
+$('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('undoTurnBtn').onclick=undoHumanTurnMoves;$('meldBtn').onclick=stageOrMeld;$('discardBtn').onclick=()=>humanDiscard();
 const mainScrollEl=$('app').querySelector('main');mainScrollEl.addEventListener('scroll',updateScrollHint,{passive:true});$('scrollHintUp').onclick=()=>mainScrollEl.scrollBy({top:-Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});$('scrollHintDown').onclick=()=>mainScrollEl.scrollBy({top:Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});
 $('runJokerLowBtn').onclick=()=>completeRunJokerChoice('low');$('runJokerHighBtn').onclick=()=>completeRunJokerChoice('high');$('cancelRunJokerChoice').onclick=()=>{pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');};
 $('sortBtn').onclick=()=>{sortMode=sortMode==='manual'?'rank':sortMode==='rank'?'suit':'rank';if(sortMode!=='manual')manualOrderIds=[];sortHand(G.players[0].hand,sortMode);render();};$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('newBtn').onclick=()=>$('newModal').classList.add('show');$('cancelNew').onclick=()=>$('newModal').classList.remove('show');
