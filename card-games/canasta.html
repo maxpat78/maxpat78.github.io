@@ -598,6 +598,28 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
 #discardPile .discard-strip.freeze-top-only .discard-freeze-marker{z-index:4!important}
 #discardWrap.human-frozen #discardPile::after{z-index:40!important}
 
+
+/* Canasta v16: robust human-hand geometry.
+   The desktop-wide generic .card + .card rule must never override the hand's
+   dynamic overlap.  When the minimum readable overlap no longer fits, the
+   hand becomes a true left-origin horizontal scroller. */
+#hand .hand-card + .hand-card{
+  margin-left:calc(var(--hand-step) - var(--cw))!important;
+}
+#hand.hand-scroll{
+  justify-content:flex-start!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x;
+  cursor:grab;
+  scrollbar-width:thin;
+}
+#hand.hand-scroll::-webkit-scrollbar{height:6px}
+#hand.hand-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:999px}
+#hand.hand-scroll:active{cursor:grabbing}
+#hand.hand-scroll .hand-card{touch-action:pan-x}
 </style>
 </head>
 <body>
@@ -1185,8 +1207,36 @@ function renderMelds(){
 }
 
 function renderPending(){const box=$('pendingBox');if(!G.pendingOpening.length){box.classList.remove('show');return;}const pts=pendingOpeningPoints(),need=openingThreshold(teamOf(G.turn));$('pendingPts').textContent=`${pts} / ${need}`;$('pendingUnit').textContent='punti';$('pendingMelds').innerHTML=G.pendingOpening.map(m=>`<div class="pending-meld"><small>${RANK_NAMES[m.rank]||m.rank}</small>${m.cards.map(c=>face(c)).join('')}</div>`).join('');box.classList.add('show');}
-function layoutHumanHand(){const hand=$('hand'),cards=hand.querySelectorAll('.hand-card'),n=cards.length;if(!n){hand.classList.remove('hand-scroll');return;}const cs=getComputedStyle(hand),pad=parseFloat(cs.paddingLeft||0)+parseFloat(cs.paddingRight||0),available=Math.max(0,hand.clientWidth-pad),cw=cards[0].getBoundingClientRect().width;if(n===1||!cw||!available)return;const fit=(available-cw)/(n-1),min=cw*.20,scroll=fit<min;hand.style.setProperty('--hand-step',`${scroll?min:Math.max(min,fit)}px`);hand.classList.toggle('hand-scroll',scroll);}
-function renderHand(){const p=G.players[0];sortHand(p.hand,'rank');$('hand').innerHTML=p.hand.map(c=>face(c,`hand-card ${G.selected.has(c.id)?'selected':''} ${G.pickup?.topId===c.id&&G.mustUseDiscardTop?'used-discard':''} ${G.justDrawnIds.includes(c.id)?'just-drawn':''}`)).join('');layoutHumanHand();}
+function layoutHumanHand(){
+  const hand=$('hand'),cards=hand.querySelectorAll('.hand-card'),n=cards.length;
+  const wasScroll=hand.classList.contains('hand-scroll');
+  if(!n){hand.classList.remove('hand-scroll');hand.style.removeProperty('--hand-step');hand.scrollLeft=0;return;}
+  const cs=getComputedStyle(hand),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0,
+        available=Math.max(0,hand.clientWidth-padL-padR),cw=cards[0].getBoundingClientRect().width;
+  if(!cw||!available)return;
+  if(n===1){hand.style.setProperty('--hand-step',`${cw}px`);hand.classList.remove('hand-scroll');hand.scrollLeft=0;return;}
+  const minStep=cw*.38,
+        fitStep=(available-cw)/(n-1),
+        mustScroll=(cw+(n-1)*minStep)>available+.5,
+        step=mustScroll?minStep:Math.max(minStep,fitStep);
+  hand.style.setProperty('--hand-step',`${step}px`);
+  hand.classList.toggle('hand-scroll',mustScroll);
+  /* A newly overflowing hand must start at the true first card.  Otherwise
+     flex centering/scroll anchoring can leave low ranks unreachable at x<0. */
+  if(mustScroll&&!wasScroll)hand.scrollLeft=0;
+  if(!mustScroll)hand.scrollLeft=0;
+}
+function renderHand(){
+  const p=G.players[0],hand=$('hand');sortHand(p.hand,'rank');
+  hand.innerHTML=p.hand.map(c=>face(c,`hand-card ${G.selected.has(c.id)?'selected':''} ${G.pickup?.topId===c.id&&G.mustUseDiscardTop?'used-discard':''} ${G.justDrawnIds.includes(c.id)?'just-drawn':''}`)).join('');
+  layoutHumanHand();
+  /* When the top of a collected Pozzo still has to be used, keep that card
+     and its same-rank neighbours reachable even in a very long hand. */
+  if(hand.classList.contains('hand-scroll')&&G.mustUseDiscardTop&&G.pickup?.topId){
+    const target=hand.querySelector(`[data-card="${G.pickup.topId}"]`);
+    if(target){const left=Math.max(0,target.offsetLeft-hand.clientWidth*.28);hand.scrollLeft=left;}
+  }
+}
 function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','cancelPendingBtn','meldBtn','openBtn','discardBtn','drawStockBtn','endTurnBtn'];for(const id of all){const el=$(id);if(el)el.hidden=!ids.includes(id);}for(const id of ids){const el=$(id);if(el)bar.appendChild(el);}}
 function renderButtons(){
   const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;$('drawStockBtn').disabled=!(draw&&G.stock.length);$('undoDiscardBtn').disabled=!(play&&G.discardUndo&&!G.pendingOpening.length);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('openBtn').disabled=!canCommitOpening();$('openBtn').textContent=G.pendingOpening.length?`Apri ${pendingOpeningPoints()}/${openingThreshold(0)}`:'Apri';
@@ -1199,6 +1249,13 @@ function render(){
 
 let lastHandTapId=null,lastHandTapAt=0,suppressHandClickUntil=0;
 $('hand').addEventListener('click',e=>{if(performance.now()<suppressHandClickUntil)return;const el=e.target.closest('[data-card]');if(!el||G.turn!==0||G.phase!=='play')return;const id=+el.dataset.card,now=performance.now(),dbl=id===lastHandTapId&&now-lastHandTapAt<360;lastHandTapId=id;lastHandTapAt=now;if(dbl){lastHandTapId=null;lastHandTapAt=0;humanDiscard(id);return;}if(G.selected.has(id))G.selected.delete(id);else G.selected.add(id);render();});
+/* Desktop mouse wheels normally scroll vertically.  Over a long hand, use
+   that motion to expose every card horizontally; trackpads keep native X. */
+$('hand').addEventListener('wheel',e=>{
+  const hand=$('hand');if(!hand.classList.contains('hand-scroll'))return;
+  const dx=Math.abs(e.deltaX)>=Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+  if(!dx)return;e.preventDefault();hand.scrollLeft+=dx;
+},{passive:false});
 $('melds').addEventListener('click',e=>{const el=e.target.closest('[data-meld]');if(!el||!G||G.turn!==0||G.phase!=='play'||!G.selected.size)return;const m=G.melds.find(x=>x.id===el.dataset.meld);if(!m)return;G.targetMeld=m.id;performAttachSelected(m.id);});
 $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G.phase!=='play')return;if(e.target.closest('.card,.meld,.pile,[role="button"],button,a,input,select,label,#turnBanner,#piles'))return;if(G.selected.size>=3)stageOrMeld();});
 $('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('meldBtn').onclick=stageOrMeld;$('openBtn').onclick=commitOpening;$('cancelPendingBtn').onclick=cancelOpening;$('discardBtn').onclick=()=>humanDiscard();$('endTurnBtn').onclick=humanEndAfterRedThree;
