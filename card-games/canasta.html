@@ -4,6 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<link rel="icon" type="image/png" href="favicon.ico">
 <meta name="theme-color" content="#0a6b3b">
 <title>Canasta classica · mobile v12</title>
 <style>
@@ -89,7 +90,9 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
 .team-zone{min-width:0;background:rgba(0,0,0,.10);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:6px}
 .team-zone.ours{box-shadow:inset 0 2px 0 rgba(255,209,102,.58)}
 .team-zone.theirs{box-shadow:inset 0 2px 0 rgba(255,255,255,.26)}
-.team-zone-head{font-size:11px;font-weight:950;text-align:center;padding:2px 2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-zone-head{font-size:11px;font-weight:950;text-align:center;padding:2px 2px 6px;overflow:hidden}
+.team-zone-head .team-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-zone-head .team-live-points{display:block;margin-top:2px;font-size:10px;font-weight:800;opacity:.78;white-space:nowrap}
 .team-meld-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;align-items:start}
 .team-empty{grid-column:1/-1;text-align:center;opacity:.52;font-size:10px;padding:12px 3px}
 .meld{--meld-cw:clamp(46px,12vw,60px);--meld-ch:calc(var(--meld-cw)*1.43);min-width:0;min-height:0;background:rgba(0,0,0,.17);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px;overflow:visible;white-space:normal;transform-origin:center top}
@@ -670,7 +673,7 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   <h3>Carte speciali</h3>
   <p>Dal 4 all’Asso le carte sono naturali. Due e Jolly sono Matte. I Tre rossi vengono subito accantonati scoperti e, quando provengono dal tallone, sostituiti con un’altra pesca. Tre o quattro Tre neri si possono calare soltanto come ultima mossa di chiusura.</p>
   <h3>Pozzo degli scarti</h3>
-  <p>La carta in cima deve essere naturale e va usata immediatamente per calare o integrare un gioco. Il Pozzo è congelato se contiene una Matta, un Tre rosso o un Tre nero, e anche contro la squadra che non ha ancora aperto: in tal caso servono la carta in cima più due naturali dello stesso valore già presenti in mano. Dopo la presa, i Tre rossi trovati nel Pozzo vengono accantonati senza pesca sostitutiva.</p>
+  <p>La carta in cima deve essere naturale e va usata immediatamente per calare o integrare un gioco. Il Pozzo è congelato se contiene una Matta o un Tre rosso, e anche contro la squadra che non ha ancora aperto: in tal caso servono la carta in cima più due naturali dello stesso valore già presenti in mano. Per impostazione predefinita (Hoyle), un Tre nero blocca soltanto il giocatore immediatamente seguente; nelle opzioni si può scegliere la variante in cui anche il Tre nero congela stabilmente il Pozzo. Dopo la presa, i Tre rossi trovati nel Pozzo vengono accantonati senza pesca sostitutiva.</p>
   <h3>Giochi, apertura e canaste</h3>
   <p>Le combinazioni sono di almeno tre carte dello stesso valore, con almeno due naturali. Una canasta nasce a sette carte; è <b>rossa</b> se contiene solo naturali, <b>nera</b> se contiene Matte. Una canasta non può contenere più di tre Matte.</p>
   <p>Il minimo di apertura dipende dal punteggio della squadra: negativo 15; 0–1495: 50; 1500–2995: 90; 3000 o più: 120. Se si apre prendendo il Pozzo, solo la carta in cima del Pozzo conta per raggiungere il minimo. La deroga al minimo è ammessa soltanto nella chiusura in mano dopo pesca dal tallone.</p>
@@ -687,6 +690,12 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
     <label>Mazzo <select id="deckStyle"><option value="classic" selected>Classico SVG</option><option value="simple">Semplice</option></select></label>
   </div>
   <p>Con 4 giocatori le coppie sono <b>Tu + Marco</b> contro <b>Luna + Sara</b>. Con 2 o 3 giocatori ognuno gioca per sé, riceve 15 carte, pesca due carte per turno e deve realizzare due canaste per chiudere.</p>
+  <div class="rule-options">
+    <label class="rule-option">
+      <input type="checkbox" id="blackThreeFreezeOpt">
+      <span><b>Anche un Tre nero congela il Pozzo</b>Disattivato (Hoyle): il Tre nero blocca soltanto il giocatore seguente. Attivato: resta una carta di congelamento del Pozzo come Matte e Tre rossi.</span>
+    </label>
+  </div>
   <div class="row"><button id="startNew">Inizia</button><button id="cancelNew" class="secondary">Annulla</button></div>
 </div></div>
 
@@ -711,7 +720,7 @@ function svgSuitCode(suit){return ['S','H','D','C'][suit]||'S';}
 function svgKeyForCard(c){return c.joker?`${c.deck+1}J`:`${svgRankCode(c.rank)}${svgSuitCode(c.suit)}`;}
 function svgSrcForCard(c){return SVG_CARDS[svgKeyForCard(c)]||SVG_CARDS['1J'];}
 function svgSrcForBack(deck=0){return SVG_CARDS[`${(deck||0)+1}B`]||SVG_CARDS['1B'];}
-let activeDeckStyle='classic';
+let activeDeckStyle='classic', activeBlackThreeFreezes=false;
 const PREF_KEY='canasta_mobile_prefs_v1';
 function xmlEsc(v){return String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));}
 function simpleSvgData(svg){return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);}
@@ -725,11 +734,11 @@ function cardArtSrc(c){return activeDeckStyle==='simple'?simpleCardSvg(c):svgSrc
 function backArtSrc(deck=0){return activeDeckStyle==='simple'?simpleBackSvg():svgSrcForBack(deck);}
 function setPrefCookie(value){try{document.cookie=`${PREF_KEY}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Lax`;}catch(_){}}
 function getPrefCookie(){try{const p=document.cookie.split('; ').find(x=>x.startsWith(PREF_KEY+'='));return p?decodeURIComponent(p.slice(PREF_KEY.length+1)):null;}catch(_){return null;}}
-function defaultPrefs(){return {players:4,target:5000,deck:'classic'};}
-function loadPrefs(){let raw=null;try{raw=localStorage.getItem(PREF_KEY);}catch(_){}if(!raw)raw=getPrefCookie();if(!raw)return defaultPrefs();try{const x=JSON.parse(raw);const np=+x.players;return {players:[2,3,4].includes(np)?np:4,target:[3000,5000,7500].includes(+x.target)?+x.target:5000,deck:x.deck==='simple'?'simple':'classic'};}catch(_){return defaultPrefs();}}
+function defaultPrefs(){return {players:4,target:5000,deck:'classic',blackThreeFreezes:false};}
+function loadPrefs(){let raw=null;try{raw=localStorage.getItem(PREF_KEY);}catch(_){}if(!raw)raw=getPrefCookie();if(!raw)return defaultPrefs();try{const x=JSON.parse(raw);const np=+x.players;return {players:[2,3,4].includes(np)?np:4,target:[3000,5000,7500].includes(+x.target)?+x.target:5000,deck:x.deck==='simple'?'simple':'classic',blackThreeFreezes:x.blackThreeFreezes===true};}catch(_){return defaultPrefs();}}
 function savePrefs(p){const raw=JSON.stringify(p);try{localStorage.setItem(PREF_KEY,raw);}catch(_){}setPrefCookie(raw);}
-function applyPrefsToForm(p){$('playerCount').value=String(p.players);$('scoreTarget').value=String(p.target);$('deckStyle').value=p.deck;}
-function prefsFromForm(){const n=+$('playerCount').value;return {players:[2,3,4].includes(n)?n:4,target:+$('scoreTarget').value,deck:$('deckStyle').value==='simple'?'simple':'classic'};}
+function applyPrefsToForm(p){$('playerCount').value=String(p.players);$('scoreTarget').value=String(p.target);$('deckStyle').value=p.deck;$('blackThreeFreezeOpt').checked=!!p.blackThreeFreezes;}
+function prefsFromForm(){const n=+$('playerCount').value;return {players:[2,3,4].includes(n)?n:4,target:+$('scoreTarget').value,deck:$('deckStyle').value==='simple'?'simple':'classic',blackThreeFreezes:!!$('blackThreeFreezeOpt').checked};}
 
 function newCard(rank,suit,deck,joker=false){return {id:cardSeq++,rank,suit,deck,joker};}
 function makeDeck(){const d=[];cardSeq=1;for(let deck=0;deck<2;deck++){for(let suit=0;suit<4;suit++)for(let rank=1;rank<=13;rank++)d.push(newCard(rank,suit,deck,false));d.push(newCard(0,-1,deck,true),newCard(0,-1,deck,true));}return d;}
@@ -748,7 +757,8 @@ function isWild(c){return !!(c&&(c.joker||c.rank===2));}
 function isRedThree(c){return !!(c&&!c.joker&&c.rank===3&&(c.suit===1||c.suit===2));}
 function isBlackThree(c){return !!(c&&!c.joker&&c.rank===3&&(c.suit===0||c.suit===3));}
 function isNatural(c){return !!(c&&!c.joker&&c.rank!==2&&c.rank!==3);}
-function isFreezeCard(c){return isWild(c)||isRedThree(c)||isBlackThree(c);}
+function blackThreeFreezesPile(){return !!(G?G.blackThreeFreezes:activeBlackThreeFreezes);}
+function isFreezeCard(c){return isWild(c)||isRedThree(c)||(blackThreeFreezesPile()&&isBlackThree(c));}
 function samePhysicalCard(a,b){return a&&b&&(a.joker&&b.joker||(!a.joker&&!b.joker&&a.rank===b.rank&&a.suit===b.suit));}
 function scoreCard(c){if(c.joker)return 50;if(c.rank===2||c.rank===1)return 20;if(c.rank>=8)return 10;return 5;}
 function openingThreshold(team){const s=G.teamScores[team];return s<0?15:s<1500?50:s<3000?90:120;}
@@ -777,7 +787,7 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function resetTurnFlags(){G.targetMeld=null;G.selected.clear();G.discardUndo=null;G.pickup=null;G.mustUseDiscardTop=false;G.drawSource=null;G.justDrawnIds=[];G.endAfterPlay=false;G.turnUsedPriorMeld=false;G.turnStartedEverMelded=G.players[G.turn].everMelded;G.pendingOpening=[];}
 function startGame(n=4,target=5000){
   clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];
-  const tc=n===4?2:n;G={players:makePlayers(n),target,round:0,dealer:Math.floor(Math.random()*n),turn:0,turnSerial:0,phase:'round-end',stock:[],discard:[],discardFrozen:false,openedTeams:Array(tc).fill(false),teamScores:Array(tc).fill(0),melds:[],redThrees:Array.from({length:tc},()=>[]),selected:new Set(),targetMeld:null,pendingOpening:[],discardUndo:null,pickup:null,mustUseDiscardTop:false,drawSource:null,justDrawnIds:[],endAfterPlay:false,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null,closingConcealed:false,turnUsedPriorMeld:false,turnStartedEverMelded:false,cpuFocusMeld:null,cpuFocusPile:null};
+  const tc=n===4?2:n;G={players:makePlayers(n),target,blackThreeFreezes:!!activeBlackThreeFreezes,round:0,dealer:Math.floor(Math.random()*n),turn:0,turnSerial:0,phase:'round-end',stock:[],discard:[],discardFrozen:false,openedTeams:Array(tc).fill(false),teamScores:Array(tc).fill(0),melds:[],redThrees:Array.from({length:tc},()=>[]),selected:new Set(),targetMeld:null,pendingOpening:[],discardUndo:null,pickup:null,mustUseDiscardTop:false,drawSource:null,justDrawnIds:[],endAfterPlay:false,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null,closingConcealed:false,turnUsedPriorMeld:false,turnStartedEverMelded:false,cpuFocusMeld:null,cpuFocusPile:null};
   startRound();
 }
 function takeRedThreeForTeam(team,c){G.redThrees[team].push(c);}
@@ -787,6 +797,9 @@ function replaceRedThreesInHand(pi){
 }
 function exposeInitialDiscard(){
   G.discard=[];G.discardFrozen=false;
+  /* Hoyle default: an initial black Three stays on top and merely blocks the
+     first player; it does not cause another card to be exposed.  With the
+     optional Bicycle-style rule it is a persistent freeze card instead. */
   while(G.stock.length){const c=G.stock.pop();G.discard.push(c);if(isFreezeCard(c)){G.discardFrozen=true;continue;}break;}
 }
 function startRound(){
@@ -869,19 +882,47 @@ function pickupFrozenForTeam(team){return G.discardFrozen||!teamOpened(team);}
 function topDiscard(){return G.discard.length?G.discard[G.discard.length-1]:null;}
 function matchingNaturals(hand,rank,ids=null){return hand.filter(c=>isNatural(c)&&c.rank===rank&&(!ids||ids.has(c.id)));}
 function openingPotentialMax(cards){
-  const wilds=cards.filter(isWild);let total=0,pairs=[];
-  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){const nat=cards.filter(c=>isNatural(c)&&c.rank===rank);if(nat.length>=3)total+=nat.reduce((s,c)=>s+scoreCard(c),0);else if(nat.length===2)pairs.push({nat,val:nat.reduce((s,c)=>s+scoreCard(c),0)});}
-  const freeWild=[...wilds].sort((a,b)=>scoreCard(b)-scoreCard(a));pairs.sort((a,b)=>b.val-a.val);for(const pair of pairs){if(!freeWild.length)break;total+=pair.val+scoreCard(freeWild.shift());}
+  /* Exact upper bound for a normal opening from these cards.  Every rank with
+     >=3 naturals is already a valid set; a rank with exactly 2 naturals can be
+     activated by one Matta.  Once a set exists it may contain up to 3 Matte. */
+  const wilds=cards.filter(isWild).sort((a,b)=>scoreCard(b)-scoreCard(a));
+  let total=0,activeSets=0,pairs=[];
+  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){
+    const nat=cards.filter(c=>isNatural(c)&&c.rank===rank),val=nat.reduce((s,c)=>s+scoreCard(c),0);
+    if(nat.length>=3){total+=val;activeSets++;}
+    else if(nat.length===2)pairs.push({val});
+  }
+  /* If Matte are scarce, activate first the natural pair worth the most. */
+  pairs.sort((a,b)=>b.val-a.val);
+  let wi=0,wildSlots=activeSets*3;
+  for(const pair of pairs){
+    if(wi>=wilds.length)break;
+    total+=pair.val+scoreCard(wilds[wi++]);
+    activeSets++;wildSlots+=2; // one of this set's three Matta slots is already used
+  }
+  /* Remaining Matte can be added to any active set, up to three per set. */
+  while(wi<wilds.length&&wildSlots>0){total+=scoreCard(wilds[wi++]);wildSlots--;}
   return total;
 }
-function canLegallyPickupDiscard(pi){
-  const top=topDiscard();if(!top||!isNatural(top))return false;const p=G.players[pi],team=teamOf(pi),frozen=pickupFrozenForTeam(team),same=matchingNaturals(p.hand,top.rank);
-  if(frozen){if(same.length<2)return false;if(!teamOpened(team)){const sim=[...p.hand,top];if(openingPotentialMax(sim)<openingThreshold(team))return false;}return true;}
-  if(G.melds.some(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttach(m,top)))return true;
-  if(same.length>=2)return true;
-  if(same.length>=1&&p.hand.some(c=>isWild(c)))return true;
-  return false;
+function pickupDiscardStatus(pi){
+  const top=topDiscard();
+  if(!top)return {ok:false,msg:'Il Pozzo è vuoto'};
+  if(!isNatural(top))return {ok:false,msg:'Non puoi prendere il Pozzo: la carta in cima non è naturale'};
+  const p=G.players[pi],team=teamOf(pi),frozen=pickupFrozenForTeam(team),same=matchingNaturals(p.hand,top.rank);
+  if(frozen){
+    if(same.length<2)return {ok:false,msg:'Non puoi prendere il Pozzo: servono la cima e 2 carte naturali dello stesso valore in mano'};
+    if(!teamOpened(team)){
+      const need=openingThreshold(team),max=openingPotentialMax([...p.hand,top]);
+      if(max<need)return {ok:false,msg:`Non puoi prendere il Pozzo: con questa apertura puoi raggiungere al massimo ${max} punti, ma ne servono ${need}` ,openingPoints:max,openingNeed:need};
+    }
+    return {ok:true};
+  }
+  if(G.melds.some(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttach(m,top)))return {ok:true};
+  if(same.length>=2)return {ok:true};
+  if(same.length>=1&&p.hand.some(c=>isWild(c)))return {ok:true};
+  return {ok:false,msg:'Non puoi prendere il Pozzo: la carta in cima non può essere usata subito in una combinazione valida'};
 }
+function canLegallyPickupDiscard(pi){return pickupDiscardStatus(pi).ok;}
 function validateTopUse(cards,pi){
   if(!G.mustUseDiscardTop||!G.pickup)return {ok:true};const top=cards.find(c=>c.id===G.pickup.topId);if(!top)return {ok:false,msg:'La prima combinazione deve usare la carta in cima al Pozzo'};
   if(G.pickup.frozen){const naturals=cards.filter(c=>c.id!==top.id&&isNatural(c)&&c.rank===top.rank&&G.pickup.preHandIds.has(c.id));if(naturals.length<2)return {ok:false,msg:'Pozzo congelato: servono due carte naturali di mano con la carta in cima'};}
@@ -907,7 +948,7 @@ function humanDrawStock(){
   if(res.drawn.length)G.lastLog=`Hai pescato ${res.drawn.map(cardText).join(' e ')} dal tallone.`;else G.lastLog='L’ultima carta del tallone era un Tre rosso.';
   if(res.stockEmpty&&res.lastWasRed)G.endAfterPlay=true;render();const ids=G.justDrawnIds.slice();setTimeout(()=>{if(G){G.justDrawnIds=[];for(const id of ids){const el=$('hand').querySelector(`[data-card="${id}"]`);if(el)el.classList.remove('just-drawn');}}},980);
 }
-function humanDrawDiscard(){if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;if(!canLegallyPickupDiscard(0)){toast(pickupFrozenForTeam(0)?'Non puoi prendere il Pozzo: servono la cima e due naturali di mano':'La carta in cima non può essere usata subito');return;}takeDiscardIntoHand(0);render();}
+function humanDrawDiscard(){if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;const st=pickupDiscardStatus(0);if(!st.ok){toast(st.msg);return;}takeDiscardIntoHand(0);render();}
 
 function extraMeldsForClosing(oldMeld,newInfo,newMeld){const team=teamOf(G.turn),base=G.melds.filter(m=>m.team===team&&(!oldMeld||m.id!==oldMeld.id));if(newInfo)base.push(newMeld?{...newInfo,team}:{...oldMeld,...newInfo,team});if(G.pendingOpening.length)base.push(...G.pendingOpening.map(m=>({...m,team})));return base;}
 function checkPlayRemainder(pi,cardsCount,oldMeld=null,newInfo=null,newMeld=false){
@@ -1197,13 +1238,21 @@ function renderDiscard(){
   $('stockLabel').textContent=`Tallone · ${G.stock.length}`;$('discardLabel').textContent=`Pozzo · ${n}`;const humanFrozen=!!(G.turn===0&&G.phase==='draw'&&n&&pickupFrozenForTeam(0)&&!canLegallyPickupDiscard(0));$('discardWrap').classList.toggle('human-frozen',humanFrozen);renderRedThrees();
 }
 function renderMelds(){
-  const root=$('melds'),zones=Array.from({length:teamCount()},(_,team)=>{const ms=G.melds.filter(m=>m.team===team);const body=ms.length?ms.map(m=>{
-    const count=m.cards.length,wc=wildCount(m.cards),head=wc?`${count} (${wc})`:`${count}`,kind=canastaKind(m);
-    /* The natural top card identifies the rank; a wild peeks below. Keep the visible label deliberately compact: N or N (M). */
-    const topCard=m.kind==='set'?(m.cards.find(c=>isNatural(c)&&c.rank===m.rank)||m.cards[0]):m.cards[0],wildCard=m.cards.find(c=>isWild(c));
-    const stateTitle=kind?`Canasta ${canastaDisplayName(kind)}: ${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`:`${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`;
-    return `<div class="meld ${G.targetMeld===m.id?'target':''} ${G.cpuFocusMeld===m.id?'cpu-target':''} ${kind?`canasta-${kind}`:''}" data-meld="${m.id}" title="${stateTitle}"><div class="meld-head"><b>${head}</b></div><div class="meld-cards ${wildCard?'has-wild':''}">${wildCard?face(wildCard,'meld-wild-peek-card'):''}${face(topCard,'meld-top-card')}</div></div>`;
-  }).join(''):`<div class="team-empty">${teamOpened(team)?'Nessun gioco':`Apertura con ${openingThreshold(team)} punti`}</div>`;return `<section class="team-zone ${team===0?'ours':'theirs'}" data-team="${team}"><div class="team-zone-head">${teamName(team)}</div><div class="team-meld-list">${body}</div></section>`;});root.innerHTML=zones.join('');
+  const root=$('melds'),zones=Array.from({length:teamCount()},(_,team)=>{
+    const ms=G.melds.filter(m=>m.team===team),livePts=ms.reduce((sum,m)=>sum+m.cards.reduce((s,c)=>s+scoreCard(c),0),0);
+    const body=ms.length?ms.map(m=>{
+      const count=m.cards.length,wc=wildCount(m.cards),kind=canastaKind(m);
+      /* Incomplete games stay compact: N or N (M). Once 7+ cards form a canasta,
+         restore the explicit red/black label while retaining the compact count. */
+      const compactCount=wc?`${count} (${wc})`:`${count}`;
+      const head=kind?`CANASTA ${kind==='pura'?'ROSSA':'NERA'} · ${compactCount}`:compactCount;
+      const topCard=m.kind==='set'?(m.cards.find(c=>isNatural(c)&&c.rank===m.rank)||m.cards[0]):m.cards[0],wildCard=m.cards.find(c=>isWild(c));
+      const stateTitle=kind?`Canasta ${kind==='pura'?'rossa':'nera'}: ${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`:`${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`;
+      return `<div class="meld ${G.targetMeld===m.id?'target':''} ${G.cpuFocusMeld===m.id?'cpu-target':''} ${kind?`canasta-${kind}`:''}" data-meld="${m.id}" title="${stateTitle}"><div class="meld-head"><b>${head}</b></div><div class="meld-cards ${wildCard?'has-wild':''}">${wildCard?face(wildCard,'meld-wild-peek-card'):''}${face(topCard,'meld-top-card')}</div></div>`;
+    }).join(''):`<div class="team-empty">${teamOpened(team)?'Nessun gioco':`Apertura con ${openingThreshold(team)} punti`}</div>`;
+    const pointsLine=teamOpened(team)?`<span class="team-live-points">${livePts} punti calati</span>`:'';
+    return `<section class="team-zone ${team===0?'ours':'theirs'}" data-team="${team}"><div class="team-zone-head"><span class="team-name">${teamName(team)}</span>${pointsLine}</div><div class="team-meld-list">${body}</div></section>`;
+  });root.innerHTML=zones.join('');
 }
 
 function renderPending(){const box=$('pendingBox');if(!G.pendingOpening.length){box.classList.remove('show');return;}const pts=pendingOpeningPoints(),need=openingThreshold(teamOf(G.turn));$('pendingPts').textContent=`${pts} / ${need}`;$('pendingUnit').textContent='punti';$('pendingMelds').innerHTML=G.pendingOpening.map(m=>`<div class="pending-meld"><small>${RANK_NAMES[m.rank]||m.rank}</small>${m.cards.map(c=>face(c)).join('')}</div>`).join('');box.classList.add('show');}
@@ -1261,9 +1310,9 @@ $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G
 $('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('meldBtn').onclick=stageOrMeld;$('openBtn').onclick=commitOpening;$('cancelPendingBtn').onclick=cancelOpening;$('discardBtn').onclick=()=>humanDiscard();$('endTurnBtn').onclick=humanEndAfterRedThree;
 const mainScrollEl=$('app').querySelector('main');mainScrollEl.addEventListener('scroll',updateScrollHint,{passive:true});$('scrollHintUp').onclick=()=>mainScrollEl.scrollBy({top:-Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});$('scrollHintDown').onclick=()=>mainScrollEl.scrollBy({top:Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});
 $('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('newBtn').onclick=()=>$('newModal').classList.add('show');$('cancelNew').onclick=()=>$('newModal').classList.remove('show');
-$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target);};$('nextRound').onclick=()=>{$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>{$('scoreModal').classList.remove('show');$('newModal').classList.add('show');};
+$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;activeBlackThreeFreezes=!!p.blackThreeFreezes;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target);};$('nextRound').onclick=()=>{$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>{$('scoreModal').classList.remove('show');$('newModal').classList.add('show');};
 for(const modal of document.querySelectorAll('.modal'))modal.addEventListener('click',e=>{if(e.target===modal&&modal.id!=='scoreModal')modal.classList.remove('show');});window.addEventListener('resize',()=>{if(G){layoutHumanHand();renderDiscard();renderMelds();}},{passive:true});if('ResizeObserver' in window)new ResizeObserver(()=>{if(G)layoutHumanHand();}).observe($('hand'));
-const savedPrefs=loadPrefs();applyPrefsToForm(savedPrefs);activeDeckStyle=savedPrefs.deck;startGame(savedPrefs.players,savedPrefs.target);
+const savedPrefs=loadPrefs();applyPrefsToForm(savedPrefs);activeDeckStyle=savedPrefs.deck;activeBlackThreeFreezes=!!savedPrefs.blackThreeFreezes;startGame(savedPrefs.players,savedPrefs.target);
 
 })();
 </script>
