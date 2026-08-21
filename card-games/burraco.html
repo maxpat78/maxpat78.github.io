@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- BUILD: cards.zip replacement verified byte-for-byte, 2026-08-19 -->
+<!-- BUILD: Burraco mobile v9 STRATEGIC-AI, 2026-08-21 -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a6b3b">
-<title>Burraco — Classico e Internazionale · v4</title>
+<title>Burraco — Classico e Internazionale · v9</title>
 <style>
 :root{
   --felt:#0a6b3b; --felt2:#07532f; --panel:rgba(0,0,0,.23); --ink:#f7f7f2;
@@ -43,7 +43,7 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
 .card.selected{transform:translateY(calc(var(--ch)*-.48));outline:3px solid var(--gold);z-index:200}.card.used-discard::after{content:"SCARTO";position:absolute;left:2px;right:2px;bottom:2px;font-size:7px;text-align:center;color:#fff;background:#b24a00;border-radius:3px;padding:1px}.card.must-joker::after{content:"DA RIGIOCARE";position:absolute;left:2px;right:2px;bottom:2px;font-size:6px;text-align:center;color:#fff;background:#6b2ca1;border-radius:3px;padding:1px}.card.has-svg{padding:0;background:transparent;border:none;overflow:hidden}.card.has-svg .card-svg{display:block;width:100%;height:100%;border-radius:8px;pointer-events:none;user-select:none;-webkit-user-drag:none}.pile.back{background:none;border:0;box-shadow:var(--shadow);overflow:hidden}.pile.back::before,.pile.back::after{content:none}.pile-back-img{display:block;width:100%;height:100%;border-radius:8px;pointer-events:none;user-select:none;-webkit-user-drag:none}.card.has-svg.joker .joker-identity{position:absolute;left:5px;right:5px;bottom:4px;padding:2px 2px 1px;border-radius:4px;background:rgba(255,255,255,.96);border:1px solid rgba(20,20,20,.18);font-size:13px;line-height:1;font-weight:950;text-align:center;letter-spacing:.2px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 #pendingBox{display:none;max-width:720px;margin:10px auto 0;background:rgba(255,209,102,.13);border:1px dashed var(--gold);border-radius:12px;padding:7px}#pendingBox.show{display:block}.pending-title{font-size:12px;font-weight:900;color:var(--gold);margin-bottom:5px}.pending-meld{display:inline-block;margin:2px 7px 4px 0;vertical-align:top}.pending-meld .card{--cw:42px;--ch:calc(42px*1.43)}
 #bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(to top,rgba(3,36,21,.99) 65%,rgba(3,36,21,.93));padding:7px 7px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -6px 22px rgba(0,0,0,.25)}
-#hand{--cw:clamp(52px,15.5vw,72px);--ch:calc(var(--cw)*1.43);--hand-step:calc(var(--cw)*.38);--lift-space:calc(var(--ch)*.50);display:flex;overflow-x:hidden;overflow-y:hidden;padding:calc(13px + var(--lift-space)) 7px 4px;min-height:calc(var(--ch) + 18px + var(--lift-space));scrollbar-width:none;max-width:820px;margin:calc(var(--lift-space)*-1) auto 0;scroll-snap-type:none}.hand-card{flex:0 0 var(--cw);scroll-snap-align:start}.hand-card + .hand-card{margin-left:calc(var(--hand-step) - var(--cw))}#hand.hand-scroll{overflow-x:auto;scroll-snap-type:x proximity}.hand-card.just-drawn{animation:drawGlow .85s ease-out}@keyframes drawGlow{0%,35%{outline:4px solid var(--gold);filter:brightness(1.12);transform:translateY(-8px)}100%{outline-color:transparent;filter:none;transform:none}}#hand.reordering{scroll-snap-type:none}.hand-card.reorder-held{transform:translateY(-17px) scale(1.06)!important;outline:3px solid var(--gold)!important;z-index:250!important;filter:brightness(1.08);transition:none!important;box-shadow:0 12px 24px rgba(0,0,0,.42)}
+#hand{--cw:clamp(52px,15.5vw,72px);--ch:calc(var(--cw)*1.43);--hand-step:calc(var(--cw)*.38);--lift-space:calc(var(--ch)*.50);display:flex;overflow-x:hidden;overflow-y:hidden;padding:calc(13px + var(--lift-space)) 7px 4px;min-height:calc(var(--ch) + 18px + var(--lift-space));scrollbar-width:none;max-width:820px;margin:calc(var(--lift-space)*-1) auto 0;scroll-snap-type:none}.hand-card{flex:0 0 var(--cw);scroll-snap-align:start;touch-action:none}.hand-card + .hand-card{margin-left:calc(var(--hand-step) - var(--cw))}#hand:not(.hand-scroll){justify-content:center}#hand.hand-scroll{overflow-x:auto;scroll-snap-type:x proximity;justify-content:flex-start}.hand-card.just-drawn{animation:drawGlow .85s ease-out}@keyframes drawGlow{0%,35%{outline:4px solid var(--gold);filter:brightness(1.12);transform:translateY(-8px)}100%{outline-color:transparent;filter:none;transform:none}}#hand.reordering{scroll-snap-type:none}.hand-card.reorder-held{transform:translateY(-17px) scale(1.06)!important;outline:3px solid var(--gold)!important;z-index:250!important;filter:brightness(1.08);transition:none!important;box-shadow:0 12px 24px rgba(0,0,0,.42)}
 #actions{display:flex;justify-content:flex-end;gap:5px;overflow-x:auto;max-width:820px;margin:5px auto 0;padding:0 0 1px;scrollbar-width:none;min-height:38px}.action{flex:0 0 auto;border-radius:11px;padding:9px 12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.12);font-size:12px;font-weight:850}.action[hidden]{display:none!important}.action.primary{background:#f2c94c;color:#1e2a1f}.action.good{background:#2f9e62}.action.danger{background:#b94444}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.sheet{width:min(680px,100%);max-height:88dvh;overflow:auto;background:#f6f3eb;color:#172019;border-radius:18px;padding:18px;box-shadow:0 18px 55px rgba(0,0,0,.45)}.sheet h2{margin:0 0 8px}.sheet h3{margin:16px 0 6px}.sheet p,.sheet li{font-size:14px;line-height:1.42}.sheet .row{display:flex;gap:8px;flex-wrap:wrap}.sheet button{background:#0a6b3b;color:#fff;border-radius:11px;padding:10px 13px;font-weight:800}.sheet button.secondary{background:#59625d}.sheet select{font:inherit;padding:8px;border-radius:8px}.rule-options{display:grid;gap:9px;margin:14px 0}.rule-option{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1px solid #d8d5ce;border-radius:11px;background:#fff}.rule-option input{margin-top:3px;transform:scale(1.15)}.rule-option span{font-size:13px;line-height:1.3}.rule-option b{display:block;margin-bottom:2px}
 .scoretable{width:100%;border-collapse:collapse;font-size:14px}.scoretable td,.scoretable th{padding:7px;border-bottom:1px solid #d8d5ce;text-align:left}.scoretable .bad{color:#b32b2b;font-weight:800}.scoretable .win{color:#0a6b3b;font-weight:900}
@@ -666,27 +666,134 @@ function generateMeldCandidates(hand,team){
   const uniq=new Map();for(const info of out){const key=info.cards.map(c=>c.id).sort((a,b)=>a-b).join(',');const prev=uniq.get(key);if(!prev||candidateScore(info)>candidateScore(prev))uniq.set(key,info);}
   return [...uniq.values()].sort((a,b)=>candidateScore(b)-candidateScore(a));
 }
-function candidateScore(info){const pseudo={...info,cards:info.cards},bk=burracoKind(pseudo);return info.cards.length*1000+(bk?burracoBonus(bk)*8:0)+info.points-(info.wildId?55:0);}
-function bestNewMeld(pi){const p=G.players[pi],team=teamOf(pi),cand=generateMeldCandidates(p.hand,team);for(const info of cand){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(ck.ok)return info;}return null;}
+function candidateScore(info){const pseudo={...info,cards:info.cards},bk=burracoKind(pseudo);return info.cards.length*1000+(bk?burracoBonus(bk)*8:0)+info.points-(info.wildId?70:0);}
+function otherTeam(team){return team===0?1:0;}
+function projectedMeldsAfterPlay(pi,oldMeld=null,newInfo=null,newMeld=false){
+  const team=teamOf(pi),list=G.melds.filter(m=>m.team===team).map(m=>({...m,cards:[...m.cards]}));
+  if(newInfo){
+    if(newMeld)list.push({...newInfo,team,cards:[...newInfo.cards]});
+    else{const i=list.findIndex(m=>m.id===oldMeld?.id);if(i>=0)list[i]={...oldMeld,...newInfo,team,cards:[...newInfo.cards]};}
+  }
+  return list;
+}
+function projectedTeamHasBurraco(team,melds,cleanOnly=G.variant==='international'){return melds.some(m=>cleanOnly?burracoKind(m)==='pulito':!!burracoKind(m));}
+function projectedCanTeamClose(pi,melds){const team=teamOf(pi);return G.teamTookPot[team]&&projectedTeamHasBurraco(team,melds);}
+function cpuPublicMeldPoints(melds){return melds.reduce((s,m)=>s+m.cards.reduce((v,c)=>v+scoreCard(c),0)+burracoBonus(burracoKind(m)),0);}
+function cpuNearBurracoPotential(melds){
+  let v=0;for(const m of melds){if(burracoKind(m))continue;const n=m.cards.length;if(n===6)v+=4;else if(n===5)v+=2.5;else if(n===4)v+=1;}return v;
+}
+function cpuShouldDelayClose(pi,usedCards,projectedMelds,leftCard){
+  const team=teamOf(pi),opp=otherTeam(team);
+  if(G.mustPlayAfterPickup)return false; // nell'Internazionale va prima soddisfatto l'obbligo della raccolta.
+  if(!projectedCanTeamClose(pi,projectedMelds)||!leftCard||isMattaCard(leftCard))return false;
+  if(G.stock.length<10)return false;
+  const oppHands=G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99),oppMin=Math.min(...oppHands);
+  if(oppMin<=3)return false; // pericolo reale: meglio incassare subito la chiusura.
+  const margin=G.teamScores[team]-G.teamScores[opp],publicValue=cpuPublicMeldPoints(projectedMelds)+100;
+  if(G.teamScores[team]+publicValue>=G.target)return false;
+  if(G.teamScores[opp]>=G.target-250)return false;
+  if(margin>=0)return false; // se siamo avanti, la chiusura certa prevale sulla speculazione.
+  let desire=0;
+  if(margin<=-250)desire+=2;if(margin<=-500)desire+=2;if(margin<=-900)desire+=2;
+  if(G.stock.length>=28)desire+=2;else if(G.stock.length>=18)desire+=1;
+  if(oppMin>=8)desire+=1;else if(oppMin>=6)desire+=0.5;
+  desire+=Math.min(3,cpuNearBurracoPotential(projectedMelds));
+  if(G.players.length===4){const mate=teamMembers(team).find(i=>i!==pi);if(mate!==undefined){const n=G.players[mate].hand.length;if(n>=8)desire+=1.5;else if(n>=5)desire+=0.5;}}
+  if(usedCards.some(isMattaCard))desire+=0.5;
+  if(publicValue>=450)desire-=2; // una smazzata già ricca va protetta.
+  return desire>=6;
+}
+function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
+  const p=G.players[pi],team=teamOf(pi),ids=new Set(usedCards.map(c=>c.id)),left=p.hand.filter(c=>!ids.has(c.id));
+  if(left.length!==1)return true;
+  if(!G.teamTookPot[team])return true; // lo scarto porta al Pozzo, non chiude ancora la partita.
+  const last=left[0],melds=projectedMeldsAfterPlay(pi,oldMeld,newInfo,newMeld);
+  if(!projectedCanTeamClose(pi,melds))return false;
+  if(isMattaCard(last))return false; // evita di auto-intrappolarsi con una sola Matta.
+  if(G.singlePickupId===last.id)return false; // non può riscartare l'unico scarto appena raccolto.
+  return !cpuShouldDelayClose(pi,usedCards,melds,last);
+}
+function bestNewMeld(pi){
+  const p=G.players[pi],team=teamOf(pi),cand=generateMeldCandidates(p.hand,team);
+  for(const info of cand){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(ck.ok&&cpuMoveKeepsExit(pi,info.cards,null,info,true))return info;}return null;
+}
 function bestAttachment(pi){
   const p=G.players[pi],team=teamOf(pi);let best=null;
-  for(const m of G.melds){if(m.team!==team)continue;for(const c of p.hand){const opts=candidateAttachOptions(m,[c]);for(const info of opts){const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok)continue;const before=burracoKind(m),after=burracoKind({...m,...info}),score=1200+scoreCard(c)+(before?0:(after?burracoBonus(after)*10:0))-(isMattaCard(c)?80:0);if(!best||score>best.score)best={m,c,info,score};}}
+  for(const m of G.melds){if(m.team!==team)continue;for(const c of p.hand){const opts=candidateAttachOptions(m,[c]);for(const info of opts){const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;const before=burracoKind(m),after=burracoKind({...m,...info});let score=1200+scoreCard(c)+(before?0:(after?burracoBonus(after)*11:0))-(isMattaCard(c)?120:0);if(before==='pulito'&&after&&after!=='pulito')score-=900;if(!before&&after==='pulito')score+=350;if(!best||score>best.score)best={m,c,info,score};}}
   }return best;
 }
 function cpuImmediateActionPossible(pi,simHand){
   const team=teamOf(pi);for(const c of simHand)if(G.melds.some(m=>m.team===team&&candidateAttach(m,c)))return true;
   return generateMeldCandidates(simHand,team).length>0;
 }
-function cpuWantsDiscardPile(pi){
-  if(!G.discard.length)return false;const p=G.players[pi],sim=[...p.hand,...G.discard];if(G.variant==='international'&&!cpuImmediateActionPossible(pi,sim))return false;
-  let attach=0;for(const c of G.discard)if(canAttachToTeam(teamOf(pi),c))attach+=2;
-  const cand=generateMeldCandidates(sim,teamOf(pi))[0],usable=cand?cand.cards.filter(c=>G.discard.some(d=>d.id===c.id)).length:0;
-  const burden=G.discard.length;return attach+usable*1.5>=Math.max(1.5,burden*.45)||burden<=2&&cpuImmediateActionPossible(pi,sim);
+function cpuImmediateLegalActionAfterPickup(pi,simHand,pickupCards){
+  const p=G.players[pi],team=teamOf(pi),oldHand=p.hand,oldMust=G.mustPlayAfterPickup,oldSingle=G.singlePickupId;
+  p.hand=simHand;G.mustPlayAfterPickup=true;G.singlePickupId=pickupCards.length===1?pickupCards[0].id:null;
+  try{
+    for(const m of G.melds){if(m.team!==team)continue;for(const c of simHand){for(const info of candidateAttachOptions(m,[c])){const ck=checkPlayRemainder(pi,1,m,info,false);if(ck.ok&&cpuMoveKeepsExit(pi,[c],m,info,false))return true;}}}
+    for(const info of generateMeldCandidates(simHand,team)){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(ck.ok&&cpuMoveKeepsExit(pi,info.cards,null,info,true))return true;}
+    return false;
+  }finally{p.hand=oldHand;G.mustPlayAfterPickup=oldMust;G.singlePickupId=oldSingle;}
+}
+function cpuRunNeighborWeight(a,b){
+  if(a.joker||b.joker||a.suit!==b.suit)return 0;let ar=a.rank,br=b.rank;if(ar===1&&br===13||ar===13&&br===1)return 2.5;const d=Math.abs(ar-br);if(d===1)return 3;if(d===2)return 1.25;return 0;
+}
+function cpuStructurePotential(cards,team){
+  const ownMelds=G.melds.filter(m=>m.team===team);let value=cards.filter(isMattaCard).length*4.5;
+  for(const c of cards){for(const m of ownMelds){const info=candidateAttach(m,c);if(!info)continue;value+=4.5;const before=burracoKind(m),after=burracoKind({...m,...info});if(!before&&after)value+=6+(after==='pulito'?3:0);break;}}
+  for(let rank=1;rank<=13;rank++){if(rank===2||(G.variant==='international'&&rank!==1&&rank!==3))continue;const n=cards.filter(c=>!isMattaCard(c)&&c.rank===rank).length;if(n>=2)value+=(n-1)*3.2;if(n>=3)value+=5;if(n>=5)value+=(n-4)*2.5;}
+  for(let suit=0;suit<4;suit++){const a=cards.filter(c=>!c.joker&&c.suit===suit);for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)value+=cpuRunNeighborWeight(a[i],a[j]);}
+  return value;
+}
+function cpuPublicPileThreatForTeam(team,cards){
+  if(!cards.length)return 0;let v=0;
+  for(const c of cards){for(const m of G.melds){if(m.team!==team)continue;const info=candidateAttach(m,c);if(!info)continue;v+=3;const before=burracoKind(m),after=burracoKind({...m,...info});if(!before&&after)v+=8+(after==='pulito'?4:0);break;}}
+  const cand=generateMeldCandidates(cards,team).slice(0,3);if(cand.length){const ids=new Set();for(const x of cand)for(const c of x.cards)ids.add(c.id);v+=Math.min(14,ids.size*1.4);if(cand.some(x=>burracoKind(x)))v+=8;}
+  return v;
+}
+function cpuDiscardPileAnalysis(pi){
+  if(!G.discard.length)return {take:false,value:-1e9,structureGain:0,useful:0,burden:0};
+  const p=G.players[pi],team=teamOf(pi),opp=otherTeam(team),incoming=G.discard.slice(),sim=[...p.hand,...incoming];
+  if(G.variant==='international'&&!cpuImmediateLegalActionAfterPickup(pi,sim,incoming))return {take:false,value:-1e9,structureGain:0,useful:0,burden:incoming.length};
+  const before=cpuStructurePotential(p.hand,team),after=cpuStructurePotential(sim,team),structureGain=after-before;
+  const incomingIds=new Set(incoming.map(c=>c.id)),usableIds=new Set();let attachNow=0,burracoNow=0;
+  for(const c of incoming){for(const m of G.melds){if(m.team!==team)continue;const info=candidateAttach(m,c);if(!info)continue;usableIds.add(c.id);attachNow++;const b0=burracoKind(m),b1=burracoKind({...m,...info});if(!b0&&b1)burracoNow++;break;}}
+  for(const cand of generateMeldCandidates(sim,team).slice(0,5))for(const c of cand.cards)if(incomingIds.has(c.id))usableIds.add(c.id);
+  const wilds=incoming.filter(isMattaCard).length,cardPoints=incoming.reduce((s,c)=>s+scoreCard(c),0),useful=usableIds.size;
+  const excess=Math.max(0,incoming.length-useful-5),oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99));
+  const margin=G.teamScores[team]-G.teamScores[opp],deny=cpuPublicPileThreatForTeam(opp,incoming);
+  let value=structureGain+attachNow*3+burracoNow*9+useful*1.8+wilds*3+cardPoints/45+Math.min(7,deny*.28);
+  if(margin<=-300)value+=2;if(margin<=-700)value+=2;
+  if(margin>=500)value-=1.5;
+  value-=excess*(oppMin<=3?.65:.18);
+  if(canTeamClose(team)&&p.hand.length<=5)value-=Math.max(0,incoming.length-2)*.9;
+  if(!G.teamTookPot[team]&&p.hand.length<=4)value-=Math.max(0,incoming.length-3)*.55;
+  if(oppMin<=2)value-=Math.max(0,incoming.length-useful)*.45;
+  return {take:value>=7,value,structureGain,useful,burden:incoming.length,deny};
+}
+function cpuWantsDiscardPile(pi){return cpuDiscardPileAnalysis(pi).take;}
+function cpuCardRetentionValue(pi,c){
+  const p=G.players[pi],team=teamOf(pi);let keep=0;if(isMattaCard(c))keep+=130;
+  if(canAttachToTeam(team,c))keep+=80;
+  if(!isMattaCard(c)&&c.rank!==2&&!(G.variant==='international'&&c.rank!==1&&c.rank!==3)){const same=p.hand.filter(x=>x.id!==c.id&&!isMattaCard(x)&&x.rank===c.rank).length;keep+=same*34;}
+  if(!c.joker){for(const x of p.hand)if(x.id!==c.id)keep+=cpuRunNeighborWeight(c,x)*12;}
+  return keep;
+}
+function cpuOpponentDiscardDanger(pi,c){
+  const team=teamOf(pi),opp=otherTeam(team);let danger=0,direct=false;
+  for(const m of G.melds){if(m.team!==opp)continue;const opts=candidateAttachOptions(m,[c]);if(opts.length){direct=true;const info=opts[0],before=burracoKind(m),after=burracoKind({...m,...info});danger+=55+scoreCard(c)*2;if(!before&&after)danger+=120+(after==='pulito'?80:0);else if(m.cards.length>=5)danger+=35;continue;}
+    if(m.kind==='run'&&!c.joker&&c.suit===m.suit){const vals=m.cards.filter(x=>!x.joker&&x.id!==m.wildId).map(x=>x.rank===1?14:x.rank);if(vals.length){const lo=Math.min(...vals),hi=Math.max(...vals),v=c.rank===1?14:c.rank;if(Math.abs(v-lo)===2||Math.abs(v-hi)===2)danger+=12;}}
+  }
+  const pile=[...G.discard,c],cand=generateMeldCandidates(pile,opp).filter(x=>x.cards.some(xc=>xc.id===c.id)).slice(0,3);
+  if(cand.length){const best=cand[0];danger+=22+best.cards.length*5;if(burracoKind(best))danger+=70;}
+  const oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99));if(oppMin<=2)danger*=1.8;else if(oppMin<=4)danger*=1.45;else if(oppMin<=6)danger*=1.2;
+  if(!G.teamTookPot[opp]&&oppMin<=2&&direct)danger+=55;
+  return danger;
 }
 function cpuDiscardChoice(pi){
-  const p=G.players[pi],team=teamOf(pi),last=p.hand.length===1,best=[];
-  for(const c of p.hand){const cd=canDiscardCard(pi,c);if(!cd.ok)continue;let v=scoreCard(c)*10;if(isMattaCard(c))v-=1000;if(canAttachToTeam(team,c))v-=400;best.push({c,v});}
-  best.sort((a,b)=>b.v-a.v);return best[0]?.c||null;
+  const p=G.players[pi],team=teamOf(pi),best=[];
+  for(const c of p.hand){const cd=canDiscardCard(pi,c);if(!cd.ok)continue;let v=scoreCard(c)*11-cpuCardRetentionValue(pi,c);if(isMattaCard(c))v-=900;const danger=cpuOpponentDiscardDanger(pi,c);v-=danger*4.2;best.push({c,v,danger});}
+  best.sort((a,b)=>b.v-a.v||a.danger-b.danger||b.c.id-a.c.id);return best[0]?.c||null;
 }
 async function cpuPlayAttachment(pi,a,epoch){const p=G.players[pi],before=burracoKind(a.m);G.lastLog=`${p.name} attacca ${cardText(a.c)}.`;render();await sleep(360);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,[a.c]);Object.assign(a.m,a.info);markTableAction(pi);const after=burracoKind(a.m);G.lastLog=!before&&after?`${p.name} realizza un burraco ${after}!`:`${p.name} ha attaccato ${cardText(a.c)}.`;afterCardsPlayed(pi);render();await sleep(260);return true;}
 async function cpuPlayMeld(pi,info,epoch){const p=G.players[pi],team=teamOf(pi);G.lastLog=`${p.name} cala ${info.kind==='run'?'una scala':'una combinazione'}.`;render();await sleep(420);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,info.cards);const m=normalizedMeld(info,pi);G.melds.push(m);setTeamOpened(team,true);markTableAction(pi);const bk=burracoKind(m);if(bk)G.lastLog=`${p.name} realizza un burraco ${bk}!`;afterCardsPlayed(pi);render();await sleep(260);return true;}
@@ -769,11 +876,69 @@ function render(){
 
 let lastHandTapId=null,lastHandTapAt=0,suppressHandClickUntil=0,handReorder=null;
 function clearHandReorderTimer(){if(handReorder?.timer){clearTimeout(handReorder.timer);handReorder.timer=0;}}
-function activateHandReorder(){if(!handReorder||handReorder.active||!G||G.turn!==0||!['draw','play'].includes(G.phase))return;const el=handReorder.el;if(!el?.isConnected){handReorder=null;return;}handReorder.active=true;clearHandReorderTimer();lastHandTapId=null;lastHandTapAt=0;$('hand').classList.add('reordering');el.classList.add('reorder-held');$('hand').style.touchAction='none';try{el.setPointerCapture(handReorder.pointerId);}catch(_){}if(navigator.vibrate)try{navigator.vibrate(18);}catch(_){}}
-function finishHandReorder(commit){const r=handReorder;if(!r)return;clearHandReorderTimer();const hand=$('hand');if(r.active){suppressHandClickUntil=performance.now()+550;hand.classList.remove('reordering');hand.style.removeProperty('touch-action');r.el?.classList.remove('reorder-held');try{r.el?.releasePointerCapture(r.pointerId);}catch(_){}if(commit&&G){const ids=[...hand.querySelectorAll('.hand-card')].map(el=>+el.dataset.card),byId=new Map(G.players[0].hand.map(c=>[c.id,c]));if(ids.length===byId.size&&ids.every(id=>byId.has(id))){G.players[0].hand=ids.map(id=>byId.get(id));manualOrderIds=ids.slice();sortMode='manual';}}handReorder=null;render();return;}handReorder=null;}
-$('hand').addEventListener('pointerdown',e=>{const el=e.target.closest('.hand-card');if(!el||!G||G.turn!==0||!['draw','play'].includes(G.phase))return;if(e.pointerType==='mouse'&&e.button!==0)return;clearHandReorderTimer();handReorder={pointerId:e.pointerId,el,id:+el.dataset.card,startX:e.clientX,startY:e.clientY,active:false,timer:setTimeout(activateHandReorder,300)};},{passive:true});
-$('hand').addEventListener('pointermove',e=>{const r=handReorder;if(!r||e.pointerId!==r.pointerId)return;if(!r.active){if(Math.hypot(e.clientX-r.startX,e.clientY-r.startY)>9){clearHandReorderTimer();handReorder=null;}return;}e.preventDefault();const hand=$('hand'),others=[...hand.querySelectorAll('.hand-card')].filter(x=>x!==r.el);if(!others.length)return;let target=others[0],best=Infinity;for(const x of others){const b=x.getBoundingClientRect(),d=Math.abs(e.clientX-(b.left+b.width/2));if(d<best){best=d;target=x;}}const tb=target.getBoundingClientRect();if(e.clientX<tb.left+tb.width/2)hand.insertBefore(r.el,target);else hand.insertBefore(r.el,target.nextSibling);},{passive:false});
-$('hand').addEventListener('pointerup',e=>{if(handReorder&&e.pointerId===handReorder.pointerId)finishHandReorder(handReorder.active);});$('hand').addEventListener('pointercancel',e=>{if(handReorder&&e.pointerId===handReorder.pointerId)finishHandReorder(false);});$('hand').addEventListener('contextmenu',e=>{if(e.target.closest('.hand-card'))e.preventDefault();});
+function releaseHandPointer(r){if(!r)return;try{if(r.el?.hasPointerCapture?.(r.pointerId))r.el.releasePointerCapture(r.pointerId);}catch(_){}}
+function activateHandReorder(){
+  const r=handReorder;if(!r||r.active||r.scrolling||!G||G.turn!==0||!['draw','play'].includes(G.phase))return;
+  const el=r.el;if(!el?.isConnected){releaseHandPointer(r);handReorder=null;return;}
+  r.active=true;clearHandReorderTimer();lastHandTapId=null;lastHandTapAt=0;
+  const hand=$('hand');hand.classList.add('reordering');el.classList.add('reorder-held');
+  if(navigator.vibrate&&r.pointerType!=='mouse')try{navigator.vibrate(18);}catch(_){}
+}
+function finishHandReorder(commit){
+  const r=handReorder;if(!r)return;clearHandReorderTimer();
+  const hand=$('hand');
+  if(r.active){
+    suppressHandClickUntil=performance.now()+550;
+    hand.classList.remove('reordering');r.el?.classList.remove('reorder-held');
+    if(commit&&G){
+      const ids=[...hand.querySelectorAll('.hand-card')].map(el=>+el.dataset.card),byId=new Map(G.players[0].hand.map(c=>[c.id,c]));
+      if(ids.length===byId.size&&ids.every(id=>byId.has(id))){G.players[0].hand=ids.map(id=>byId.get(id));manualOrderIds=ids.slice();sortMode='manual';G.lastLog='Ordine manuale della mano aggiornato.';}
+    }
+    releaseHandPointer(r);handReorder=null;render();return;
+  }
+  releaseHandPointer(r);handReorder=null;
+}
+function beginHandPointer(e,el){
+  if(handReorder)finishHandReorder(false);
+  const hand=$('hand');
+  handReorder={pointerId:e.pointerId,pointerType:e.pointerType||'mouse',el,id:+el.dataset.card,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,startScrollLeft:hand.scrollLeft,active:false,scrolling:false,timer:0};
+  try{el.setPointerCapture(e.pointerId);}catch(_){}
+  // Mouse/pen can begin by dragging. Touch keeps the familiar long-press gesture.
+  if(e.pointerType!=='mouse')handReorder.timer=setTimeout(activateHandReorder,300);
+}
+$('hand').addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.hand-card');if(!el||!G||G.turn!==0||!['draw','play'].includes(G.phase))return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  beginHandPointer(e,el);
+});
+$('hand').addEventListener('pointermove',e=>{
+  const r=handReorder;if(!r||e.pointerId!==r.pointerId)return;
+  r.lastX=e.clientX;r.lastY=e.clientY;
+  const dx=e.clientX-r.startX,dy=e.clientY-r.startY,dist=Math.hypot(dx,dy),hand=$('hand');
+  if(!r.active){
+    if(r.pointerType==='mouse'){
+      if(dist>4)activateHandReorder();else return;
+    }else{
+      // Before the long press, a deliberate horizontal swipe still scrolls an oversized hand.
+      if(!r.scrolling&&hand.classList.contains('hand-scroll')&&Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.25){r.scrolling=true;clearHandReorderTimer();}
+      if(r.scrolling){e.preventDefault();hand.scrollLeft=r.startScrollLeft-dx;return;}
+      // Allow normal finger jitter while waiting for the long press; only a clear vertical escape cancels it.
+      if(dist>22){clearHandReorderTimer();finishHandReorder(false);}
+      return;
+    }
+  }
+  e.preventDefault();
+  const box=hand.getBoundingClientRect();
+  if(hand.classList.contains('hand-scroll')){if(e.clientX<box.left+38)hand.scrollLeft-=14;else if(e.clientX>box.right-38)hand.scrollLeft+=14;}
+  const others=[...hand.querySelectorAll('.hand-card')].filter(x=>x!==r.el);if(!others.length)return;
+  let target=others[0],best=Infinity;for(const x of others){const b=x.getBoundingClientRect(),d=Math.abs(e.clientX-(b.left+b.width/2));if(d<best){best=d;target=x;}}
+  const tb=target.getBoundingClientRect();if(e.clientX<tb.left+tb.width/2)hand.insertBefore(r.el,target);else hand.insertBefore(r.el,target.nextSibling);
+},{passive:false});
+function endHandPointer(e,cancel=false){if(handReorder&&e.pointerId===handReorder.pointerId)finishHandReorder(!cancel&&handReorder.active);}
+window.addEventListener('pointerup',e=>endHandPointer(e,false),{passive:true});
+window.addEventListener('pointercancel',e=>endHandPointer(e,true),{passive:true});
+window.addEventListener('blur',()=>{if(handReorder)finishHandReorder(false);});
+$('hand').addEventListener('contextmenu',e=>{if(e.target.closest('.hand-card'))e.preventDefault();});
 $('hand').addEventListener('click',e=>{if(performance.now()<suppressHandClickUntil)return;const el=e.target.closest('[data-card]');if(!el||G.turn!==0||G.phase!=='play')return;const id=+el.dataset.card,now=performance.now(),dbl=id===lastHandTapId&&now-lastHandTapAt<360;lastHandTapId=id;lastHandTapAt=now;if(dbl){lastHandTapId=null;lastHandTapAt=0;humanDiscard(id);return;}if(G.selected.has(id))G.selected.delete(id);else G.selected.add(id);render();});
 $('melds').addEventListener('click',e=>{const el=e.target.closest('[data-meld]');if(!el||!G||G.turn!==0||G.phase!=='play'||!G.selected.size)return;const m=G.melds.find(x=>x.id===el.dataset.meld);if(!m)return;G.targetMeld=m.id;performAttachSelected(m.id);});
 $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G.phase!=='play')return;if(e.target.closest('.card,.meld,.pile,[role="button"],button,a,input,select,label,#turnBanner,#piles'))return;if(G.selected.size>=3)stageOrMeld();});
