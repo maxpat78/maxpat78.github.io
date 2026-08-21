@@ -491,7 +491,7 @@ function humanDrawStock(){
   const sourceRect=$('stockPile').getBoundingClientRect();const c=drawStock(0);if(!c){toast('Nessuna carta disponibile');return;}
   G.discardUndo=null;G.phase='play';G.lastLog=`Hai pescato ${cardText(c)} dal tallone.`;sortHand(G.players[0].hand,sortMode);render();animateDraw(c,sourceRect);
 }
-function canAttachRequiredWithHand(meld,hand,required){
+function canAttachRequiredWithHand(meld,hand,required,minRemain=1){
   // Verifica anche gli attacchi di gruppo: per esempio 6♣ + Jolly su 8♣..Q♣.
   // Filtriamo prima le sole carte che potrebbero appartenere al gioco, così il controllo resta leggero su smartphone.
   if(meld.kind==='run'&&!required.joker&&required.suit!==meld.suit)return false;
@@ -503,32 +503,32 @@ function canAttachRequiredWithHand(meld,hand,required){
   const limit=1<<pool.length,total=hand.length+1;
   for(let mask=0;mask<limit;mask++){
     const cards=[required];for(let i=0;i<pool.length;i++)if(mask&(1<<i))cards.push(pool[i]);
-    if(cards.length>=total)continue; // deve restare almeno una carta da scartare
+    if(total-cards.length<minRemain)continue; // deve restare abbastanza mano per lo scarto obbligatorio
     if(candidateAttachOptions(meld,cards).length)return true;
   }
   return false;
 }
 function canUseDiscardNow(pi,top){
-  const p=G.players[pi];
+  const p=G.players[pi],minRemain=minCardsBeforeDiscard();
   if(!top)return false;
   if(!p.opened){
     if(!G.rules.openFromDiscard)return false;
     // La raccolta prima dell'apertura e' ammessa solo se esiste gia' un'apertura completa
     // che usa obbligatoriamente lo scarto e lascia almeno una carta per lo scarto finale.
-    return bestMeldPack([...p.hand,top],true,top.id).length>0;
+    return bestMeldPack([...p.hand,top],true,top.id,minRemain).length>0;
   }
   // Uso diretto, anche insieme ad altre carte della mano, su un gioco gia' sul tavolo.
-  if(G.melds.some(m=>canAttachRequiredWithHand(m,p.hand,top)))return true;
+  if(G.melds.some(m=>canAttachRequiredWithHand(m,p.hand,top,minRemain)))return true;
   // Uso diretto: nuovo gioco che contenga obbligatoriamente lo scarto e lasci una carta da scartare.
   const temp=[...p.hand,top];
-  if(bestMeldPack(temp,false,top.id).length)return true;
+  if(bestMeldPack(temp,false,top.id,minRemain).length)return true;
   // Caso speciale: lo scarto naturale sostituisce un Jolly. Simuliamo l'intera catena:
   // raccolta -> sostituzione -> recupero Jolly -> riuso obbligatorio. Il riuso può essere
   // un attacco singolo, un attacco insieme ad altre carte o un nuovo gioco.
-  if(discardJokerReplacementPlan(pi,top))return true;
+  if(discardJokerReplacementPlan(pi,top,minRemain))return true;
   return false;
 }
-function discardJokerReplacementPlan(pi,top){
+function discardJokerReplacementPlan(pi,top,minRemain=minCardsBeforeDiscard()){
   const p=G.players[pi];
   if(!top||top.joker||!p.opened)return null;
   let best=null;
@@ -540,7 +540,7 @@ function discardJokerReplacementPlan(pi,top){
     // esattamente la mano precedente + il Jolly recuperato.
     const simHand=[...p.hand,r.joker];
     const simMelds=G.melds.map(x=>x.id===m.id?{...x,...r.info}:x);
-    const reuse=cpuBestJokerReusePlan(simHand,simMelds,r.joker.id);
+    const reuse=cpuBestJokerReusePlan(simHand,simMelds,r.joker.id,minRemain);
     if(!reuse)continue;
     const score=(reuse.remaining===1?100000000:0)+reuse.score;
     if(!best||score>best.score)best={sourceMeldId:m.id,jokerId:r.joker.id,reuse,score};
@@ -643,7 +643,8 @@ function stageOrMeld(setJokerSuit=null,runChoice=null){
   if(!info){toast('Selezione non valida: servono scala o combinazione');return;}
   if(info.kind==='set'&&info.cards.some(c=>c.joker)&&(info.jokerSuit===null||info.jokerSuit===undefined)&&(info.jokerSuitChoices?.length>1)){showSetJokerChoice(cards,info);return;}
   if(p.opened&&G.discardUndo&&G.pickedDiscardId&&!cards.some(c=>c.id===G.pickedDiscardId)){toast('Devi usare prima la carta raccolta, oppure annullare la raccolta');return;}
-  if(cards.length>=p.hand.length){toast('Devi conservare una carta per lo scarto finale');return;}
+  const minRemain=minCardsBeforeDiscard();
+  if(p.hand.length-cards.length<minRemain){toast(minRemain===2?'Nel primo giro devi conservare due carte: una da scartare e una da tenere':'Devi conservare una carta per lo scarto finale');return;}
   if(!p.opened){
     removeFromHand(p,cards);G.pending.push(normalizedMeld(info,0));G.pendingPts=G.pending.reduce((s,m)=>s+openingPoints(m),0);G.selected.clear();G.lastLog=`Gioco aggiunto all’apertura provvisoria (${G.pendingPts} ${G.rules.open40NoJoker?'punti naturali':'punti'}).`;
   }else{
@@ -699,7 +700,9 @@ function attachChoiceLabel(opt,meld){
   return opt.left>opt.right?'estensione bassa':'estensione alta';
 }
 function performAttach(cards,m,info){
-  invalidateDiscardUndo();removeFromHand(G.players[0],cards);markUsed(cards);Object.assign(m,info);G.selected.clear();G.targetMeld=null;
+  const p=G.players[0],minRemain=minCardsBeforeDiscard();
+  if(p.hand.length-cards.length<minRemain){toast(minRemain===2?'Nel primo giro devi conservare due carte prima dello scarto':'Devi conservare una carta per lo scarto finale');return;}
+  invalidateDiscardUndo();removeFromHand(p,cards);markUsed(cards);Object.assign(m,info);G.selected.clear();G.targetMeld=null;
   const names=cards.map(cardText).join(' + ');G.lastLog=`${names} ${cards.length>1?'attaccate':'attaccata'} al gioco.`;render();
 }
 function showAttachChoice(cards,m,opts){
@@ -721,7 +724,8 @@ function completeAttachChoice(which){
 function attachSelected(){
   if(G.turn!==0||G.phase!=='play'||!G.players[0].opened)return;const cards=selectedCards();
   if(!cards.length||!G.targetMeld){toast('Seleziona una o più carte e un gioco sul tavolo');return;}
-  if(cards.length>=G.players[0].hand.length){toast('Devi conservare una carta per lo scarto finale');return;}
+  const minRemain=minCardsBeforeDiscard();
+  if(G.players[0].hand.length-cards.length<minRemain){toast(minRemain===2?'Nel primo giro devi conservare due carte: una da scartare e una da tenere':'Devi conservare una carta per lo scarto finale');return;}
   if(G.discardUndo&&G.pickedDiscardId&&!cards.some(c=>c.id===G.pickedDiscardId)){toast('Devi usare prima la carta raccolta, oppure annullare la raccolta');return;}
   const m=G.melds.find(x=>x.id===G.targetMeld);if(!m)return;const opts=candidateAttachOptions(m,cards);
   if(!opts.length){toast(cards.length===1?'Quella carta non può essere attaccata qui':'Quelle carte non possono essere attaccate insieme qui');return;}
@@ -749,6 +753,10 @@ function replaceSelectedJoker(){
   if(G.players[0].hand.length<=1){toast('Non potresti rigiocare il jolly e conservare una carta da scartare');return;}
   if(G.discardUndo&&G.pickedDiscardId&&cards[0].id!==G.pickedDiscardId){toast('Devi usare prima la carta raccolta, oppure annullare la raccolta');return;}
   const m=G.melds.find(x=>x.id===G.targetMeld);if(!m)return;const r=replaceJoker(m,cards[0]);if(!r){toast('La carta non sostituisce il jolly di quel gioco');return;}
+  const minRemain=minCardsBeforeDiscard();
+  const simHand=G.players[0].hand.filter(c=>c.id!==cards[0].id).concat(r.joker);
+  const simMelds=G.melds.map(x=>x.id===m.id?{...x,...r.info}:x);
+  if(!cpuBestJokerReusePlan(simHand,simMelds,r.joker.id,minRemain)){toast(minRemain===2?'Nel primo giro non puoi recuperare il Jolly se il riuso ti lascerebbe senza una carta da tenere':'Non riusciresti a rigiocare legalmente il Jolly recuperato');return;}
   invalidateDiscardUndo();removeFromHand(G.players[0],cards);G.players[0].hand.push(r.joker);sortHand(G.players[0].hand,sortMode);Object.assign(m,r.info);G.mustReuseJokerId=r.joker.id;markUsed(cards);G.selected.clear();G.targetMeld=null;G.lastLog='Jolly recuperato: devi rigiocarlo nello stesso turno.';render();
 }
 function canAttachAny(card){return G.melds.some(m=>candidateAttach(m,card));}
@@ -763,6 +771,7 @@ function canDiscardCard(pi,card,closing=false){
   return {ok:true};
 }
 function allHadTurn(){return activeIndices().every(i=>G.players[i].turns>=1);}
+function minCardsBeforeDiscard(){return allHadTurn()?1:2;}
 function humanDiscard(cardId=null){
   if(G.turn!==0||G.phase!=='play')return;if(G.pending.length){toast('Conferma o annulla prima l’apertura provvisoria');return;}
   const p=G.players[0];let cards;
@@ -792,13 +801,13 @@ function enumerateMelds(hand){
   out.sort((a,b)=>b.cards.length-a.cards.length||b.points-a.points);
   return out;
 }
-function bestMeldPack(hand,need40=false,requiredId=null){
+function bestMeldPack(hand,need40=false,requiredId=null,minRemain=1){
   if(hand.length>30)return [];
   const cand=enumerateMelds(hand).map(c=>({...c,openPoints:openingPoints(c.info)}));
   let best=[],bestScore=-1,bestOpenPts=0,bestValuePts=0;
   function dfs(idx,used,pick,cardsUsed,valuePts,openPts,hasReq){
     if(idx===cand.length){
-      if(cardsUsed>=hand.length)return;if(need40&&openPts<40)return;if(requiredId&&!hasReq)return;
+      if(hand.length-cardsUsed<minRemain)return;if(need40&&openPts<40)return;if(requiredId&&!hasReq)return;
       const score=cardsUsed*100+valuePts;
       if(score>bestScore){bestScore=score;best=[...pick];bestOpenPts=openPts;bestValuePts=valuePts;}return;
     }
@@ -808,13 +817,14 @@ function bestMeldPack(hand,need40=false,requiredId=null){
   dfs(0,0,[],0,0,0,false);best.points=bestOpenPts;best.valuePoints=bestValuePts;return best;
 }
 
-function cpuBestJokerReusePlan(hand,melds,jokerId){
+function cpuBestJokerReusePlan(hand,melds,jokerId,minRemain=1){
   const ji=hand.findIndex(c=>c.id===jokerId);
-  if(ji<0||hand.length<=1)return null;
+  if(ji<0||hand.length<=minRemain)return null;
   let best=null;
   function consider(plan,cardsUsed,valueRemoved){
-    if(cardsUsed<=0||cardsUsed>=hand.length)return;
+    if(cardsUsed<=0)return;
     const remaining=hand.length-cardsUsed;
+    if(remaining<minRemain)return;
     const score=(remaining===1?10000000:0)+cardsUsed*100000+valueRemoved*100;
     if(!best||score>best.score)best={...plan,cardsUsed,remaining,score};
   }
@@ -825,7 +835,7 @@ function cpuBestJokerReusePlan(hand,melds,jokerId){
   const limit=1<<hand.length;
   for(let mask=1;mask<limit;mask++){
     if(!(mask&(1<<ji)))continue;
-    const cnt=bitCount(mask);if(cnt>=hand.length)continue;
+    const cnt=bitCount(mask);if(hand.length-cnt<minRemain)continue;
     const cards=[];for(let i=0;i<hand.length;i++)if(mask&(1<<i))cards.push(hand[i]);
     for(const m of melds){
       const opts=candidateAttachOptions(m,cards);
@@ -838,7 +848,7 @@ function cpuBestJokerReusePlan(hand,melds,jokerId){
   }
 
   // Oppure può essere riutilizzato in uno o più nuovi giochi.
-  const pack=bestMeldPack(hand,false,jokerId);
+  const pack=bestMeldPack(hand,false,jokerId,minRemain);
   if(pack.length&&pack.some(x=>x.cards.some(c=>c.id===jokerId))){
     const used=pack.reduce((s,x)=>s+x.cards.length,0);
     const value=pack.reduce((s,x)=>s+x.cards.reduce((v,c)=>v+(c.joker?0:endScore(c)),0),0);
@@ -859,7 +869,7 @@ function cpuJokerReplacementPlans(pi){
       // recuperato entra temporaneamente in mano.
       const simHand=p.hand.filter(c=>c.id!==card.id).concat(r.joker);
       const simMelds=G.melds.map(m=>m.id===meld.id?{...m,...r.info}:m);
-      const reuse=cpuBestJokerReusePlan(simHand,simMelds,r.joker.id);
+      const reuse=cpuBestJokerReusePlan(simHand,simMelds,r.joker.id,minCardsBeforeDiscard());
       if(!reuse)continue;
 
       // La riduzione del numero di carte è prioritaria; a parità preferiamo
@@ -873,7 +883,7 @@ function cpuJokerReplacementPlans(pi){
 }
 async function cpuExecuteJokerReuse(pi,epoch,jokerId){
   const p=G.players[pi];
-  const plan=cpuBestJokerReusePlan(p.hand,G.melds,jokerId);
+  const plan=cpuBestJokerReusePlan(p.hand,G.melds,jokerId,minCardsBeforeDiscard());
   if(!plan)return false;
 
   if(plan.kind==='attach'){
@@ -957,8 +967,8 @@ async function cpuTryJokerReplacements(pi,epoch){
   return any;
 }
 async function cpuTryAttachments(pi,epoch){
-  const p=G.players[pi];let progress=true,played=false;
-  while(progress&&p.hand.length>1){
+  const p=G.players[pi],minRemain=minCardsBeforeDiscard();let progress=true,played=false;
+  while(progress&&p.hand.length>minRemain){
     progress=false;
     outer:for(const c of [...p.hand])for(const m of G.melds){
       const info=candidateAttach(m,c);
@@ -985,7 +995,7 @@ async function cpuExhaustTableTactics(pi,epoch){
   // Replacement and ordinary attachment can enable each other.  Iterate to a
   // fixed point so that an attachment which creates a new landing place for a
   // recovered Joker is immediately reconsidered before the discard decision.
-  while(cpuEpochOk(epoch,pi)&&G.players[pi].hand.length>1){
+  while(cpuEpochOk(epoch,pi)&&G.players[pi].hand.length>minCardsBeforeDiscard()){
     let changed=false;
     if(await cpuTryJokerReplacements(pi,epoch)){any=true;changed=true;}
     if(!cpuEpochOk(epoch,pi))return any;
@@ -1033,7 +1043,7 @@ function cpuDiscardChoice(pi){
 async function cpuTurn(){
   if(!G||G.phase==='round-end'||G.players[G.turn].human)return;
   const epoch=cpuEpoch,pi=G.turn,p=G.players[pi];
-  let drewFromDiscard=false,drawn=null;
+  let drewFromDiscard=false,drawn=null,playSnapshot=null;
 
   if(G.phase==='draw'){
     const top=G.discard[G.discard.length-1];
@@ -1048,10 +1058,13 @@ async function cpuTurn(){
     await sleep(220);
   }
 
+  // Snapshot di sicurezza: impedisce che una futura euristica lasci il turno senza scarto.
+  playSnapshot={hand:[...p.hand],opened:p.opened,melds:G.melds.map(m=>({...m,cards:[...m.cards]})),pickedDiscardId:G.pickedDiscardId,discardUndo:G.discardUndo,mustReuseJokerId:G.mustReuseJokerId};
+
   // Apertura e giochi della CPU: ogni azione viene resa visibile prima di modificare il tavolo.
   let playedSomething=false;
   if(!p.opened){
-    const pack=bestMeldPack(p.hand,true,G.pickedDiscardId);
+    const pack=bestMeldPack(p.hand,true,G.pickedDiscardId,minCardsBeforeDiscard());
     if(pack.length){
       for(const x of pack){
         G.lastLog=`${p.name} prepara l'apertura.`;
@@ -1075,7 +1088,7 @@ async function cpuTurn(){
         let attached=false;
         for(const m of G.melds){
           const info=candidateAttach(m,picked);
-          if(info&&p.hand.length>1){
+          if(info&&p.hand.length>minCardsBeforeDiscard()){
             const dest=cpuMeldRect(m.id);
             G.lastLog=`${p.name} usa lo scarto raccolto: attacca ${cardText(picked)}.`;
             render();cpuHighlightMeld(m.id,true);
@@ -1088,7 +1101,7 @@ async function cpuTurn(){
           }
         }
         if(!attached){
-          const req=bestMeldPack(p.hand,false,G.pickedDiscardId);
+          const req=bestMeldPack(p.hand,false,G.pickedDiscardId,minCardsBeforeDiscard());
           if(req.length){
             for(const x of req){
               G.lastLog=`${p.name} usa lo scarto raccolto in un nuovo gioco.`;
@@ -1112,7 +1125,7 @@ async function cpuTurn(){
     let keep=true;
     while(keep){
       keep=false;
-      const pack=bestMeldPack(p.hand,false,null);
+      const pack=bestMeldPack(p.hand,false,null,minCardsBeforeDiscard());
       if(pack.length){
         const x=pack[0];
         G.lastLog=`${p.name} cala un nuovo gioco.`;
@@ -1145,7 +1158,22 @@ async function cpuTurn(){
     G.pickedDiscardId=null;
   }
 
-  const c=cpuDiscardChoice(pi);if(!c)return;
+  let c=cpuDiscardChoice(pi);
+  if(!c&&p.hand.length===1&&!allHadTurn()&&playSnapshot&&!playSnapshot.pickedDiscardId){
+    clearCompletedSetTimers();
+    p.hand=[...playSnapshot.hand];p.opened=playSnapshot.opened;
+    G.melds=playSnapshot.melds.map(m=>({...m,cards:[...m.cards]}));
+    G.pickedDiscardId=playSnapshot.pickedDiscardId;G.discardUndo=playSnapshot.discardUndo;G.mustReuseJokerId=playSnapshot.mustReuseJokerId;G.targetMeld=null;
+    G.lastLog=`${p.name} conserva una carta: non può chiudere nel primo giro.`;render();await sleep(280);
+    if(!cpuEpochOk(epoch,pi))return;
+    c=cpuDiscardChoice(pi);
+  }
+  if(!c){
+    G.lastLog=`${p.name} non trova uno scarto legale; passo il turno per evitare un blocco.`;render();
+    G.turn=nextActive(pi);G.phase='draw';G.targetMeld=null;
+    if(G.players[G.turn].human){G.lastLog='È il tuo turno: pesca una carta.';render();}else scheduleCPU();
+    return;
+  }
   const closing=p.hand.length===1;
   const sourceRect=cpuOpponentRect(pi),destRect=$('discardPile').getBoundingClientRect();
   G.lastLog=`${p.name} scarta ${cardText(c)}.`;render();
