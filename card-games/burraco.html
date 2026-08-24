@@ -1,11 +1,13 @@
 <!doctype html>
-<!-- BUILD: Burraco mobile v9 STRATEGIC-AI, 2026-08-21 -->
+<!-- BUILD: Burraco mobile v12 COSMETIC-DESKTOP, 2026-08-24 -->
+<!-- BASE: Burraco mobile v11 PATIENT-AI -->
+<!-- BUILD: Burraco mobile v10 ACE-WILD-FIX, 2026-08-23 -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a6b3b">
-<title>Burraco — Classico e Internazionale · v9</title>
+<title>Burraco — Classico e Internazionale · v12</title>
 <style>
 :root{
   --felt:#0a6b3b; --felt2:#07532f; --panel:rgba(0,0,0,.23); --ink:#f7f7f2;
@@ -245,6 +247,48 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   .team-meld-list{--meld-cw:48px}
 }
 
+
+/* Burraco v12: desktop-only deterministic meld geometry.
+   Mobile layout is intentionally left unchanged. */
+@media(min-width:700px){
+  /* Keep hand and table cards on the same desktop width, as requested. */
+  #hand{--cw:64px}
+  .team-meld-list{
+    --meld-cw:64px;
+    grid-template-columns:repeat(auto-fill,68px);
+    justify-content:center;
+    align-items:start;
+    column-gap:4px;
+    row-gap:5px;
+    min-width:0;
+  }
+  .meld{
+    --meld-cw:64px;
+    --meld-ch:calc(var(--meld-cw)*1.43);
+    width:68px;
+    max-width:68px;
+    min-width:68px;
+    justify-self:center;
+    padding:1px;
+    overflow:visible;
+  }
+  .meld-cards{
+    width:64px;
+    max-width:64px;
+    min-width:64px;
+    margin:0 auto;
+    padding:0;
+    overflow-x:hidden;
+  }
+  .meld-cards .card{
+    --cw:64px;
+    --ch:calc(64px*1.43);
+    width:64px;
+    height:calc(64px*1.43);
+    max-width:64px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -265,7 +309,7 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
       <div id="discardWrap" class="pile-wrap"><div id="discardPile" role="button" aria-label="Raccogli il monte degli scarti"></div><div id="discardLabel" class="pile-label">Monte · 1</div></div>
       <div id="potsWrap" class="pile-wrap"><div id="potsStack"><div id="pot0" class="pile pot-mini back" aria-label="Primo pozzetto"></div><div id="pot1" class="pile pot-mini back" aria-label="Secondo pozzetto"></div></div><div id="potsLabel" class="pile-label">Pozzetti</div></div>
     </div>
-    <div id="tableTitle"><span class="line"></span><span>GIOCHI DELLE SQUADRE</span><span class="line"></span></div>
+    <div id="tableTitle"><span class="line"></span><span>GIOCHI</span><span class="line"></span></div>
     <div id="melds"></div>
     <div id="pendingBox"><div class="pending-title">Apertura provvisoria: <span id="pendingPts">0</span> <span id="pendingUnit">punti</span></div><div id="pendingMelds"></div></div>
   </main>
@@ -488,7 +532,7 @@ function runOptions(cards){
       }
     }
   }
-  // A Matta all'estremita' e' libera: non ha un'identita' fissa e si mostra in basso.
+  // A Matta all'estremita' e' libera e si mostra in basso solo quando esiste un lato inferiore legale; sotto l'Asso no.
   if(L>=3){
     for(let suit=0;suit<4;suit++)for(const wild of cards.filter(isMattaCard)){
       const naturals=cards.filter(c=>c.id!==wild.id);if(!naturals.length)continue;
@@ -504,6 +548,10 @@ function runOptions(cards){
         if(vals.some((v,i)=>i&&v!==vals[i-1]+1))continue;
         const start=vals[0],end=vals[vals.length-1];
         if(start<1||end>14||(start===1&&end===14))continue;
+        // Una Matta libera viene collocata sul lato inferiore solo se esiste davvero
+        // una carta inferiore legale. Sotto l'Asso (valore 1) non esiste nulla:
+        // con A-2-3 + Matta l'unica disposizione valida e' A-2-3-Matta (=4).
+        if(start===1)continue;
         // Se il Due scelto come Matta e' anche il Due naturale necessario, non puo' fare entrambe le cose.
         if(wild.rank===2&&wild.suit===suit&&(vals.includes(2)||vals[0]===3))continue;
         const byVal=new Map();for(const c of naturals)byVal.set(valueForRunRank(c,aceHigh),c);
@@ -667,6 +715,73 @@ function generateMeldCandidates(hand,team){
   return [...uniq.values()].sort((a,b)=>candidateScore(b)-candidateScore(a));
 }
 function candidateScore(info){const pseudo={...info,cards:info.cards},bk=burracoKind(pseudo);return info.cards.length*1000+(bk?burracoBonus(bk)*8:0)+info.points-(info.wildId?70:0);}
+// v11 PATIENT-AI: a legal play is not automatically a good play.
+// The CPU explicitly values keeping wild cards and a natural 2 flexible, especially early in the hand.
+function cpuRoundAge(){const turns=G.players.reduce((s,p)=>s+(p.turns||0),0);return turns/Math.max(1,G.players.length);}
+function cpuEarlyFactor(){const r=cpuRoundAge();if(r<=2)return 1;if(r>=10)return 0;return (10-r)/8;}
+function cpuOpponentMinHand(pi){const team=teamOf(pi);return Math.min(...G.players.map((p,i)=>teamOf(i)!==team?p.hand.length:99));}
+function cpuPlayUrgency(pi){
+  const p=G.players[pi],team=teamOf(pi),oppMin=cpuOpponentMinHand(pi);let u=0;
+  if(G.mustPlayAfterPickup)u=1;
+  if(G.stock.length<=10)u=Math.max(u,.9);else if(G.stock.length<=18)u=Math.max(u,.55);
+  if(oppMin<=2)u=Math.max(u,1);else if(oppMin<=4)u=Math.max(u,.72);else if(oppMin<=6)u=Math.max(u,.42);
+  if(!G.teamTookPot[team]&&p.hand.length<=5)u=Math.max(u,.78);
+  if(G.teamTookPot[team]&&p.hand.length<=5)u=Math.max(u,.7);
+  return u;
+}
+function cpuUsesNaturalTwo(info){
+  return !!(info&&info.kind==='run'&&info.cards.some(c=>!c.joker&&c.rank===2&&c.suit===info.suit&&c.id!==info.wildId));
+}
+function cpuWildOpportunityCost(pi,info,oldMeld=null){
+  if(!info?.wildId)return 0;const team=teamOf(pi),after=burracoKind(oldMeld?{...oldMeld,...info}:info),len=info.cards.length,early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi);
+  if(after){if(after==='pulito')return 0;let c=35;if(G.variant==='international'&&!projectedTeamHasBurraco(team,projectedMeldsAfterPlay(pi,oldMeld,info,!oldMeld),true))c+=70;return Math.max(0,c*(1-urg*.55));}
+  let cost=145+early*95;
+  if(len<=3)cost+=220;else if(len===4)cost+=145;else if(len===5)cost+=70;else if(len===6)cost-=35;
+  if(info.freeWild)cost+=25;
+  if(G.variant==='international')cost+=70; // dirty material is less useful when a clean burraco is required to close.
+  if(G.mustPlayAfterPickup)cost-=190;
+  if(!G.teamTookPot[team]&&G.players[pi].hand.length<=5)cost-=90;
+  return Math.max(0,cost*(1-urg*.62));
+}
+function cpuEarlyNewMeldPenalty(pi,info){
+  const early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi);if(!early||burracoKind(info))return 0;
+  let p=0,n=info.cards.length;
+  if(n===3)p+=170;else if(n===4)p+=70;else if(n===5)p+=20;
+  if(info.kind==='run'){
+    // A natural 2 is also a Pinella while held: committing it to a tiny run has a real option cost.
+    if(cpuUsesNaturalTwo(info)&&n<=4)p+=n===3?140:65;
+    // A-2-3 is the archetypal legal-but-premature opening; A-2-3-4 is much less problematic.
+    if(info.start===1&&info.end<=3)p+=110;else if(info.start===1&&info.end===4)p+=55;
+  }
+  if(G.mustPlayAfterPickup)p*=.08;else p*=Math.max(.12,1-urg*.82);
+  return p*early;
+}
+function cpuNewMeldStrategicScore(pi,info){
+  const p=G.players[pi],team=teamOf(pi),bk=burracoKind(info),urg=cpuPlayUrgency(pi),early=cpuEarlyFactor();
+  let score=info.cards.length*120+info.points*1.55;
+  if(bk)score+=burracoBonus(bk)*3.4+(bk==='pulito'?180:0);
+  score-=cpuEarlyNewMeldPenalty(pi,info);
+  score-=cpuWildOpportunityCost(pi,info,null);
+  if(cpuUsesNaturalTwo(info)&&info.cards.length<=4)score-=early*(info.cards.length===3?55:20)*(1-urg*.7);
+  if(!teamOpened(team))score+=35; // opening the table has some value, but not enough to justify wasteful A-2-3 play.
+  if(!G.teamTookPot[team]&&p.hand.length<=5)score+=120;
+  if(G.mustPlayAfterPickup)score+=500;
+  return score;
+}
+function cpuAttachmentStrategicScore(pi,m,c,info){
+  const team=teamOf(pi),before=burracoKind(m),after=burracoKind({...m,...info}),early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi);let score=150+scoreCard(c)*2.2;
+  if(!before&&after)score+=burracoBonus(after)*3.6+(after==='pulito'?180:0);
+  if(before==='pulito'&&after&&after!=='pulito')score-=850;
+  if(isMattaCard(c))score-=cpuWildOpportunityCost(pi,info,m);
+  // A matching 2 used naturally is still a flexible Pinella lost from the hand; be patient on short runs.
+  if(m.kind==='run'&&!c.joker&&c.rank===2&&c.suit===m.suit&&info.cards.length<=4&&!after)score-=early*(info.cards.length===3?110:70)*(1-urg*.75);
+  if(G.mustPlayAfterPickup)score+=450;
+  if(!G.teamTookPot[team]&&G.players[pi].hand.length<=4)score+=75;
+  return score;
+}
+function cpuActionThreshold(pi){
+  if(G.mustPlayAfterPickup)return -1e9;const u=cpuPlayUrgency(pi),early=cpuEarlyFactor();return 205+early*18-u*145;
+}
 function otherTeam(team){return team===0?1:0;}
 function projectedMeldsAfterPlay(pi,oldMeld=null,newInfo=null,newMeld=false){
   const team=teamOf(pi),list=G.melds.filter(m=>m.team===team).map(m=>({...m,cards:[...m.cards]}));
@@ -714,13 +829,20 @@ function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
   return !cpuShouldDelayClose(pi,usedCards,melds,last);
 }
 function bestNewMeld(pi){
-  const p=G.players[pi],team=teamOf(pi),cand=generateMeldCandidates(p.hand,team);
-  for(const info of cand){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(ck.ok&&cpuMoveKeepsExit(pi,info.cards,null,info,true))return info;}return null;
+  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi);let best=null;
+  for(const info of generateMeldCandidates(p.hand,team)){
+    const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(!ck.ok||!cpuMoveKeepsExit(pi,info.cards,null,info,true))continue;
+    const score=cpuNewMeldStrategicScore(pi,info);if(!best||score>best.score)best={info,score};
+  }
+  return best&&best.score>=threshold?Object.assign(best.info,{_cpuScore:best.score}):null;
 }
 function bestAttachment(pi){
-  const p=G.players[pi],team=teamOf(pi);let best=null;
-  for(const m of G.melds){if(m.team!==team)continue;for(const c of p.hand){const opts=candidateAttachOptions(m,[c]);for(const info of opts){const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;const before=burracoKind(m),after=burracoKind({...m,...info});let score=1200+scoreCard(c)+(before?0:(after?burracoBonus(after)*11:0))-(isMattaCard(c)?120:0);if(before==='pulito'&&after&&after!=='pulito')score-=900;if(!before&&after==='pulito')score+=350;if(!best||score>best.score)best={m,c,info,score};}}
-  }return best;
+  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi);let best=null;
+  for(const m of G.melds){if(m.team!==team)continue;for(const c of p.hand){const opts=candidateAttachOptions(m,[c]);for(const info of opts){
+    const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;
+    const score=cpuAttachmentStrategicScore(pi,m,c,info);if(!best||score>best.score)best={m,c,info,score};
+  }}}
+  return best&&best.score>=threshold?best:null;
 }
 function cpuImmediateActionPossible(pi,simHand){
   const team=teamOf(pi);for(const c of simHand)if(G.melds.some(m=>m.team===team&&candidateAttach(m,c)))return true;
@@ -807,8 +929,13 @@ async function cpuTurn(){
   }
   let guard=0;
   while(guard++<40&&epoch===cpuEpoch&&G.turn===pi&&G.phase==='play'){
-    const a=bestAttachment(pi);if(a){if(!await cpuPlayAttachment(pi,a,epoch))return;continue;}
-    const info=bestNewMeld(pi);if(info){if(!await cpuPlayMeld(pi,info,epoch))return;continue;}
+    // v11: compare attachment and new meld on the same strategic scale instead of blindly attaching first.
+    const a=bestAttachment(pi),info=bestNewMeld(pi),meldScore=info?info._cpuScore:-1e9;
+    if(a||info){
+      if(a&&a.score>=meldScore){if(!await cpuPlayAttachment(pi,a,epoch))return;}
+      else {if(!await cpuPlayMeld(pi,info,epoch))return;}
+      continue;
+    }
     break;
   }
   if(G.mustPlayAfterPickup){G.lastLog=`${p.name} non può completare legalmente la raccolta internazionale.`;render();await sleep(300);return;}
@@ -855,7 +982,7 @@ function renderMelds(){
     const ms=G.melds.filter(m=>m.team===team);
     const livePts=ms.reduce((sum,m)=>sum+m.cards.reduce((v,c)=>v+scoreCard(c),0),0);
     const body=ms.length?ms.map(m=>{const bk=burracoKind(m),owner=G.players[m.owner]?.name||teamName(team),count=m.cards.length,shownCards=m.kind==='run'?[...m.cards].reverse():m.cards;return `<div class="meld ${G.targetMeld===m.id?'target':''}" data-meld="${m.id}"><div class="meld-head"><b>${owner} - ${count} ${count===1?'carta':'carte'}</b>${bk?`<span class="burraco ${bk}">BURRACO ${bk.toUpperCase()}</span>`:''}</div><div class="meld-cards">${shownCards.map(c=>face(c)).join('')}</div></div>`;}).join(''):'<div class="team-empty">Nessun gioco</div>';
-    return `<section class="team-zone ${team===0?'ours':'theirs'}" data-team="${team}"><div class="team-zone-head">${teamName(team)} · ${livePts} pt calati</div><div class="team-meld-list">${body}</div></section>`;
+    return `<section class="team-zone ${team===0?'ours':'theirs'}" data-team="${team}"><div class="team-zone-head">${teamName(team)} - ${livePts} pt</div><div class="team-meld-list">${body}</div></section>`;
   });
   root.innerHTML=zones.join('');
 }
@@ -865,7 +992,7 @@ function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','undoTur
 function renderButtons(){
   const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,p=G.players[0];const selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;
   $('drawStockBtn').disabled=!draw;$('undoDiscardBtn').disabled=!(play&&G.discardUndo);$('undoTurnBtn').disabled=!(play&&G.turnUndo&&G.turnUndo.dirty);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('sortBtn').disabled=!p.hand.length;
-  $('sortBtn').textContent=sortMode==='rank'?'Ordine: valore':sortMode==='suit'?'Ordine: seme':'Ordine: manuale';const ids=[];if(p.hand.length)ids.push('sortBtn');if(play&&G.discardUndo)ids.push('undoDiscardBtn');if(play&&G.turnUndo&&G.turnUndo.dirty)ids.push('undoTurnBtn');if(play&&sel>=3)ids.push('meldBtn');if(canDiscard)ids.push('discardBtn');if(draw)ids.push('drawStockBtn');setActionBar(ids);
+  $('sortBtn').textContent='Ordina';const ids=[];if(p.hand.length)ids.push('sortBtn');if(play&&G.discardUndo)ids.push('undoDiscardBtn');if(play&&G.turnUndo&&G.turnUndo.dirty)ids.push('undoTurnBtn');if(play&&sel>=3)ids.push('meldBtn');if(canDiscard)ids.push('discardBtn');if(draw)ids.push('drawStockBtn');setActionBar(ids);
   $('stockPile').classList.toggle('can-draw',draw);$('discardPile').classList.toggle('can-draw',draw&&G.discard.length);$('stockPile').style.opacity=draw?'1':'.62';$('discardPile').style.opacity=draw&&G.discard.length?'1':'.72';
 }
 function updateScrollHint(){const main=$('app').querySelector('main'),up=$('scrollHintUp'),down=$('scrollHintDown');if(!main||!up||!down)return;const max=Math.max(0,main.scrollHeight-main.clientHeight),showUp=max>24&&main.scrollTop>90,showDown=G.melds.length>4&&max>24&&main.scrollTop<max-90;up.hidden=!showUp;up.classList.toggle('show',showUp);down.hidden=!showDown;down.classList.toggle('show',showDown);}
