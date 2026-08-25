@@ -1072,9 +1072,21 @@ $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G
 $('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('undoTurnBtn').onclick=undoHumanTurnMoves;$('meldBtn').onclick=stageOrMeld;$('discardBtn').onclick=()=>humanDiscard();
 const mainScrollEl=$('app').querySelector('main');mainScrollEl.addEventListener('scroll',updateScrollHint,{passive:true});$('scrollHintUp').onclick=()=>mainScrollEl.scrollBy({top:-Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});$('scrollHintDown').onclick=()=>mainScrollEl.scrollBy({top:Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});
 $('runJokerLowBtn').onclick=()=>completeRunJokerChoice('low');$('runJokerHighBtn').onclick=()=>completeRunJokerChoice('high');$('cancelRunJokerChoice').onclick=()=>{pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');};
-$('sortBtn').onclick=()=>{sortMode=sortMode==='manual'?'rank':sortMode==='rank'?'suit':'rank';if(sortMode!=='manual')manualOrderIds=[];sortHand(G.players[0].hand,sortMode);render();};$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('newBtn').onclick=()=>$('newModal').classList.add('show');$('cancelNew').onclick=()=>$('newModal').classList.remove('show');
-$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target,{variant:p.variant});};$('nextRound').onclick=()=>{$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>{$('scoreModal').classList.remove('show');$('newModal').classList.add('show');};
-for(const modal of document.querySelectorAll('.modal'))modal.addEventListener('click',e=>{if(e.target===modal&&modal.id!=='scoreModal')modal.classList.remove('show');});window.addEventListener('resize',()=>{if(G){layoutHumanHand();renderDiscard();renderMelds();}},{passive:true});if('ResizeObserver' in window)new ResizeObserver(()=>{if(G)layoutHumanHand();}).observe($('hand'));
+let returnToScoreAfterNewCancel=false;
+function openNewGameDialog(fromScore=false){
+  const scoreWasOpen=$('scoreModal').classList.contains('show');
+  returnToScoreAfterNewCancel=!!(fromScore||scoreWasOpen||G?.phase==='round-end');
+  if(returnToScoreAfterNewCancel)$('scoreModal').classList.remove('show');
+  $('newModal').classList.add('show');
+}
+function cancelNewGameDialog(){
+  $('newModal').classList.remove('show');
+  if(returnToScoreAfterNewCancel)$('scoreModal').classList.add('show');
+  returnToScoreAfterNewCancel=false;
+}
+$('sortBtn').onclick=()=>{sortMode=sortMode==='manual'?'rank':sortMode==='rank'?'suit':'rank';if(sortMode!=='manual')manualOrderIds=[];sortHand(G.players[0].hand,sortMode);render();};$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('newBtn').onclick=()=>openNewGameDialog(false);$('cancelNew').onclick=cancelNewGameDialog;
+$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;returnToScoreAfterNewCancel=false;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target,{variant:p.variant});};$('nextRound').onclick=()=>{returnToScoreAfterNewCancel=false;$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>openNewGameDialog(true);
+for(const modal of document.querySelectorAll('.modal'))modal.addEventListener('click',e=>{if(e.target!==modal||modal.id==='scoreModal')return;if(modal.id==='newModal')cancelNewGameDialog();else modal.classList.remove('show');});window.addEventListener('resize',()=>{if(G){layoutHumanHand();renderDiscard();renderMelds();}},{passive:true});if('ResizeObserver' in window)new ResizeObserver(()=>{if(G)layoutHumanHand();}).observe($('hand'));
 const savedPrefs=loadPrefs();applyPrefsToForm(savedPrefs);activeDeckStyle=savedPrefs.deck;startGame(savedPrefs.players,savedPrefs.target,{variant:savedPrefs.variant});
 })();
 </script>
