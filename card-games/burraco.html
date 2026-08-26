@@ -1,5 +1,8 @@
 <!doctype html>
-<!-- BUILD: Burraco mobile v12 COSMETIC-DESKTOP, 2026-08-24 -->
+<!-- BUILD: Burraco mobile v17 PILEVALUE-AI, 2026-08-26 -->
+<!-- BASE: Burraco mobile v15 EXPERT-AI -->
+<!-- BASE: Burraco mobile v14 PROFESSIONAL-AI -->
+<!-- BASE: Burraco mobile v13 MODAL-RESTORE -->
 <!-- BASE: Burraco mobile v11 PATIENT-AI -->
 <!-- BUILD: Burraco mobile v10 ACE-WILD-FIX, 2026-08-23 -->
 <html lang="it">
@@ -7,7 +10,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a6b3b">
-<title>Burraco — Classico e Internazionale · v12</title>
+<title>Burraco — Classico e Internazionale · v17</title>
 <style>
 :root{
   --felt:#0a6b3b; --felt2:#07532f; --panel:rgba(0,0,0,.23); --ink:#f7f7f2;
@@ -347,6 +350,8 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   <h3>Pozzo e chiusura</h3>
   <p>Quando esaurisci per la prima volta la mano, la squadra prende un Pozzo. Se esaurisci le carte calandole puoi continuare immediatamente con il Pozzo (<i>in diretta</i>); se esaurisci con lo scarto, il Pozzo si giocherà al turno successivo. Dopo avere preso il Pozzo, per chiudere devi conservare una carta per lo scarto finale.</p>
   <p>Nel <b>Burraco classico</b> la chiusura richiede Pozzo preso e almeno un burraco. Nell'<b>Internazionale</b> serve un burraco <b>pulito</b>, non esiste il semipulito, le combinazioni sono ammesse soltanto di Assi o Tre e, dopo aver raccolto il Monte, occorre subito calare o attaccare almeno una carta.</p>
+  <h3>Intelligenza artificiale</h3>
+  <p><b>Normale</b> usa strategia locale e regole di prudenza; <b>Esperta</b> aggiunge memoria delle informazioni pubbliche, ruoli di coppia e controgioco; <b>Professionale</b> aggiunge pianificazione persistente e ricerca selettiva nelle posizioni critiche. Nessun livello legge le carte nascoste avversarie.</p>
   <h3>Punteggio</h3>
   <p>Jolly 30; Due 20; Asso 15; K/Q/J/10/9/8 10; 7/6/5/4/3 5. Burraco pulito 200, semipulito 150, sporco 100; chiusura +100; Pozzo non preso −100 quando l'altra squadra ne ha preso uno. Le carte rimaste in mano si sottraggono.</p>
   <div class="row"><button id="closeHelp">Chiudi</button></div>
@@ -359,8 +364,9 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
     <label>Regole <select id="variantStyle"><option value="classic" selected>Classico</option><option value="international">Internazionale</option></select></label>
     <label>Traguardo <select id="scoreTarget"><option>505</option><option>1005</option><option selected>2005</option></select></label>
     <label>Mazzo <select id="deckStyle"><option value="classic" selected>Classico SVG</option><option value="simple">Semplice</option></select></label>
+    <label>IA <select id="aiLevel"><option value="normal">Normale</option><option value="expert">Esperta</option><option value="professional" selected>Professionale</option></select></label>
   </div>
-  <p>Con 4 giocatori le coppie sono <b>Tu + Marco</b> contro <b>Luna + Sara</b>. Con 2 giocatori ognuno gioca per sé. Le preferenze vengono ricordate sul dispositivo.</p>
+  <p>Con 4 giocatori le coppie sono <b>Tu + Marco</b> contro <b>Luna + Sara</b>. Con 2 giocatori ognuno gioca per sé. <b>Normale</b> valuta soprattutto il turno corrente; <b>Esperta</b> usa memoria pubblica e controgioco; <b>Professionale</b> aggiunge pianificazione persistente e ricerca di finale. Le preferenze vengono ricordate sul dispositivo.</p>
   <div class="row"><button id="startNew">Inizia</button><button id="cancelNew" class="secondary">Annulla</button></div>
 </div></div>
 
@@ -368,6 +374,13 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   <h2>Dove va la Matta?</h2>
   <p id="runJokerText">Questa scala è valida con il Jolly a entrambe le estremità. Scegli quale carta deve rappresentare.</p>
   <div class="row"><button id="runJokerLowBtn">← Estremità bassa</button><button id="runJokerHighBtn">Estremità alta →</button><button id="cancelRunJokerChoice" class="secondary">Annulla</button></div>
+</div></div>
+
+<div id="wildCloseModal" class="modal"><div class="sheet">
+  <h2>Chiusura non consentita</h2>
+  <p>Ti è rimasta in mano soltanto una <b>Matta</b>. Nel Burraco una Matta non può essere lo scarto di chiusura.</p>
+  <p>Se hai appena calato o attaccato carte, puoi annullare le mosse del turno e giocare diversamente.</p>
+  <div class="row"><button id="wildCloseUndo">↶ Annulla mosse</button><button id="wildCloseOk" class="secondary">Ho capito</button></div>
 </div></div>
 
 <div id="scoreModal" class="modal"><div class="sheet">
@@ -405,11 +418,11 @@ function cardArtSrc(c){return activeDeckStyle==='simple'?simpleCardSvg(c):svgSrc
 function backArtSrc(deck=0){return activeDeckStyle==='simple'?simpleBackSvg():svgSrcForBack(deck);}
 function setPrefCookie(value){try{document.cookie=`${PREF_KEY}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Lax`;}catch(_){}}
 function getPrefCookie(){try{const p=document.cookie.split('; ').find(x=>x.startsWith(PREF_KEY+'='));return p?decodeURIComponent(p.slice(PREF_KEY.length+1)):null;}catch(_){return null;}}
-function defaultPrefs(){return {players:2,target:2005,deck:'classic',variant:'classic'};}
-function loadPrefs(){let raw=null;try{raw=localStorage.getItem(PREF_KEY);}catch(_){}if(!raw)raw=getPrefCookie();if(!raw)return defaultPrefs();try{const x=JSON.parse(raw);return {players:+x.players===4?4:2,target:[505,1005,2005].includes(+x.target)?+x.target:2005,deck:x.deck==='simple'?'simple':'classic',variant:x.variant==='international'?'international':'classic'};}catch(_){return defaultPrefs();}}
+function defaultPrefs(){return {players:2,target:2005,deck:'classic',variant:'classic',aiLevel:'professional'};}
+function loadPrefs(){let raw=null;try{raw=localStorage.getItem(PREF_KEY);}catch(_){}if(!raw)raw=getPrefCookie();if(!raw)return defaultPrefs();try{const x=JSON.parse(raw);return {players:+x.players===4?4:2,target:[505,1005,2005].includes(+x.target)?+x.target:2005,deck:x.deck==='simple'?'simple':'classic',variant:x.variant==='international'?'international':'classic',aiLevel:['normal','expert','professional'].includes(x.aiLevel)?x.aiLevel:'professional'};}catch(_){return defaultPrefs();}}
 function savePrefs(p){const raw=JSON.stringify(p);try{localStorage.setItem(PREF_KEY,raw);}catch(_){}setPrefCookie(raw);}
-function applyPrefsToForm(p){$('playerCount').value=String(p.players);$('scoreTarget').value=String(p.target);$('deckStyle').value=p.deck;$('variantStyle').value=p.variant;}
-function prefsFromForm(){return {players:+$('playerCount').value===4?4:2,target:+$('scoreTarget').value,deck:$('deckStyle').value==='simple'?'simple':'classic',variant:$('variantStyle').value==='international'?'international':'classic'};}
+function applyPrefsToForm(p){$('playerCount').value=String(p.players);$('scoreTarget').value=String(p.target);$('deckStyle').value=p.deck;$('variantStyle').value=p.variant;$('aiLevel').value=p.aiLevel||'professional';}
+function prefsFromForm(){return {players:+$('playerCount').value===4?4:2,target:+$('scoreTarget').value,deck:$('deckStyle').value==='simple'?'simple':'classic',variant:$('variantStyle').value==='international'?'international':'classic',aiLevel:['normal','expert','professional'].includes($('aiLevel').value)?$('aiLevel').value:'professional'};}
 
 function newCard(rank,suit,deck,joker=false){return {id:cardSeq++,rank,suit,deck,joker};}
 function makeDeck(){const d=[];cardSeq=1;for(let deck=0;deck<2;deck++){for(let suit=0;suit<4;suit++)for(let rank=1;rank<=13;rank++)d.push(newCard(rank,suit,deck,false));d.push(newCard(0,-1,deck,true),newCard(0,-1,deck,true));}return d;}
@@ -421,13 +434,337 @@ function teamMembers(t){return G.players.map((p,i)=>teamOf(i)===t?i:-1).filter(i
 function setTeamOpened(t,v=true){for(const i of teamMembers(t))G.players[i].opened=v;}
 function teamOpened(t){return teamMembers(t).some(i=>G.players[i].opened);}
 function nextPlayer(i){return (i+1)%G.players.length;}
+
+// v18 selectable CPU strength. All levels obey exactly the same rules and see
+// exactly the same public information; only strategic depth changes.
+const AI_SKILL_RANK={normal:0,expert:1,professional:2};
+function aiSkill(){const x=G?.aiLevel;return Object.prototype.hasOwnProperty.call(AI_SKILL_RANK,x)?x:'professional';}
+function aiAtLeast(level){return AI_SKILL_RANK[aiSkill()]>=AI_SKILL_RANK[level];}
+function aiSkillLabel(){return aiSkill()==='normal'?'Normale':aiSkill()==='expert'?'Esperta':'Professionale';}
+
+// v14 PROFESSIONAL-AI ---------------------------------------------------------
+// Public-information memory only. The CPU never reads hidden opponent cards to
+// build its model: it learns from discard-pile pickups, exposed melds/attaches,
+// discards, public hand counts and scores.
+function aiCardLite(c){return {id:c.id,rank:c.rank,suit:c.suit,deck:c.deck,joker:!!c.joker};}
+function aiCloneEvent(e){return {...e,cards:e.cards?e.cards.map(c=>({...c})):undefined,card:e.card?{...e.card}:undefined};}
+function makeAIMemory(n){return {turn:0,teamPlans:[null,null],players:Array.from({length:n},()=>({rankInterest:Array(14).fill(0),suitInterest:Array(4).fill(0),wildInterest:0,knownHeld:{},pickups:0,declines:0,discards:0,plays:0}))};}
+function aiQueueEvent(e){if(!G)return;(G.turnPublicEvents||(G.turnPublicEvents=[])).push(aiCloneEvent(e));}
+function aiQueueStockDraw(pi){const top=G?.discard?.length?G.discard[G.discard.length-1]:null;aiQueueEvent({type:'draw-stock',player:pi,top:top?aiCardLite(top):null,pileSize:G?.discard?.length||0});}
+function aiQueuePickup(pi,cards){aiQueueEvent({type:'pickup',player:pi,cards:cards.map(aiCardLite)});}
+function aiQueueDiscard(pi,c){aiQueueEvent({type:'discard',player:pi,card:aiCardLite(c)});}
+function aiQueuePlay(pi,cards,info){aiQueueEvent({type:'play',player:pi,cards:cards.map(aiCardLite),kind:info?.kind||null,suit:info?.suit??null,rank:info?.rank??null});}
+function aiDecayMemory(){if(!G?.aiMemory)return;for(const m of G.aiMemory.players){for(let r=0;r<m.rankInterest.length;r++)m.rankInterest[r]*=.985;for(let s=0;s<4;s++)m.suitInterest[s]*=.985;m.wildInterest*=.985;}}
+function aiBumpCardInterest(m,c,w){if(c.joker){m.wildInterest+=w;return;}if(c.rank>=1&&c.rank<=13)m.rankInterest[c.rank]+=w;if(c.suit>=0&&c.suit<4)m.suitInterest[c.suit]+=w*(c.rank===2?.55:1);if(c.rank===2)m.wildInterest+=w*.45;}
+function aiApplyEvent(e){const m=G.aiMemory?.players?.[e.player];if(!m)return;
+  if(e.type==='pickup'){
+    m.pickups++;const cards=e.cards||[],top=cards[cards.length-1];for(const c of cards){m.knownHeld[c.id]=c;aiBumpCardInterest(m,c,.22);}if(top)aiBumpCardInterest(m,top,2.9);
+  }else if(e.type==='draw-stock'){
+    // v16: declining a visible discard is weak negative evidence. It is intentionally
+    // much weaker than a pickup signal, because the player may simply reject the pile burden.
+    if(e.top){m.declines++;const burden=Math.max(1,e.pileSize||1),w=burden>=10?-.18:burden>=5?-.28:-.42;aiBumpCardInterest(m,e.top,w);}
+  }else if(e.type==='discard'){
+    m.discards++;const c=e.card;if(c){delete m.knownHeld[c.id];aiBumpCardInterest(m,c,-.72);}
+  }else if(e.type==='play'){
+    m.plays++;for(const c of e.cards||[]){delete m.knownHeld[c.id];aiBumpCardInterest(m,c,.35);}if(e.kind==='run'&&e.suit>=0){m.suitInterest[e.suit]+=2.4;}else if(e.kind==='set'&&e.rank>=1){m.rankInterest[e.rank]+=3.0;}
+  }
+}
+function aiCommitTurnEvents(){if(!G)return;if(!G.aiMemory)G.aiMemory=makeAIMemory(G.players.length);aiDecayMemory();for(const e of G.turnPublicEvents||[])aiApplyEvent(e);G.turnPublicEvents=[];G.aiMemory.turn++;}
+function aiKnownHeldCards(pi){const h=G.aiMemory?.players?.[pi]?.knownHeld||{};return Object.values(h).map(c=>({...c}));}
+function aiPlayerCardDemand(pi,c){if(!aiAtLeast('expert'))return 0;const m=G.aiMemory?.players?.[pi];if(!m)return 0;let v=c.joker?m.wildInterest*1.25:(m.rankInterest[c.rank]||0)+(c.suit>=0?(m.suitInterest[c.suit]||0)*.72:0);const held=aiKnownHeldCards(pi);
+  if(!c.joker&&!isMattaCard(c)){const same=held.filter(x=>!x.joker&&!isMattaCard(x)&&x.rank===c.rank).length;v+=same*1.9;}
+  if(!c.joker&&c.suit>=0){for(const x of held){if(x.joker||x.suit!==c.suit)continue;const a=c.rank===1?14:c.rank,b=x.rank===1?14:x.rank,d=Math.abs(a-b);if(d===1)v+=1.35;else if(d===2)v+=.55;}}
+  return Math.max(0,v);
+}
+function aiTeamCardDemand(team,c){let v=0;for(const i of teamMembers(team))v=Math.max(v,aiPlayerCardDemand(i,c));return v;}
+
+// v20 BELIEF+ENDGAME builds on v16 SEARCH+PLANNING ---------------------------
+// Compact internal trace. Nothing is rendered in the normal UI; when debugging
+// a strange CPU move, BurracoAITrace() in the browser console returns the reasons.
+function cpuTrace(pi,kind,data={}){
+  if(!G)return;const rec={round:G.round,publicTurn:G.aiMemory?.turn||0,aiLevel:aiSkill(),player:pi,name:G.players?.[pi]?.name||String(pi),team:teamOf(pi),kind,...data};
+  if(!Array.isArray(G.aiDiagnostics))G.aiDiagnostics=[];G.aiDiagnostics.push(rec);if(G.aiDiagnostics.length>180)G.aiDiagnostics.splice(0,G.aiDiagnostics.length-180);G.aiLastDecision=rec;
+}
+if(typeof window!=='undefined')window.BurracoAITrace=()=>G?JSON.parse(JSON.stringify(G.aiDiagnostics||[])):[];
+
+// v20 BELIEF+ENDGAME ----------------------------------------------------------
+// Suspicious-move audit: separate from the normal trace so real-game reports can
+// be inspected quickly without reading every candidate score.
+function cpuAudit(pi,code,severity='note',data={}){
+  if(!G)return;const rec={round:G.round,publicTurn:G.aiMemory?.turn||0,aiLevel:aiSkill(),player:pi,name:G.players?.[pi]?.name||String(pi),team:teamOf(pi),code,severity,...data};
+  if(!Array.isArray(G.aiAudits))G.aiAudits=[];G.aiAudits.push(rec);if(G.aiAudits.length>120)G.aiAudits.splice(0,G.aiAudits.length-120);
+}
+if(typeof window!=='undefined')window.BurracoAIAudit=()=>G?JSON.parse(JSON.stringify(G.aiAudits||[])):[];
+
+// Production always enables v20. The optional aiLegacyTeam switch exists only
+// for deterministic mixed-engine A/B tests and is otherwise undefined.
+function cpuV20Enabled(pi){return !(G&&G.aiLegacyTeam!==undefined&&G.aiLegacyTeam!==null&&teamOf(pi)===G.aiLegacyTeam);}
+function cpuBuildBeliefContext(pi){
+  const counts=cpuUnknownTypeCounts(pi),knownByPlayer=new Map();let pool=0;
+  for(const cnt of counts.values())pool+=Math.max(0,cnt);
+  for(let i=0;i<G.players.length;i++){
+    const m=new Map();for(const x of aiKnownHeldCards(i)){const k=cpuCardSig(x);m.set(k,(m.get(k)||0)+1);}knownByPlayer.set(i,m);
+  }
+  return {observer:pi,counts,pool,knownByPlayer};
+}
+function cpuTypeRemaining(pi,c,ctx=null){const b=ctx&&ctx.observer===pi?ctx:cpuBuildBeliefContext(pi);return Math.max(0,b.counts.get(cpuCardSig(c))||0);}
+function cpuUnknownPoolSize(pi,ctx=null){const b=ctx&&ctx.observer===pi?ctx:cpuBuildBeliefContext(pi);return b.pool;}
+function cpuKnownTypeCount(pi,c,ctx=null){if(ctx?.knownByPlayer)return ctx.knownByPlayer.get(pi)?.get(cpuCardSig(c))||0;return aiKnownHeldCards(pi).filter(x=>samePhysicalCard(x,c)).length;}
+function cpuPlayerUnknownSlots(observerPi,targetPi,ctx=null){
+  if(targetPi===observerPi)return 0;
+  const known=ctx?.knownByPlayer?Array.from(ctx.knownByPlayer.get(targetPi)?.values()||[]).reduce((a,b)=>a+b,0):aiKnownHeldCards(targetPi).length;
+  return Math.max(0,G.players[targetPi].hand.length-known);
+}
+// Probability that targetPi holds at least one additional card of this exact
+// rank+suit (or a Joker). It never consults the hidden hand.
+function cpuBeliefHoldProbability(observerPi,targetPi,c,ctx=null){
+  if(!cpuV20Enabled(observerPi)||G?.aiTestDisableBelief||G.players.length===2||G.variant==='international')return 0;
+  const b=ctx&&ctx.observer===observerPi?ctx:cpuBuildBeliefContext(observerPi);
+  if(targetPi===observerPi)return G.players[targetPi].hand.some(x=>samePhysicalCard(x,c))?1:0;
+  if(cpuKnownTypeCount(targetPi,c,b)>0)return 1;
+  const rem=cpuTypeRemaining(observerPi,c,b),pool=cpuUnknownPoolSize(observerPi,b),slots=Math.min(cpuPlayerUnknownSlots(observerPi,targetPi,b),pool);
+  if(rem<=0||pool<=0||slots<=0)return 0;
+  let noHit=1;
+  for(let k=0;k<slots;k++)noHit*=Math.max(0,(pool-rem-k)/(pool-k));
+  let p=1-noHit;
+  if(aiAtLeast('expert')){
+    const demand=aiPlayerCardDemand(targetPi,c),signal=.78+Math.min(.72,demand*.055);
+    p*=signal;
+  }
+  return Math.max(0,Math.min(.98,p));
+}
+function cpuBeliefTeamHoldProbability(observerPi,team,c,ctx=null){
+  const b=ctx&&ctx.observer===observerPi?ctx:cpuBuildBeliefContext(observerPi);let none=1;
+  for(const i of teamMembers(team))if(i!==observerPi)none*=1-cpuBeliefHoldProbability(observerPi,i,c,b);
+  return Math.max(0,Math.min(.995,1-none));
+}
+function cpuBeliefSummary(pi,c,ctx=null){
+  const b=ctx&&ctx.observer===pi?ctx:cpuBuildBeliefContext(pi),opp=otherTeam(teamOf(pi));
+  return {remaining:cpuTypeRemaining(pi,c,b),pool:b.pool,oppHold:+cpuBeliefTeamHoldProbability(pi,opp,c,b).toFixed(3),oppDemand:+aiTeamCardDemand(opp,c).toFixed(2)};
+}
+
+function cpuMatchContext(pi){
+  if(!cpuV20Enabled(pi))return {team:teamOf(pi),opp:otherTeam(teamOf(pi)),own:G.teamScores[teamOf(pi)]||0,theirs:G.teamScores[otherTeam(teamOf(pi))]||0,target:G.target||2005,margin:(G.teamScores[teamOf(pi)]||0)-(G.teamScores[otherTeam(teamOf(pi))]||0),ownNeed:Math.max(0,(G.target||2005)-(G.teamScores[teamOf(pi)]||0)),oppNeed:Math.max(0,(G.target||2005)-(G.teamScores[otherTeam(teamOf(pi))]||0)),chase:0,protect:0,closeBias:0,risk:0};
+  const team=teamOf(pi),opp=otherTeam(team),own=G.teamScores[team]||0,theirs=G.teamScores[opp]||0,target=Math.max(1,G.target||2005),margin=own-theirs;
+  const ownNeed=Math.max(0,target-own),oppNeed=Math.max(0,target-theirs);
+  let chase=0,protect=0,closeBias=0,risk=0;
+  if(margin<=-250)chase+=.25;if(margin<=-500)chase+=.25;if(margin<=-900)chase+=.20;
+  if(oppNeed<=350)protect+=.30;if(oppNeed<=180)protect+=.28;
+  if(ownNeed<=350&&margin>=0)protect+=.28;if(ownNeed<=180)protect+=.25;
+  if(margin>=450)protect+=.18;
+  chase=Math.min(1,chase);protect=Math.min(1,protect);
+  closeBias=Math.max(-.75,Math.min(1,protect-chase*.62));
+  risk=Math.max(-.55,Math.min(.85,chase*.82-protect*.42));
+  return {team,opp,own,theirs,target,margin,ownNeed,oppNeed,chase,protect,closeBias,risk};
+}
+
+function cpuIntrinsicCardFlexibility(c){
+  if(c.joker)return 8.5;if(c.rank===2)return 7.2;let r=c.rank===1?14:c.rank,v=1.0;
+  if(r>=6&&r<=10)v+=2.1;else if(r>=4&&r<=12)v+=1.35;else v+=.55;
+  if(c.rank===1)v+=.55;return v;
+}
+function cpuHandFlexibility(cards,team){
+  if(!cards?.length)return 0;let v=0;
+  for(const c of cards)v+=cpuIntrinsicCardFlexibility(c);
+  // Cards that participate in more than one plausible project are worth more in hand.
+  for(const c of cards){if(c.joker)continue;let projects=0;
+    const same=cards.filter(x=>x.id!==c.id&&!isMattaCard(x)&&x.rank===c.rank).length;if(same)projects++;
+    if(cards.some(x=>x.id!==c.id&&cpuRunNeighborWeight(c,x)>=1.25))projects++;
+    if(canAttachToTeam(team,c))projects++;
+    if(projects>=2)v+=(projects-1)*2.4;
+  }
+  return v;
+}
+function cpuCardFlexibilityLoss(pi,usedCards){const team=teamOf(pi),hand=G.players[pi].hand,ids=new Set(usedCards.map(c=>c.id)),left=hand.filter(c=>!ids.has(c.id));return Math.max(0,cpuHandFlexibility(hand,team)-cpuHandFlexibility(left,team));}
+
+function cpuPartnershipPlan(pi){
+  const team=teamOf(pi),mate=cpuPartnerIndex(pi),own=G.melds.filter(m=>m.team===team);
+  if(!aiAtLeast('expert'))return {role:'balanced',objective:'balanced',targetMeldId:null,mate,sinceTurn:G.aiMemory?.turn||0};
+  const role=cpuPartnershipRole(pi);let objective='balanced',targetMeldId=null;
+  if(!G.teamTookPot[team])objective=role==='support'?'support-runner':'reach-pot';
+  else if(!projectedTeamHasBurraco(team,own))objective='build-burraco';
+  else objective=role==='support'?'protect-finish':'finish';
+  if(own.length){let best=null,bestV=-1e9;for(const m of own){let q=m.cards.length*12+(m.owner===mate?18:0)+(m.cards.length===6?55:m.cards.length===5?28:0);const bk=burracoKind(m);if(bk)q-=80;if(G.variant==='international'&&!m.wildId)q+=18;if(q>bestV){bestV=q;best=m;}}targetMeldId=best?.id||null;}
+  // Expert uses the same public role model, but recalculates it each turn.
+  if(!aiAtLeast('professional'))return {role,objective,targetMeldId,mate,sinceTurn:G.aiMemory?.turn||0};
+  // Professional persists the team objective across turns until a real milestone changes it.
+  if(!G.aiMemory)G.aiMemory=makeAIMemory(G.players.length);if(!Array.isArray(G.aiMemory.teamPlans))G.aiMemory.teamPlans=[null,null];
+  const phaseKey=`${G.teamTookPot[team]?1:0}|${projectedTeamHasBurraco(team,own)?1:0}|${G.variant}`;let saved=G.aiMemory.teamPlans[team];
+  if(!saved||saved.phaseKey!==phaseKey){saved={phaseKey,objective,targetMeldId,sinceTurn:G.aiMemory.turn||0};G.aiMemory.teamPlans[team]=saved;}
+  else{objective=saved.objective;if(saved.targetMeldId&&own.some(m=>m.id===saved.targetMeldId&&!burracoKind(m)))targetMeldId=saved.targetMeldId;else if(targetMeldId)saved.targetMeldId=targetMeldId;}
+  return {role,objective,targetMeldId,mate,sinceTurn:saved.sinceTurn};
+}
+function cpuCurrentPlan(pi){return G.cpuTurnContext?.plan||cpuPartnershipPlan(pi);}
+
+function cpuEndgameActive(pi){const p=G.players[pi],oppMin=cpuOpponentMinHand(pi);return p.hand.length<=6||oppMin<=4||G.stock.length<=10||canTeamClose(teamOf(pi));}
+function cpuEndgameStateValue(pi,hand,melds){
+  const team=teamOf(pi),opp=otherTeam(team);let v=-hand.reduce((s,c)=>s+scoreCard(c),0)*2.1+cpuHandFlexibility(hand,team)*3.1+cpuStructurePotential(hand,team)*5.2;
+  v+=cpuPublicMeldPoints(melds)*.12+cpuNearBurracoPotential(melds)*38;
+  if(G.teamTookPot[team])v+=80;if(projectedTeamHasBurraco(team,melds))v+=170;if(projectedTeamHasBurraco(team,melds,true))v+=G.variant==='international'?170:55;
+  const oppMin=Math.min(...G.players.map((p,i)=>teamOf(i)===opp?p.hand.length:99));if(hand.length<=3)v+=(4-hand.length)*45;if(oppMin<=3)v+=(4-oppMin)*35;
+  return v;
+}
+function cpuBestFollowupStatic(pi,hand,projectedMelds){
+  if(!hand.length)return 0;const p=G.players[pi],team=teamOf(pi),saveHand=p.hand,saveMelds=G.melds,other=G.melds.filter(m=>m.team!==team);let best=-1e9;
+  p.hand=hand;G.melds=[...other,...projectedMelds];
+  try{
+    let probes=0;outer:for(const m of G.melds){if(m.team!==team)continue;for(const c of hand){for(const info of candidateAttachOptions(m,[c])){const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;best=Math.max(best,cpuAttachmentStrategicScore(pi,m,c,info));if(++probes>=24)break outer;}}}
+    for(const info of generateMeldCandidates(hand,team).slice(0,8)){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(!ck.ok||!cpuMoveKeepsExit(pi,info.cards,null,info,true))continue;best=Math.max(best,cpuNewMeldStrategicScore(pi,info));}
+  }finally{p.hand=saveHand;G.melds=saveMelds;}
+  return best===-1e9?0:best;
+}
+function cpuEndgameActionSearchBonus(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
+  if(!aiAtLeast('professional')||!cpuEndgameActive(pi))return 0;const p=G.players[pi],ids=new Set(usedCards.map(c=>c.id)),left=p.hand.filter(c=>!ids.has(c.id)),melds=projectedMeldsAfterPlay(pi,oldMeld,newInfo,newMeld);
+  let b=(cpuEndgameStateValue(pi,left,melds)-cpuEndgameStateValue(pi,p.hand,G.melds.filter(m=>m.team===teamOf(pi))))*.34;
+  const follow=cpuBestFollowupStatic(pi,left,melds),threshold=cpuActionThreshold(pi);if(follow>threshold)b+=Math.min(170,(follow-threshold)*.19);
+  if(left.length===1){const last=left[0],legal=canDiscardCard(pi,last).ok;if(projectedCanTeamClose(pi,melds)&&legal&&!isMattaCard(last))b+=360;else if(!legal)b-=320;}
+  else if(left.length<=4){let safest=Infinity;for(const c of left){if(canDiscardCard(pi,c).ok)safest=Math.min(safest,cpuOpponentDiscardDanger(pi,c));}if(Number.isFinite(safest))b+=Math.max(-110,75-safest*.35);}
+  return Math.max(-220,Math.min(280,b));
+}
+function cpuEndgameDiscardAdjustment(pi,c,danger,takeP,beliefCtx=null){
+  if(!aiAtLeast('professional')||!cpuEndgameActive(pi))return 0;const oppMin=cpuOpponentMinHand(pi),team=teamOf(pi),opp=otherTeam(team),demand=aiTeamCardDemand(opp,c),belief=cpuBeliefTeamHoldProbability(pi,opp,c,beliefCtx),mc=cpuMatchContext(pi);let p=-takeP*(danger*.55+demand*5.5+belief*42);
+  if(oppMin<=2)p-=takeP*95;else if(oppMin<=4)p-=takeP*45;
+  if(G.discard.length>=10&&!isMattaCard(c)&&oppMin>=5)p+=Math.max(0,G.discard.length-8)*(1-takeP)*2.2;
+  p-=mc.protect*takeP*danger*.18;p+=mc.risk*Math.max(0,G.discard.length-7)*(1-takeP)*1.7;
+  return Math.max(-210,Math.min(85,p));
+}
+
+function cpuEndgameTerminalPlanValue(pi,hand,melds){
+  const team=teamOf(pi);let v=-hand.length*92-hand.reduce((s,c)=>s+scoreCard(c),0)*1.7+cpuHandFlexibility(hand,team)*2.4+cpuNearBurracoPotential(melds)*28;
+  if(!G.teamTookPot[team]&&hand.length===0)return v+280; // direct Pozzo milestone
+  if(G.teamTookPot[team]&&projectedCanTeamClose(pi,melds)&&hand.length===1&&!isMattaCard(hand[0]))v+=470;
+  if(hand.length<=3)v+=(4-hand.length)*38;
+  return v;
+}
+function cpuEndgameEnumeratePlanActions(pi,hand,melds,cap=6){
+  const p=G.players[pi],team=teamOf(pi),saveHand=p.hand,saveMelds=G.melds,other=G.melds.filter(m=>m.team!==team),list=[];
+  p.hand=hand;G.melds=[...other,...melds];
+  try{
+    let probes=0;outer:for(const m of G.melds){if(m.team!==team)continue;for(const c of hand){for(const info of candidateAttachOptions(m,[c])){
+      const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok)continue;
+      const nextHand=hand.filter(x=>x.id!==c.id),nextMelds=projectedMeldsAfterPlay(pi,m,info,false);
+      let score=cpuAttachmentStrategicScore(pi,m,c,info)+(hand.length-nextHand.length)*50;
+      list.push({nextHand,nextMelds,score,used:[c]});if(++probes>=14)break outer;
+    }}}
+    for(const info of generateMeldCandidates(hand,team).slice(0,6)){
+      const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(!ck.ok)continue;
+      const ids=new Set(info.cards.map(c=>c.id)),nextHand=hand.filter(c=>!ids.has(c.id)),nextMelds=projectedMeldsAfterPlay(pi,null,info,true);
+      let score=cpuNewMeldStrategicScore(pi,info)+(hand.length-nextHand.length)*50;
+      list.push({nextHand,nextMelds,score,used:info.cards});
+    }
+  }finally{p.hand=saveHand;G.melds=saveMelds;}
+  list.sort((a,b)=>b.score-a.score||a.nextHand.length-b.nextHand.length);
+  return list.slice(0,cap);
+}
+function cpuEndgamePlanValue(pi,hand,melds,depth=2,budget=null){
+  const b=budget||{nodes:0,max:24};let best=cpuEndgameTerminalPlanValue(pi,hand,melds);
+  if(depth<=0||hand.length===0||b.nodes>=b.max)return best;
+  b.nodes++;const actions=cpuEndgameEnumeratePlanActions(pi,hand,melds,depth>=2?5:4);
+  for(const a of actions){
+    if(b.nodes>=b.max)break;
+    const child=cpuEndgameTerminalPlanValue(pi,a.nextHand,a.nextMelds)+(depth>1?cpuEndgamePlanValue(pi,a.nextHand,a.nextMelds,depth-1,b)*.28:0)+Math.min(105,a.score*.055);
+    if(child>best)best=child;
+  }
+  return best;
+}
+function cpuEndgameDeepPlanBonus(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
+  if(!cpuV20Enabled(pi)||G?.aiTestDisableDeep||!aiAtLeast('professional')||G.players.length!==2||G.variant==='international'||!cpuEndgameActive(pi)||G.players[pi].hand.length>5)return 0;
+  const p=G.players[pi],ids=new Set(usedCards.map(c=>c.id)),left=p.hand.filter(c=>!ids.has(c.id)),after=projectedMeldsAfterPlay(pi,oldMeld,newInfo,newMeld),beforeMelds=G.melds.filter(m=>m.team===teamOf(pi));
+  const before=cpuEndgameTerminalPlanValue(pi,p.hand,beforeMelds),depth=left.length<=3?2:1,budget={nodes:0,max:left.length<=3?20:10},afterV=cpuEndgamePlanValue(pi,left,after,depth,budget),delta=(afterV-before)*.20;
+  return Math.max(-130,Math.min(165,delta));
+}
+// ---------------------------------------------------------------------------
+
+function cpuOwnShedability(pi){
+  const p=G.players[pi];if(!p?.hand?.length)return 2;const team=teamOf(pi),n=p.hand.length;
+  let v=cpuStructurePotential(p.hand,team)/Math.max(5,n*4.2);
+  let attach=0;for(const c of p.hand)if(canAttachToTeam(team,c))attach++;
+  v+=Math.min(.75,attach/Math.max(1,n)*1.5);if(p.hand.filter(isMattaCard).length)v+=.12;return v;
+}
+function cpuPartnershipRole(pi){
+  if(!aiAtLeast('expert'))return G.players.length===4?'balanced':'solo';
+  if(G.players.length!==4)return 'solo';const team=teamOf(pi),mate=teamMembers(team).find(i=>i!==pi);if(mate===undefined)return 'balanced';
+  const mine=G.players[pi].hand.length,theirs=G.players[mate].hand.length,mob=cpuOwnShedability(pi);
+  if(!G.teamTookPot[team]){
+    if(mine+2<=theirs||(mine<=theirs+1&&mob>=1.35))return 'runner';
+    if(theirs+2<=mine&&mob<1.55)return 'support';return 'balanced';
+  }
+  if(mine+2<=theirs||(mine<=theirs+1&&mob>=1.5))return 'finisher';
+  if(theirs+2<=mine&&mob<1.65)return 'support';return 'balanced';
+}
+function cpuPartnerIndex(pi){if(G.players.length!==4)return null;const mate=teamMembers(teamOf(pi)).find(i=>i!==pi);return mate===undefined?null:mate;}
+function cpuKnownPartnerDemand(pi,c){if(!aiAtLeast('expert'))return 0;const mate=cpuPartnerIndex(pi);return mate===null?0:aiPlayerCardDemand(mate,c);}
+function cpuRoleUrgencyBonus(pi){const r=cpuPartnershipRole(pi);return r==='finisher'?.18:r==='runner'?.10:0;}
+function cpuRoleActionBias(pi,kind,makesBurraco=false){if(!aiAtLeast('expert'))return 0;const r=cpuPartnershipRole(pi);if(r==='runner')return kind==='shed'?55:18;if(r==='finisher')return kind==='shed'?85:25;if(r==='support')return makesBurraco?80:-12;return 0;}
+function cpuCardSig(c){return c.joker?'J':`${c.rank}:${c.suit}`;}
+function cpuUnknownTypeCounts(pi){const counts=new Map();for(let suit=0;suit<4;suit++)for(let rank=1;rank<=13;rank++)counts.set(`${rank}:${suit}`,2);counts.set('J',4);
+  const known=[];known.push(...G.players[pi].hand,...G.discard);for(const m of G.melds)known.push(...m.cards);for(let i=0;i<G.players.length;i++)if(i!==pi)known.push(...aiKnownHeldCards(i));
+  const seenIds=new Set();for(const c of known){if(c.id!=null&&seenIds.has(c.id))continue;if(c.id!=null)seenIds.add(c.id);const k=cpuCardSig(c),n=counts.get(k)||0;if(n>0)counts.set(k,n-1);}return counts;
+}
+function cpuAverageUnknownCardPoints(pi){
+  const counts=cpuUnknownTypeCounts(pi);let total=0,n=0,fakeId=-900000;
+  for(const [k,cnt] of counts){if(cnt<=0)continue;let c;if(k==='J')c={id:fakeId--,rank:0,suit:-1,deck:-1,joker:true};else{const [rank,suit]=k.split(':').map(Number);c={id:fakeId--,rank,suit,deck:-1,joker:false};}total+=cnt*scoreCard(c);n+=cnt;}
+  return n?total/n:10;
+}
+function cpuExpectedPublicHandLiability(observerPi,targetPi){
+  if(targetPi===observerPi)return G.players[targetPi].hand.reduce((s,c)=>s+scoreCard(c),0);
+  const known=aiKnownHeldCards(targetPi),knownPts=known.reduce((s,c)=>s+scoreCard(c),0),remaining=Math.max(0,G.players[targetPi].hand.length-known.length);
+  return knownPts+remaining*cpuAverageUnknownCardPoints(observerPi);
+}
+function cpuExpectedUnknownDrawGain(pi,hand,beliefCtx=null){const team=teamOf(pi),counts=beliefCtx&&beliefCtx.observer===pi?beliefCtx.counts:cpuUnknownTypeCounts(pi);let total=0,n=0,fakeId=-100000;
+  for(const [k,cnt] of counts){if(cnt<=0)continue;let c;if(k==='J')c={id:fakeId--,rank:0,suit:-1,deck:-1,joker:true};else{const [rank,suit]=k.split(':').map(Number);c={id:fakeId--,rank,suit,deck:-1,joker:false};}const gain=Math.max(-1,cpuStructureAddGain(hand,team,c));total+=cnt*gain;n+=cnt;}return n?total/n:0;
+}
+function cpuPostActionFutureValue(pi,usedCards){const ids=new Set(usedCards.map(c=>c.id)),left=G.players[pi].hand.filter(c=>!ids.has(c.id)),team=teamOf(pi);return cpuStructurePotential(left,team)*3.4+cpuHandFlexibility(left,team)*1.15-cpuCardFlexibilityLoss(pi,usedCards)*1.8;}
+function cpuActionLookaheadBonus(pi,usedCards){if(!aiAtLeast('professional'))return 0;const ids=new Set(usedCards.map(c=>c.id)),left=G.players[pi].hand.filter(c=>!ids.has(c.id));return cpuExpectedUnknownDrawGain(pi,left)*12;}
+function cpuOpponentPickupProbability(pi,c,beliefCtx=null){
+  const opp=otherTeam(teamOf(pi)),demand=aiTeamCardDemand(opp,c),direct=G.melds.some(m=>m.team===opp&&candidateAttach(m,c));
+  let p=.06+Math.min(.58,demand*.055)+(direct?.28:0);const oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)===opp?x.hand.length:99));
+  if(isMattaCard(c))p=Math.max(p,G.variant==='international'?.64:.82);
+  if(aiAtLeast('expert')){const belief=cpuBeliefTeamHoldProbability(pi,opp,c,beliefCtx);p+=belief*(aiAtLeast('professional')?.18:.09);}
+  if(oppMin<=3)p+=.12;if(G.discard.length>=12)p-=isMattaCard(c)?.025:.08;
+  return Math.max(.02,Math.min(.96,p));
+}
+function cpuNaturalAttachOutCount(pi,m){
+  if(!m||m.wildId)return 0;const counts=cpuUnknownTypeCounts(pi);let outs=0,fakeId=-710000;
+  for(const [k,cnt] of counts){if(cnt<=0||k==='J')continue;const [rank,suit]=k.split(':').map(Number);if(rank===2&&m.kind==='set')continue;const c={id:fakeId--,rank,suit,deck:-1,joker:false};if(isMattaCard(c))continue;
+    const info=candidateAttach(m,c);if(info&&!info.wildId)outs+=cnt;
+  }
+  return outs;
+}
+function cpuCleanBurracoPreservationPenalty(pi,m,c,info){
+  if(!m||!isMattaCard(c)||m.wildId)return 0;const before=burracoKind(m),after=burracoKind({...m,...info});
+  if(before==='pulito'&&after&&after!=='pulito')return G.variant==='international'?2600:1150;
+  if(before||!after||after==='pulito')return 0;
+  const outs=cpuNaturalAttachOutCount(pi,m),urg=cpuPlayUrgency(pi);let p=(m.cards.length>=6?430:m.cards.length===5?220:100)+Math.min(10,outs)*28;
+  if(G.variant==='international')p+=850;return Math.max(0,p*(1-urg*.76));
+}
+function cpuDiscardImmediateBurracoGift(pi,c){
+  const opp=otherTeam(teamOf(pi));for(const m of G.melds){if(m.team!==opp||burracoKind(m))continue;const info=candidateAttach(m,c);if(info&&burracoKind({...m,...info}))return true;}return false;
+}
+function cpuStrategicWildDiscardAllowed(pi,c,legalNaturals){
+  if(!isMattaCard(c))return true;if(!legalNaturals.length)return true;
+  // Exceptional escape only: every natural legal discard visibly gives an immediate burraco,
+  // while the wild itself does not. Even then its enormous danger score must win the comparison.
+  if(cpuDiscardImmediateBurracoGift(pi,c))return false;
+  if(!legalNaturals.every(x=>cpuDiscardImmediateBurracoGift(pi,x)))return false;
+  const wd=cpuOpponentDiscardDanger(pi,c),bestNat=Math.min(...legalNaturals.map(x=>cpuOpponentDiscardDanger(pi,x)));
+  return wd+90<bestNat;
+}
+
+function cpuUsefulDiscardTrapValue(pi,c,danger,beliefCtx=null){
+  if(!aiAtLeast('expert')||isMattaCard(c))return 0; // A Pinella/Jolly is too universally valuable to be bait.
+  const burden=G.discard.length+1;if(burden<9)return 0;const opp=otherTeam(teamOf(pi)),oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)===opp?x.hand.length:99)),demand=aiTeamCardDemand(opp,c),takeP=cpuOpponentPickupProbability(pi,c,beliefCtx);let makesBurraco=false;
+  for(const m of G.melds){if(m.team!==opp)continue;const info=candidateAttach(m,c);if(info&&!burracoKind(m)&&burracoKind({...m,...info})){makesBurraco=true;break;}}
+  if(makesBurraco||takeP<.24)return 0;let v=Math.max(0,burden-7)*6.5*takeP;if(!G.teamTookPot[opp]&&oppMin<=5)v+=Math.max(0,burden-8)*4.5*takeP;if(oppMin>=9)v*=.55;if(demand<1.5)v*=.5;if(danger>150)v*=.45;if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);v*=Math.max(.65,1+mc.risk*.28-mc.protect*.32);}return Math.min(155,v);
+}
+// ---------------------------------------------------------------------------
 function startGame(n=2,target=2005,rules={}){
   clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];
-  G={players:makePlayers(n),target,variant:rules.variant==='international'?'international':'classic',round:0,dealer:Math.floor(Math.random()*n),turn:0,phase:'round-end',stock:[],discard:[],pots:[[],[]],potOwner:[null,null],teamTookPot:[false,false],teamScores:[0,0],melds:[],selected:new Set(),targetMeld:null,discardUndo:null,turnUndo:null,pickupCount:0,singlePickupId:null,mustPlayAfterPickup:false,playedAfterPickup:false,justDrawnId:null,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null};
+  G={players:makePlayers(n),target,variant:rules.variant==='international'?'international':'classic',aiLevel:['normal','expert','professional'].includes(rules.aiLevel)?rules.aiLevel:'professional',round:0,dealer:Math.floor(Math.random()*n),turn:0,phase:'round-end',stock:[],discard:[],pots:[[],[]],potOwner:[null,null],teamTookPot:[false,false],teamScores:[0,0],melds:[],selected:new Set(),targetMeld:null,discardUndo:null,turnUndo:null,pickupCount:0,singlePickupId:null,singlePickupGuard:null,wildCloseWarned:null,mustPlayAfterPickup:false,playedAfterPickup:false,justDrawnId:null,lastLog:'',winnerTeam:null,closingTeam:null,closingPlayer:null,aiMemory:makeAIMemory(n),turnPublicEvents:[],aiDiagnostics:[],aiAudits:[],aiLastDecision:null};
   startRound();
 }
 function startRound(){
-  clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];G.round++;G.melds=[];G.discard=[];G.pots=[[],[]];G.potOwner=[null,null];G.teamTookPot=[false,false];G.selected.clear();G.targetMeld=null;G.discardUndo=null;G.turnUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=null;G.closingTeam=null;G.closingPlayer=null;
+  clearTimeout(cpuTimer);cpuEpoch++;manualOrderIds=[];G.round++;G.melds=[];G.discard=[];G.pots=[[],[]];G.potOwner=[null,null];G.teamTookPot=[false,false];G.selected.clear();G.targetMeld=null;G.discardUndo=null;G.turnUndo=null;G.turnPublicEvents=[];G.pickupCount=0;G.singlePickupId=null;G.singlePickupGuard=null;G.wildCloseWarned=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=null;G.closingTeam=null;G.closingPlayer=null;G.aiMemory=makeAIMemory(G.players.length);G.turnPublicEvents=[];G.aiDiagnostics=[];G.aiAudits=[];G.aiLastDecision=null;
   for(const p of G.players){p.hand=[];p.opened=false;p.turns=0;}
   G.stock=shuffle(makeDeck());
   // Due pozzi da 11 carte; in digitale l'alternanza fisica non cambia il contenuto casuale.
@@ -479,9 +816,12 @@ function captureHumanTurnUndo(){
     discardUndo:cloneDiscardUndo(G.discardUndo),
     pickupCount:G.pickupCount,
     singlePickupId:G.singlePickupId,
+    singlePickupGuard:G.singlePickupGuard?{...G.singlePickupGuard}:null,
+    wildCloseWarned:G.wildCloseWarned,
     mustPlayAfterPickup:G.mustPlayAfterPickup,
     playedAfterPickup:G.playedAfterPickup,
-    lastLog:G.lastLog
+    lastLog:G.lastLog,
+    turnPublicEvents:(G.turnPublicEvents||[]).map(aiCloneEvent)
   };
 }
 function undoHumanTurnMoves(){
@@ -492,8 +832,8 @@ function undoHumanTurnMoves(){
   G.players.forEach((pl,i)=>pl.opened=!!u.opened[i]);
   G.pots=u.pots.map(x=>x.slice());G.potOwner=u.potOwner.slice();G.teamTookPot=u.teamTookPot.slice();
   G.discardUndo=cloneDiscardUndo(u.discardUndo);
-  G.pickupCount=u.pickupCount;G.singlePickupId=u.singlePickupId;G.mustPlayAfterPickup=u.mustPlayAfterPickup;G.playedAfterPickup=u.playedAfterPickup;
-  G.selected.clear();G.targetMeld=null;G.justDrawnId=null;pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');
+  G.pickupCount=u.pickupCount;G.singlePickupId=u.singlePickupId;G.singlePickupGuard=u.singlePickupGuard?{...u.singlePickupGuard}:null;G.wildCloseWarned=null;G.mustPlayAfterPickup=u.mustPlayAfterPickup;G.playedAfterPickup=u.playedAfterPickup;
+  G.turnPublicEvents=(u.turnPublicEvents||[]).map(aiCloneEvent);G.selected.clear();G.targetMeld=null;G.justDrawnId=null;pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');
   u.dirty=false;G.lastLog='Mosse del turno annullate: puoi giocare diversamente.';render();
 }
 function markTableAction(pi){G.playedAfterPickup=true;G.mustPlayAfterPickup=false;if(pi===0&&G.turnUndo)G.turnUndo.dirty=true;invalidateDiscardUndo();}
@@ -639,14 +979,14 @@ function afterCardsPlayed(pi){if(G.players[pi].hand.length===0&&!G.teamTookPot[t
 
 function humanDrawStock(){
   if(!G||G.turn!==0||G.phase!=='draw')return;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}
-  const c=G.stock.pop();G.players[0].hand.push(c);G.phase='play';G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=c.id;G.selected.clear();sortHand(G.players[0].hand,sortMode);G.lastLog=`Hai pescato ${cardText(c)} dal tallone.`;captureHumanTurnUndo();render();const drawnId=c.id;setTimeout(()=>{if(G&&G.justDrawnId===drawnId){G.justDrawnId=null;const el=$('hand').querySelector(`[data-card="${drawnId}"]`);if(el)el.classList.remove('just-drawn');}},980);
+  const c=G.stock.pop();G.players[0].hand.push(c);G.phase='play';G.discardUndo=null;G.pickupCount=0;G.singlePickupId=null;G.singlePickupGuard=null;G.wildCloseWarned=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.justDrawnId=c.id;G.selected.clear();sortHand(G.players[0].hand,sortMode);G.lastLog=`Hai pescato ${cardText(c)} dal tallone.`;aiQueueStockDraw(0);captureHumanTurnUndo();render();const drawnId=c.id;setTimeout(()=>{if(G&&G.justDrawnId===drawnId){G.justDrawnId=null;const el=$('hand').querySelector(`[data-card="${drawnId}"]`);if(el)el.classList.remove('just-drawn');}},980);
 }
 function humanDrawDiscard(){
   if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;
-  const p=G.players[0],cards=G.discard.splice(0),snapshot=cards.slice();addToHand(p,cards);G.phase='play';G.selected.clear();G.targetMeld=null;G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;G.discardUndo={player:0,cards:snapshot};G.lastLog=`Hai raccolto il Monte degli scarti (${cards.length} ${cards.length===1?'carta':'carte'}).${G.mustPlayAfterPickup?' Devi subito calare o attaccare almeno una carta.':''}`;captureHumanTurnUndo();render();
+  const p=G.players[0],preSingle=G.discard.length===1?G.discard[0]:null,preHadTwin=!!(preSingle&&p.hand.some(c=>samePhysicalCard(c,preSingle))),cards=G.discard.splice(0),snapshot=cards.slice();addToHand(p,cards);G.phase='play';G.selected.clear();G.targetMeld=null;G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.singlePickupGuard=cards.length===1?{player:0,id:cards[0].id,rank:cards[0].rank,suit:cards[0].suit,joker:!!cards[0].joker,hadTwinBefore:preHadTwin}:null;G.wildCloseWarned=null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;G.discardUndo={player:0,cards:snapshot};G.lastLog=`Hai raccolto il Monte degli scarti (${cards.length} ${cards.length===1?'carta':'carte'}).${G.mustPlayAfterPickup?' Devi subito calare o attaccare almeno una carta.':''}`;aiQueuePickup(0,cards);captureHumanTurnUndo();render();
 }
 function undoDiscardPickup(){
-  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo)return;const p=G.players[0],u=G.discardUndo,ids=new Set(u.cards.map(c=>c.id));if(!u.cards.every(c=>p.hand.some(x=>x.id===c.id))){invalidateDiscardUndo();render();return;}p.hand=p.hand.filter(c=>!ids.has(c.id));G.discard.push(...u.cards);G.discardUndo=null;G.turnUndo=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.selected.clear();G.phase='draw';sortHand(p.hand,sortMode);G.lastLog='Raccolta del Monte annullata.';render();
+  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo)return;const p=G.players[0],u=G.discardUndo,ids=new Set(u.cards.map(c=>c.id));if(!u.cards.every(c=>p.hand.some(x=>x.id===c.id))){invalidateDiscardUndo();render();return;}p.hand=p.hand.filter(c=>!ids.has(c.id));G.discard.push(...u.cards);G.discardUndo=null;G.turnUndo=null;G.pickupCount=0;G.singlePickupId=null;G.singlePickupGuard=null;G.wildCloseWarned=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.selected.clear();G.phase='draw';sortHand(p.hand,sortMode);G.lastLog='Raccolta del Monte annullata.';render();
 }
 
 function stageOrMeld(chosenInfo=null){
@@ -654,12 +994,12 @@ function stageOrMeld(chosenInfo=null){
   let info=chosenInfo;if(!info){const opts=meldOptions(cards);if(!opts.length){toast('Gioco non valido per il Burraco');return;}const set=opts.find(o=>o.kind==='set'),runs=opts.filter(o=>o.kind==='run');info=set||canonicalRunOption(runs)||opts[0];}
   const team=teamOf(0);if(info.kind==='set'&&duplicateSetRank(team,info.rank)){toast(`Hai già una combinazione di ${runRankLabel(info.rank)}`);return;}
   const ck=checkPlayRemainder(0,cards.length,null,info,true);if(!ck.ok){toast(ck.msg);return;}
-  removeFromHand(p,cards);G.selected.clear();const m=normalizedMeld(info,0);G.melds.push(m);setTeamOpened(team,true);markTableAction(0);const bk=burracoKind(m);G.lastLog=bk?`Hai calato un burraco ${bk}!`:'Gioco calato.';afterCardsPlayed(0);render();
+  removeFromHand(p,cards);G.selected.clear();const m=normalizedMeld(info,0);G.melds.push(m);setTeamOpened(team,true);aiQueuePlay(0,cards,info);markTableAction(0);const bk=burracoKind(m);G.lastLog=bk?`Hai calato un burraco ${bk}!`:'Gioco calato.';afterCardsPlayed(0);render();
 }
 function performAttachSelected(meldId,chosenInfo=null){
   const p=G.players[0],m=G.melds.find(x=>x.id===meldId),cards=selectedCards();if(!m||!cards.length)return;if(m.team!==teamOf(0)){toast('Puoi attaccare solo ai giochi della tua coppia');return;}
   let info=chosenInfo;if(!info){const opts=candidateAttachOptions(m,cards);if(!opts.length){toast('Queste carte non si possono attaccare a questo gioco');return;}info=m.kind==='run'?canonicalRunOption(opts):opts[0];}
-  const ck=checkPlayRemainder(0,cards.length,m,info,false);if(!ck.ok){toast(ck.msg);return;}const before=burracoKind(m);removeFromHand(p,cards);G.selected.clear();Object.assign(m,info);markTableAction(0);const after=burracoKind(m);G.lastLog=!before&&after?`Il gioco è diventato un burraco ${after}!`:'Carte attaccate al gioco.';afterCardsPlayed(0);render();
+  const ck=checkPlayRemainder(0,cards.length,m,info,false);if(!ck.ok){toast(ck.msg);return;}const before=burracoKind(m);removeFromHand(p,cards);G.selected.clear();Object.assign(m,info);aiQueuePlay(0,cards,info);markTableAction(0);const after=burracoKind(m);G.lastLog=!before&&after?`Il gioco è diventato un burraco ${after}!`:'Carte attaccate al gioco.';afterCardsPlayed(0);render();
 }
 function attachSelected(){if(!G.targetMeld)return;performAttachSelected(G.targetMeld);}
 function commitOpening(){toast('Nel Burraco non esiste la soglia dei 40 punti: il primo gioco apre direttamente.');}
@@ -670,16 +1010,16 @@ function replaceSelectedJoker(){toast('Nel Burraco la Matta non torna in mano: p
 function canDiscardCard(pi,card){
   const p=G.players[pi],team=teamOf(pi),last=p.hand.length===1;
   if(G.mustPlayAfterPickup)return {ok:false,msg:'Dopo la raccolta, nel Burraco internazionale devi prima calare o attaccare'};
-  if(G.singlePickupId===card.id){const identical=p.hand.some(c=>c.id!==card.id&&samePhysicalCard(c,card));if(!identical)return {ok:false,msg:'Hai raccolto un solo scarto: non puoi riscartare la stessa carta in questo turno'};}
+  if(G.singlePickupGuard&&G.singlePickupGuard.player===pi){const g=G.singlePickupGuard,sameType=g.joker?!!card.joker:(!card.joker&&card.rank===g.rank&&card.suit===g.suit);if(sameType&&!g.hadTwinBefore)return {ok:false,msg:'Hai raccolto un solo scarto: non puoi riscartare quella carta nello stesso turno senza averne già posseduta una copia identica'};}
   if(last&&G.teamTookPot[team]){
     if(!canTeamClose(team))return {ok:false,msg:G.variant==='international'?'Per chiudere servono pozzo e almeno un burraco pulito':'Per chiudere servono pozzo e almeno un burraco'};
     if(isMattaCard(card))return {ok:false,msg:'Una Matta non può essere lo scarto di chiusura'};
   }
   return {ok:true};
 }
-function passTurn(pi){G.turn=nextPlayer(pi);G.phase='draw';G.targetMeld=null;G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.discardUndo=null;G.turnUndo=null;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}render();if(G.players[G.turn].human){G.lastLog='È il tuo turno: pesca dal tallone o raccogli il Monte.';render();}else scheduleCPU();}
+function passTurn(pi){aiCommitTurnEvents();G.turn=nextPlayer(pi);G.phase='draw';G.targetMeld=null;G.pickupCount=0;G.singlePickupId=null;G.singlePickupGuard=null;G.wildCloseWarned=null;G.mustPlayAfterPickup=false;G.playedAfterPickup=false;G.discardUndo=null;G.turnUndo=null;if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}render();if(G.players[G.turn].human){G.lastLog='È il tuo turno: pesca dal tallone o raccogli il Monte.';render();}else scheduleCPU();}
 function humanDiscard(cardId=null){
-  if(!G||G.turn!==0||G.phase!=='play')return;const p=G.players[0];let card=cardId!==null?p.hand.find(c=>c.id===cardId):selectedCards()[0];if(!card||(cardId===null&&G.selected.size!==1)){toast('Seleziona una sola carta da scartare');return;}const cd=canDiscardCard(0,card);if(!cd.ok){toast(cd.msg);return;}const wasLast=p.hand.length===1,team=teamOf(0);removeFromHand(p,[card]);G.discard.push(card);G.selected.clear();p.turns++;
+  if(!G||G.turn!==0||G.phase!=='play')return;const p=G.players[0];let card=cardId!==null?p.hand.find(c=>c.id===cardId):selectedCards()[0];if(!card||(cardId===null&&G.selected.size!==1)){toast('Seleziona una sola carta da scartare');return;}const cd=canDiscardCard(0,card);if(!cd.ok){toast(cd.msg);return;}const wasLast=p.hand.length===1,team=teamOf(0);removeFromHand(p,[card]);G.discard.push(card);aiQueueDiscard(0,card);G.selected.clear();p.turns++;
   if(wasLast){if(!G.teamTookPot[team]){takePot(0,false);G.lastLog=`Hai scartato ${cardText(card)} e sei andato a pozzo.`;passTurn(0);return;}finishRound(team,0,'Chiusura');return;}
   G.lastLog=`Hai scartato ${cardText(card)}.`;passTurn(0);
 }
@@ -727,6 +1067,8 @@ function cpuPlayUrgency(pi){
   if(oppMin<=2)u=Math.max(u,1);else if(oppMin<=4)u=Math.max(u,.72);else if(oppMin<=6)u=Math.max(u,.42);
   if(!G.teamTookPot[team]&&p.hand.length<=5)u=Math.max(u,.78);
   if(G.teamTookPot[team]&&p.hand.length<=5)u=Math.max(u,.7);
+  if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);u+=Math.max(0,mc.closeBias)*.10+Math.max(0,mc.protect)*.05;}
+  u=Math.min(1,Math.max(u,u+cpuRoleUrgencyBonus(pi)));
   return u;
 }
 function cpuUsesNaturalTwo(info){
@@ -746,12 +1088,12 @@ function cpuWildOpportunityCost(pi,info,oldMeld=null){
 function cpuEarlyNewMeldPenalty(pi,info){
   const early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi);if(!early||burracoKind(info))return 0;
   let p=0,n=info.cards.length;
-  if(n===3)p+=170;else if(n===4)p+=70;else if(n===5)p+=20;
+  if(n===3)p+=170;else if(n===4)p+=190;else if(n===5)p+=20;
   if(info.kind==='run'){
     // A natural 2 is also a Pinella while held: committing it to a tiny run has a real option cost.
     if(cpuUsesNaturalTwo(info)&&n<=4)p+=n===3?140:65;
     // A-2-3 is the archetypal legal-but-premature opening; A-2-3-4 is much less problematic.
-    if(info.start===1&&info.end<=3)p+=110;else if(info.start===1&&info.end===4)p+=55;
+    if(info.start===1&&info.end<=3)p+=110;else if(info.start===1&&info.end===4)p+=230;
   }
   if(G.mustPlayAfterPickup)p*=.08;else p*=Math.max(.12,1-urg*.82);
   return p*early;
@@ -763,20 +1105,30 @@ function cpuNewMeldStrategicScore(pi,info){
   score-=cpuEarlyNewMeldPenalty(pi,info);
   score-=cpuWildOpportunityCost(pi,info,null);
   if(cpuUsesNaturalTwo(info)&&info.cards.length<=4)score-=early*(info.cards.length===3?55:20)*(1-urg*.7);
-  if(!teamOpened(team))score+=35; // opening the table has some value, but not enough to justify wasteful A-2-3 play.
+  if(!teamOpened(team))score+=35;
   if(!G.teamTookPot[team]&&p.hand.length<=5)score+=120;
   if(G.mustPlayAfterPickup)score+=500;
+  score+=cpuPostActionFutureValue(pi,info.cards);
+  score+=cpuRoleActionBias(pi,'shed',!!bk);
+  // Partnership: a support player favours structures that match the partner's public plan.
+  if(G.players.length===4&&cpuPartnershipRole(pi)==='support'){const pd=info.cards.reduce((v,c)=>v+cpuKnownPartnerDemand(pi,c),0)/Math.max(1,info.cards.length);score+=pd*(info.cards.length>=4?4.2:1.4);}
+  const plan=cpuCurrentPlan(pi);if(plan.objective==='reach-pot')score+=info.cards.length*12;else if(plan.objective==='build-burraco'&&bk)score+=95;else if(plan.objective==='finish')score+=info.cards.length*16;else if(plan.objective==='support-runner'&&info.cards.length<=3&&!bk)score-=38;
+  if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);score+=mc.closeBias*info.cards.length*8+mc.risk*(bk?34:info.cards.length*3);}
   return score;
 }
 function cpuAttachmentStrategicScore(pi,m,c,info){
   const team=teamOf(pi),before=burracoKind(m),after=burracoKind({...m,...info}),early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi);let score=150+scoreCard(c)*2.2;
   if(!before&&after)score+=burracoBonus(after)*3.6+(after==='pulito'?180:0);
-  if(before==='pulito'&&after&&after!=='pulito')score-=850;
+  if(before==='pulito'&&after&&after!=='pulito')score-=850;score-=cpuCleanBurracoPreservationPenalty(pi,m,c,info);
   if(isMattaCard(c))score-=cpuWildOpportunityCost(pi,info,m);
-  // A matching 2 used naturally is still a flexible Pinella lost from the hand; be patient on short runs.
   if(m.kind==='run'&&!c.joker&&c.rank===2&&c.suit===m.suit&&info.cards.length<=4&&!after)score-=early*(info.cards.length===3?110:70)*(1-urg*.75);
   if(G.mustPlayAfterPickup)score+=450;
   if(!G.teamTookPot[team]&&G.players[pi].hand.length<=4)score+=75;
+  score+=cpuPostActionFutureValue(pi,[c]);
+  score+=cpuRoleActionBias(pi,'shed',!before&&!!after);
+  if(G.players.length===4&&cpuPartnershipRole(pi)==='support'){const mate=cpuPartnerIndex(pi),pd=cpuKnownPartnerDemand(pi,c);if(mate!==null&&m.owner===mate)score+=38+pd*5;else score+=pd*1.8;const already=G.cpuTurnContext?.attachments?.[m.id]||0;if(mate!==null&&G.players[mate].hand.length<=4&&already>0&&!after&&urg<.78)score-=95;}
+  const plan=cpuCurrentPlan(pi);if(plan.targetMeldId===m.id)score+=plan.objective==='build-burraco'?82:46;if(plan.objective==='finish')score+=26;
+  if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);score+=mc.closeBias*14+mc.risk*(!before&&after?30:4);}
   return score;
 }
 function cpuActionThreshold(pi){
@@ -804,7 +1156,7 @@ function cpuShouldDelayClose(pi,usedCards,projectedMelds,leftCard){
   if(G.stock.length<10)return false;
   const oppHands=G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99),oppMin=Math.min(...oppHands);
   if(oppMin<=3)return false; // pericolo reale: meglio incassare subito la chiusura.
-  const margin=G.teamScores[team]-G.teamScores[opp],publicValue=cpuPublicMeldPoints(projectedMelds)+100;
+  const margin=G.teamScores[team]-G.teamScores[opp],publicValue=cpuPublicMeldPoints(projectedMelds)+100,mc=cpuMatchContext(pi);
   if(G.teamScores[team]+publicValue>=G.target)return false;
   if(G.teamScores[opp]>=G.target-250)return false;
   if(margin>=0)return false; // se siamo avanti, la chiusura certa prevale sulla speculazione.
@@ -813,10 +1165,13 @@ function cpuShouldDelayClose(pi,usedCards,projectedMelds,leftCard){
   if(G.stock.length>=28)desire+=2;else if(G.stock.length>=18)desire+=1;
   if(oppMin>=8)desire+=1;else if(oppMin>=6)desire+=0.5;
   desire+=Math.min(3,cpuNearBurracoPotential(projectedMelds));
-  if(G.players.length===4){const mate=teamMembers(team).find(i=>i!==pi);if(mate!==undefined){const n=G.players[mate].hand.length;if(n>=8)desire+=1.5;else if(n>=5)desire+=0.5;}}
+  if(G.players.length===4){const mate=teamMembers(team).find(i=>i!==pi);if(mate!==undefined){const n=G.players[mate].hand.length;if(n>=8)desire+=1.5;else if(n>=5)desire+=0.5;const liab=cpuExpectedPublicHandLiability(pi,mate);if(liab>=120)desire+=1.15;else if(liab>=80)desire+=.55;}}
+  const oppLiability=G.players.reduce((s,x,i)=>teamOf(i)!==team?s+cpuExpectedPublicHandLiability(pi,i):s,0);if(oppLiability>=165)desire-=2.2;else if(oppLiability>=110)desire-=1.1;
   if(usedCards.some(isMattaCard))desire+=0.5;
   if(publicValue>=450)desire-=2; // una smazzata già ricca va protetta.
-  return desire>=6;
+  if(aiAtLeast('expert')){desire+=mc.chase*2.6;desire-=mc.protect*3.4;desire-=Math.max(0,mc.closeBias)*1.8;}
+  const delay=desire>=6;if(delay)cpuAudit(pi,'DELAYED_LEGAL_CLOSE','strategy',{desire:+desire.toFixed(2),margin,ownNeed:mc.ownNeed,oppNeed:mc.oppNeed});
+  return delay;
 }
 function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
   const p=G.players[pi],team=teamOf(pi),ids=new Set(usedCards.map(c=>c.id)),left=p.hand.filter(c=>!ids.has(c.id));
@@ -825,24 +1180,26 @@ function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
   const last=left[0],melds=projectedMeldsAfterPlay(pi,oldMeld,newInfo,newMeld);
   if(!projectedCanTeamClose(pi,melds))return false;
   if(isMattaCard(last))return false; // evita di auto-intrappolarsi con una sola Matta.
-  if(G.singlePickupId===last.id)return false; // non può riscartare l'unico scarto appena raccolto.
+  if(G.singlePickupGuard&&G.singlePickupGuard.player===pi&&!G.singlePickupGuard.hadTwinBefore){const g=G.singlePickupGuard,sameType=g.joker?!!last.joker:(!last.joker&&last.rank===g.rank&&last.suit===g.suit);if(sameType)return false;} // guard di provenienza: nessuna copia identica era posseduta prima della raccolta.
   return !cpuShouldDelayClose(pi,usedCards,melds,last);
 }
 function bestNewMeld(pi){
-  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi);let best=null;
+  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi),list=[];
   for(const info of generateMeldCandidates(p.hand,team)){
     const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(!ck.ok||!cpuMoveKeepsExit(pi,info.cards,null,info,true))continue;
-    const score=cpuNewMeldStrategicScore(pi,info);if(!best||score>best.score)best={info,score};
+    list.push({info,score:cpuNewMeldStrategicScore(pi,info)});
   }
-  return best&&best.score>=threshold?Object.assign(best.info,{_cpuScore:best.score}):null;
+  list.sort((a,b)=>b.score-a.score);
+  for(const x of list.slice(0,4))x.score+=cpuActionLookaheadBonus(pi,x.info.cards);for(const x of list.slice(0,2)){x.search=cpuEndgameActionSearchBonus(pi,x.info.cards,null,x.info,true);x.deep=cpuEndgameDeepPlanBonus(pi,x.info.cards,null,x.info,true);x.score+=x.search+x.deep;}
+  list.sort((a,b)=>b.score-a.score);const best=list[0];return best&&best.score>=threshold?Object.assign(best.info,{_cpuScore:best.score,_cpuSearch:best.search||0,_cpuDeep:best.deep||0}):null;
 }
 function bestAttachment(pi){
-  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi);let best=null;
+  const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi),list=[];
   for(const m of G.melds){if(m.team!==team)continue;for(const c of p.hand){const opts=candidateAttachOptions(m,[c]);for(const info of opts){
     const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;
-    const score=cpuAttachmentStrategicScore(pi,m,c,info);if(!best||score>best.score)best={m,c,info,score};
+    list.push({m,c,info,score:cpuAttachmentStrategicScore(pi,m,c,info)});
   }}}
-  return best&&best.score>=threshold?best:null;
+  list.sort((a,b)=>b.score-a.score);for(const x of list.slice(0,4))x.score+=cpuActionLookaheadBonus(pi,[x.c]);for(const x of list.slice(0,2)){x.search=cpuEndgameActionSearchBonus(pi,[x.c],x.m,x.info,false);x.deep=cpuEndgameDeepPlanBonus(pi,[x.c],x.m,x.info,false);x.score+=x.search+x.deep;}list.sort((a,b)=>b.score-a.score);const best=list[0];return best&&best.score>=threshold?best:null;
 }
 function cpuImmediateActionPossible(pi,simHand){
   const team=teamOf(pi);for(const c of simHand)if(G.melds.some(m=>m.team===team&&candidateAttach(m,c)))return true;
@@ -867,6 +1224,19 @@ function cpuStructurePotential(cards,team){
   for(let suit=0;suit<4;suit++){const a=cards.filter(c=>!c.joker&&c.suit===suit);for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)value+=cpuRunNeighborWeight(a[i],a[j]);}
   return value;
 }
+// Exact O(hand) delta of cpuStructurePotential() when one card is appended.
+// This replaces repeated full-hand rescans in draw lookahead without changing scores.
+function cpuStructureAddGain(cards,team,c){
+  let gain=isMattaCard(c)?4.5:0;
+  for(const m of G.melds){if(m.team!==team)continue;const info=candidateAttach(m,c);if(!info)continue;gain+=4.5;const before=burracoKind(m),after=burracoKind({...m,...info});if(!before&&after)gain+=6+(after==='pulito'?3:0);break;}
+  if(!isMattaCard(c)&&c.rank!==2&&!(G.variant==='international'&&c.rank!==1&&c.rank!==3)){
+    const n=cards.reduce((a,x)=>a+(!isMattaCard(x)&&x.rank===c.rank?1:0),0);
+    const f=x=>x>=2?(x-1)*3.2+(x>=3?5:0)+(x>=5?(x-4)*2.5:0):0;
+    gain+=f(n+1)-f(n);
+  }
+  if(!c.joker)for(const x of cards)if(!x.joker&&x.suit===c.suit)gain+=cpuRunNeighborWeight(c,x);
+  return gain;
+}
 function cpuPublicPileThreatForTeam(team,cards){
   if(!cards.length)return 0;let v=0;
   for(const c of cards){for(const m of G.melds){if(m.team!==team)continue;const info=candidateAttach(m,c);if(!info)continue;v+=3;const before=burracoKind(m),after=burracoKind({...m,...info});if(!before&&after)v+=8+(after==='pulito'?4:0);break;}}
@@ -877,54 +1247,90 @@ function cpuDiscardPileAnalysis(pi){
   if(!G.discard.length)return {take:false,value:-1e9,structureGain:0,useful:0,burden:0};
   const p=G.players[pi],team=teamOf(pi),opp=otherTeam(team),incoming=G.discard.slice(),sim=[...p.hand,...incoming];
   if(G.variant==='international'&&!cpuImmediateLegalActionAfterPickup(pi,sim,incoming))return {take:false,value:-1e9,structureGain:0,useful:0,burden:incoming.length};
-  const before=cpuStructurePotential(p.hand,team),after=cpuStructurePotential(sim,team),structureGain=after-before;
+  let structureGain=0,structureHand=p.hand.slice();for(const c of incoming){structureGain+=cpuStructureAddGain(structureHand,team,c);structureHand.push(c);}
   const incomingIds=new Set(incoming.map(c=>c.id)),usableIds=new Set();let attachNow=0,burracoNow=0;
   for(const c of incoming){for(const m of G.melds){if(m.team!==team)continue;const info=candidateAttach(m,c);if(!info)continue;usableIds.add(c.id);attachNow++;const b0=burracoKind(m),b1=burracoKind({...m,...info});if(!b0&&b1)burracoNow++;break;}}
   for(const cand of generateMeldCandidates(sim,team).slice(0,5))for(const c of cand.cards)if(incomingIds.has(c.id))usableIds.add(c.id);
   const wilds=incoming.filter(isMattaCard).length,cardPoints=incoming.reduce((s,c)=>s+scoreCard(c),0),useful=usableIds.size;
   const excess=Math.max(0,incoming.length-useful-5),oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99));
   const margin=G.teamScores[team]-G.teamScores[opp],deny=cpuPublicPileThreatForTeam(opp,incoming);
-  let value=structureGain+attachNow*3+burracoNow*9+useful*1.8+wilds*3+cardPoints/45+Math.min(7,deny*.28);
+  // v17: a Matta in un Monte piccolo is a premium asset, not merely another
+  // structurally useful card.  The bonus falls quickly as the burden grows,
+  // so a Joker does not automatically justify taking a huge Monte.
+  const smallPileWildBonus=wilds*Math.max(0,18-(incoming.length-1)*3.25);
+  // In normal seating the next player is an opponent (2p and 4p partnerships).
+  // Leaving a premium wild card on top therefore has an opportunity cost too.
+  const nextPi=(pi+1)%G.players.length,nextTeam=teamOf(nextPi);
+  const top=incoming[incoming.length-1];
+  const premiumLeaveThreat=(top&&isMattaCard(top)&&nextTeam!==team)?Math.max(0,10-(incoming.length-1)*1.4):0;
+  let value=structureGain+attachNow*3+burracoNow*9+useful*1.8+wilds*7.5+smallPileWildBonus+premiumLeaveThreat+cardPoints/45+Math.min(7,deny*.28);
   if(margin<=-300)value+=2;if(margin<=-700)value+=2;
   if(margin>=500)value-=1.5;
+  if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);value+=mc.risk*3.2-mc.protect*Math.max(0,incoming.length-useful-2)*.28;}
   value-=excess*(oppMin<=3?.65:.18);
   if(canTeamClose(team)&&p.hand.length<=5)value-=Math.max(0,incoming.length-2)*.9;
   if(!G.teamTookPot[team]&&p.hand.length<=4)value-=Math.max(0,incoming.length-3)*.55;
   if(oppMin<=2)value-=Math.max(0,incoming.length-useful)*.45;
-  return {take:value>=7,value,structureGain,useful,burden:incoming.length,deny};
+  const drawAlt=cpuExpectedUnknownDrawGain(pi,p.hand)*1.25;const oppDemand=top?aiTeamCardDemand(opp,top):0;value+=Math.min(4,oppDemand*.35);
+  // A lone/small wild-card pile in classic Burraco should be overwhelmingly
+  // attractive unless an immediate endgame constraint says otherwise.  We use
+  // a score floor rather than a hard rule so the same logic remains coherent.
+  const safePremiumPickup=p.hand.length>=6&&oppMin>2&&G.stock.length>6&&!canTeamClose(team);
+  if(G.variant!=='international'&&wilds&&incoming.length<=2&&safePremiumPickup)value=Math.max(value,drawAlt+13+wilds*3);
+  return {take:(value-drawAlt)>=6.5,value,drawAlt,structureGain,useful,burden:incoming.length,deny,wilds,smallPileWildBonus,premiumLeaveThreat};
 }
-function cpuWantsDiscardPile(pi){return cpuDiscardPileAnalysis(pi).take;}
+function cpuWantsDiscardPile(pi){const a=cpuDiscardPileAnalysis(pi),top=G.discard[G.discard.length-1],beliefCtx=top&&aiAtLeast('expert')&&cpuV20Enabled(pi)?cpuBuildBeliefContext(pi):null;cpuTrace(pi,'draw-choice',{choice:a.take?'discard-pile':'stock',pileSize:G.discard.length,value:+(a.value||0).toFixed(2),drawAlt:+(a.drawAlt||0).toFixed(2),structureGain:+(a.structureGain||0).toFixed(2),useful:a.useful||0,deny:+(a.deny||0).toFixed(2),belief:top?cpuBeliefSummary(pi,top,beliefCtx):null,match:aiAtLeast('expert')?cpuMatchContext(pi):null});if(!a.take&&G.variant!=='international'&&top&&isMattaCard(top)&&G.discard.length<=2)cpuAudit(pi,'DECLINED_SMALL_WILD_PILE','warning',{pileSize:G.discard.length,card:cardText(top),value:+(a.value||0).toFixed(2),drawAlt:+(a.drawAlt||0).toFixed(2)});return a.take;}
 function cpuCardRetentionValue(pi,c){
-  const p=G.players[pi],team=teamOf(pi);let keep=0;if(isMattaCard(c))keep+=130;
+  const p=G.players[pi],team=teamOf(pi);let keep=0;if(isMattaCard(c))keep+=c.joker?330:275;
   if(canAttachToTeam(team,c))keep+=80;
   if(!isMattaCard(c)&&c.rank!==2&&!(G.variant==='international'&&c.rank!==1&&c.rank!==3)){const same=p.hand.filter(x=>x.id!==c.id&&!isMattaCard(x)&&x.rank===c.rank).length;keep+=same*34;}
   if(!c.joker){for(const x of p.hand)if(x.id!==c.id)keep+=cpuRunNeighborWeight(c,x)*12;}
+  keep+=cpuIntrinsicCardFlexibility(c)*7.5;
   return keep;
 }
-function cpuOpponentDiscardDanger(pi,c){
-  const team=teamOf(pi),opp=otherTeam(team);let danger=0,direct=false;
+function cpuOpponentDiscardDanger(pi,c,beliefCtx=null){
+  const team=teamOf(pi),opp=otherTeam(team);let danger=isMattaCard(c)?(c.joker?330:285):0,direct=false;
   for(const m of G.melds){if(m.team!==opp)continue;const opts=candidateAttachOptions(m,[c]);if(opts.length){direct=true;const info=opts[0],before=burracoKind(m),after=burracoKind({...m,...info});danger+=55+scoreCard(c)*2;if(!before&&after)danger+=120+(after==='pulito'?80:0);else if(m.cards.length>=5)danger+=35;continue;}
     if(m.kind==='run'&&!c.joker&&c.suit===m.suit){const vals=m.cards.filter(x=>!x.joker&&x.id!==m.wildId).map(x=>x.rank===1?14:x.rank);if(vals.length){const lo=Math.min(...vals),hi=Math.max(...vals),v=c.rank===1?14:c.rank;if(Math.abs(v-lo)===2||Math.abs(v-hi)===2)danger+=12;}}
   }
   const pile=[...G.discard,c],cand=generateMeldCandidates(pile,opp).filter(x=>x.cards.some(xc=>xc.id===c.id)).slice(0,3);
   if(cand.length){const best=cand[0];danger+=22+best.cards.length*5;if(burracoKind(best))danger+=70;}
+  // Hidden-hand inference from public behaviour and cards previously taken from the discard pile.
+  danger+=aiTeamCardDemand(opp,c)*12;
+  if(aiAtLeast('expert'))danger+=cpuBeliefTeamHoldProbability(pi,opp,c,beliefCtx)*(aiAtLeast('professional')?46:22);
   const oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99));if(oppMin<=2)danger*=1.8;else if(oppMin<=4)danger*=1.45;else if(oppMin<=6)danger*=1.2;
   if(!G.teamTookPot[opp]&&oppMin<=2&&direct)danger+=55;
+  if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);danger*=1+mc.protect*.16-Math.max(0,mc.risk)*.05;}
   return danger;
 }
 function cpuDiscardChoice(pi){
-  const p=G.players[pi],team=teamOf(pi),best=[];
-  for(const c of p.hand){const cd=canDiscardCard(pi,c);if(!cd.ok)continue;let v=scoreCard(c)*11-cpuCardRetentionValue(pi,c);if(isMattaCard(c))v-=900;const danger=cpuOpponentDiscardDanger(pi,c);v-=danger*4.2;best.push({c,v,danger});}
-  best.sort((a,b)=>b.v-a.v||a.danger-b.danger||b.c.id-a.c.id);return best[0]?.c||null;
+  const p=G.players[pi],legal=[];for(const c of p.hand){const cd=canDiscardCard(pi,c);if(cd.ok)legal.push(c);}if(!legal.length)return null;
+  const beliefCtx=aiAtLeast('expert')&&cpuV20Enabled(pi)?cpuBuildBeliefContext(pi):null;
+  const naturals=legal.filter(c=>!isMattaCard(c));let pool=legal.filter(c=>!isMattaCard(c)||cpuStrategicWildDiscardAllowed(pi,c,naturals));if(!pool.length)pool=legal;
+  const candidates=[];
+  for(const c of pool){const danger=cpuOpponentDiscardDanger(pi,c,beliefCtx),trap=cpuUsefulDiscardTrapValue(pi,c,danger,beliefCtx),retention=cpuCardRetentionValue(pi,c);let v=scoreCard(c)*11-retention;if(isMattaCard(c))v-=1450;v-=danger*4.2;v+=trap;candidates.push({c,v,danger,trap,retention,future:0,takeP:0,endgame:0});}
+  candidates.sort((a,b)=>b.v-a.v||a.danger-b.danger||b.c.id-a.c.id);
+  if(aiAtLeast('professional')){
+    // Professional: v16 depth-2 selective expectimax on the five best static discards.
+    for(const x of candidates.slice(0,5)){const left=p.hand.filter(c=>c.id!==x.c.id);x.future=cpuExpectedUnknownDrawGain(pi,left,beliefCtx)*15;x.takeP=cpuOpponentPickupProbability(pi,x.c,beliefCtx);x.endgame=cpuEndgameDiscardAdjustment(pi,x.c,x.danger,x.takeP,beliefCtx);x.v+=x.future-x.takeP*x.danger*.42+x.trap*.35+x.endgame;}
+  }else if(aiAtLeast('expert')){
+    // Expert still models whether the opponent is likely to take the offered card,
+    // but does not search our next draw / endgame reply tree.
+    for(const x of candidates.slice(0,3)){x.takeP=cpuOpponentPickupProbability(pi,x.c,beliefCtx);x.v-=x.takeP*x.danger*.20;}
+  }
+  candidates.sort((a,b)=>b.v-a.v||a.danger-b.danger||b.c.id-a.c.id);const best=candidates[0];
+  cpuTrace(pi,'discard-choice',{choice:best?cardText(best.c):null,alternatives:candidates.slice(0,5).map(x=>({card:cardText(x.c),score:+x.v.toFixed(1),danger:+x.danger.toFixed(1),retention:+x.retention.toFixed(1),pickup:+x.takeP.toFixed(3),future:+x.future.toFixed(1),endgame:+x.endgame.toFixed(1),trap:+x.trap.toFixed(1),belief:cpuBeliefSummary(pi,x.c,beliefCtx)})),match:aiAtLeast('expert')?cpuMatchContext(pi):null});
+  if(best&&isMattaCard(best.c)&&naturals.length)cpuAudit(pi,'WILD_DISCARD_WITH_NATURAL_AVAILABLE','warning',{card:cardText(best.c),naturals:naturals.length});
+  return best?.c||null;
 }
-async function cpuPlayAttachment(pi,a,epoch){const p=G.players[pi],before=burracoKind(a.m);G.lastLog=`${p.name} attacca ${cardText(a.c)}.`;render();await sleep(360);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,[a.c]);Object.assign(a.m,a.info);markTableAction(pi);const after=burracoKind(a.m);G.lastLog=!before&&after?`${p.name} realizza un burraco ${after}!`:`${p.name} ha attaccato ${cardText(a.c)}.`;afterCardsPlayed(pi);render();await sleep(260);return true;}
-async function cpuPlayMeld(pi,info,epoch){const p=G.players[pi],team=teamOf(pi);G.lastLog=`${p.name} cala ${info.kind==='run'?'una scala':'una combinazione'}.`;render();await sleep(420);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,info.cards);const m=normalizedMeld(info,pi);G.melds.push(m);setTeamOpened(team,true);markTableAction(pi);const bk=burracoKind(m);if(bk)G.lastLog=`${p.name} realizza un burraco ${bk}!`;afterCardsPlayed(pi);render();await sleep(260);return true;}
+async function cpuPlayAttachment(pi,a,epoch){const p=G.players[pi],before=burracoKind(a.m),afterProbe=burracoKind({...a.m,...a.info});if(before==='pulito'&&afterProbe&&afterProbe!=='pulito')cpuAudit(pi,'DIRTIED_CLEAN_BURRACO','warning',{meld:a.m.id,card:cardText(a.c),after:afterProbe});G.lastLog=`${p.name} attacca ${cardText(a.c)}.`;render();await sleep(360);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,[a.c]);Object.assign(a.m,a.info);if(G.cpuTurnContext){G.cpuTurnContext.attachments[a.m.id]=(G.cpuTurnContext.attachments[a.m.id]||0)+1;}aiQueuePlay(pi,[a.c],a.info);markTableAction(pi);const after=burracoKind(a.m);G.lastLog=!before&&after?`${p.name} realizza un burraco ${after}!`:`${p.name} ha attaccato ${cardText(a.c)}.`;afterCardsPlayed(pi);render();await sleep(260);return true;}
+async function cpuPlayMeld(pi,info,epoch){const p=G.players[pi],team=teamOf(pi);G.lastLog=`${p.name} cala ${info.kind==='run'?'una scala':'una combinazione'}.`;render();await sleep(420);if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,info.cards);const m=normalizedMeld(info,pi);G.melds.push(m);setTeamOpened(team,true);aiQueuePlay(pi,info.cards,info);markTableAction(pi);const bk=burracoKind(m);if(bk)G.lastLog=`${p.name} realizza un burraco ${bk}!`;afterCardsPlayed(pi);render();await sleep(260);return true;}
 async function cpuTurn(){
-  if(!G||G.phase==='round-end'||G.players[G.turn].human)return;const epoch=cpuEpoch,pi=G.turn,p=G.players[pi];
+  if(!G||G.phase==='round-end'||G.players[G.turn].human)return;const epoch=cpuEpoch,pi=G.turn,p=G.players[pi];G.cpuTurnContext={attachments:{},plan:cpuPartnershipPlan(pi)};cpuTrace(pi,'turn-plan',G.cpuTurnContext.plan);
   if(G.phase==='draw'){
     if(G.stock.length<=2){finishRound(null,null,'Nel tallone restano due carte');return;}
-    const take=cpuWantsDiscardPile(pi);if(take){const cards=G.discard.splice(0);addToHand(p,cards);G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;G.lastLog=`${p.name} raccoglie il Monte (${cards.length} carte).`;}
-    else {const c=G.stock.pop();p.hand.push(c);sortHand(p.hand,'rank');G.pickupCount=0;G.singlePickupId=null;G.mustPlayAfterPickup=false;G.lastLog=`${p.name} pesca dal tallone.`;}
+    const take=cpuWantsDiscardPile(pi);if(take){const preSingle=G.discard.length===1?G.discard[0]:null,preHadTwin=!!(preSingle&&p.hand.some(c=>samePhysicalCard(c,preSingle))),cards=G.discard.splice(0);addToHand(p,cards);G.pickupCount=cards.length;G.singlePickupId=cards.length===1?cards[0].id:null;G.singlePickupGuard=cards.length===1?{player:pi,id:cards[0].id,rank:cards[0].rank,suit:cards[0].suit,joker:!!cards[0].joker,hadTwinBefore:preHadTwin}:null;G.mustPlayAfterPickup=G.variant==='international';G.playedAfterPickup=false;aiQueuePickup(pi,cards);G.lastLog=`${p.name} raccoglie il Monte (${cards.length} carte).`;}
+    else {const c=G.stock.pop();p.hand.push(c);sortHand(p.hand,'rank');G.pickupCount=0;G.singlePickupId=null;G.singlePickupGuard=null;G.mustPlayAfterPickup=false;aiQueueStockDraw(pi);G.lastLog=`${p.name} pesca dal tallone.`;}
     G.phase='play';render();await sleep(480);if(epoch!==cpuEpoch||G.turn!==pi)return;
   }
   let guard=0;
@@ -932,14 +1338,15 @@ async function cpuTurn(){
     // v11: compare attachment and new meld on the same strategic scale instead of blindly attaching first.
     const a=bestAttachment(pi),info=bestNewMeld(pi),meldScore=info?info._cpuScore:-1e9;
     if(a||info){
-      if(a&&a.score>=meldScore){if(!await cpuPlayAttachment(pi,a,epoch))return;}
+      const chooseAttach=!!(a&&a.score>=meldScore);cpuTrace(pi,'play-choice',{choice:chooseAttach?'attach':'new-meld',attach:a?{card:cardText(a.c),meld:a.m.id,score:+a.score.toFixed(1),search:+(a.search||0).toFixed(1),deep:+(a.deep||0).toFixed(1)}:null,meld:info?{kind:info.kind,cards:info.cards.map(cardText),score:+meldScore.toFixed(1),search:+(info._cpuSearch||0).toFixed(1),deep:+(info._cpuDeep||0).toFixed(1)}:null,plan:G.cpuTurnContext?.plan||null});
+      if(chooseAttach){if(!await cpuPlayAttachment(pi,a,epoch))return;}
       else {if(!await cpuPlayMeld(pi,info,epoch))return;}
       continue;
     }
     break;
   }
   if(G.mustPlayAfterPickup){G.lastLog=`${p.name} non può completare legalmente la raccolta internazionale.`;render();await sleep(300);return;}
-  const c=cpuDiscardChoice(pi);if(!c){G.lastLog=`${p.name} non ha uno scarto legale.`;render();return;}const wasLast=p.hand.length===1,team=teamOf(pi);G.lastLog=`${p.name} scarta ${cardText(c)}.`;render();await sleep(480);if(epoch!==cpuEpoch||G.turn!==pi)return;removeFromHand(p,[c]);G.discard.push(c);p.turns++;
+  let c=cpuDiscardChoice(pi);if(c&&!canDiscardCard(pi,c).ok){cpuTrace(pi,'discard-guard-reject',{card:cardText(c),reason:canDiscardCard(pi,c).msg});cpuAudit(pi,'DISCARD_GUARD_REJECT','rule',{card:cardText(c),reason:canDiscardCard(pi,c).msg});c=p.hand.find(x=>canDiscardCard(pi,x).ok)||null;}if(!c){G.lastLog=`${p.name} non ha uno scarto legale.`;render();return;}const wasLast=p.hand.length===1,team=teamOf(pi);G.lastLog=`${p.name} scarta ${cardText(c)}.`;render();await sleep(480);if(epoch!==cpuEpoch||G.turn!==pi)return;removeFromHand(p,[c]);G.discard.push(c);aiQueueDiscard(pi,c);p.turns++;
   if(wasLast){if(!G.teamTookPot[team]){takePot(pi,false);G.lastLog=`${p.name} va a pozzo.`;passTurn(pi);return;}finishRound(team,pi,'Chiusura');return;}
   passTurn(pi);
 }
@@ -949,7 +1356,7 @@ function teamRoundScore(team,closed){
   const melds=G.melds.filter(m=>m.team===team);const cardPts=melds.reduce((s,m)=>s+m.cards.reduce((v,c)=>v+scoreCard(c),0),0);const burracos=melds.map(m=>burracoKind(m)).filter(Boolean);const bonus=burracos.reduce((s,k)=>s+burracoBonus(k),0);const handPenalty=teamMembers(team).reduce((s,i)=>s+G.players[i].hand.reduce((v,c)=>v+scoreCard(c),0),0);const potPenalty=(G.teamTookPot.some(Boolean)&&!G.teamTookPot[team])?100:0;const closeBonus=closed?100:0;return {team,cardPts,burracos,bonus,handPenalty,potPenalty,closeBonus,total:cardPts+bonus+closeBonus-handPenalty-potPenalty};
 }
 function finishRound(closingTeam=null,closingPlayer=null,reason='Fine smazzata'){
-  if(!G||G.phase==='round-end')return;clearTimeout(cpuTimer);cpuEpoch++;G.phase='round-end';G.closingTeam=closingTeam;G.closingPlayer=closingPlayer;const rows=[teamRoundScore(0,closingTeam===0),teamRoundScore(1,closingTeam===1)];for(const r of rows)G.teamScores[r.team]+=r.total;
+  if(!G||G.phase==='round-end')return;aiCommitTurnEvents();clearTimeout(cpuTimer);cpuEpoch++;G.phase='round-end';G.closingTeam=closingTeam;G.closingPlayer=closingPlayer;const rows=[teamRoundScore(0,closingTeam===0),teamRoundScore(1,closingTeam===1)];for(const r of rows)G.teamScores[r.team]+=r.total;
   let winner=null;if(G.teamScores[0]>=G.target||G.teamScores[1]>=G.target){if(G.teamScores[0]!==G.teamScores[1])winner=G.teamScores[0]>G.teamScores[1]?0:1;}G.winnerTeam=winner;G.lastLog=reason;render();showScore(rows,reason);
 }
 function showScore(rows,reason){$('scoreTitle').textContent=reason;let html='<table class="scoretable"><tr><th>Squadra</th><th>Giochi</th><th>Burraco</th><th>Mano</th><th>Totale</th></tr>';for(const r of rows){const b=r.burracos.length?r.burracos.map(x=>x[0].toUpperCase()).join(' · '):'—';html+=`<tr><td>${teamName(r.team)}</td><td>+${r.cardPts}</td><td>+${r.bonus}${r.closeBonus?` +${r.closeBonus} chiusura`:''}</td><td>-${r.handPenalty}${r.potPenalty?' -100 pozzo':''}</td><td><b>${r.total>=0?'+':''}${r.total}</b><br><small>${G.teamScores[r.team]} complessivi</small></td></tr>`;if(r.burracos.length)html+=`<tr><td colspan="5"><small>Burraco: ${r.burracos.join(', ')}</small></td></tr>`;}html+='</table>';if(G.winnerTeam!==null){html+=`<p><b>${teamName(G.winnerTeam)} vince la partita con ${G.teamScores[G.winnerTeam]} punti.</b></p>`;$('nextRound').style.display='none';}else $('nextRound').style.display='inline-block';$('scoreBody').innerHTML=html;$('scoreModal').classList.add('show');}
@@ -989,6 +1396,17 @@ function renderMelds(){
 function layoutHumanHand(){const hand=$('hand'),cards=hand.querySelectorAll('.hand-card'),n=cards.length;if(!n){hand.classList.remove('hand-scroll');return;}const cs=getComputedStyle(hand),pad=parseFloat(cs.paddingLeft||0)+parseFloat(cs.paddingRight||0),available=Math.max(0,hand.clientWidth-pad),cw=cards[0].getBoundingClientRect().width;if(n===1||!cw||!available)return;const fit=(available-cw)/(n-1),min=cw*.20,scroll=fit<min;hand.style.setProperty('--hand-step',`${scroll?min:Math.max(min,fit)}px`);hand.classList.toggle('hand-scroll',scroll);}
 function renderHand(){const p=G.players[0];$('hand').innerHTML=p.hand.map(c=>face(c,`hand-card ${G.selected.has(c.id)?'selected':''} ${G.singlePickupId===c.id?'used-discard':''} ${G.justDrawnId===c.id?'just-drawn':''}`)).join('');layoutHumanHand();}
 function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','undoTurnBtn','cancelPendingBtn','meldBtn','openBtn','sortBtn','discardBtn','drawStockBtn'];for(const id of all){const el=$(id);if(el)el.hidden=!ids.includes(id);}for(const id of ids){const el=$(id);if(el)bar.appendChild(el);}}
+function humanWildCloseBlocked(){
+  if(!G||G.turn!==0||G.phase!=='play')return false;const p=G.players[0],team=teamOf(0);
+  return p.hand.length===1&&isMattaCard(p.hand[0])&&G.teamTookPot[team]&&canTeamClose(team);
+}
+function updateWildCloseReminder(){
+  const modal=$('wildCloseModal');if(!modal)return;
+  if(!humanWildCloseBlocked()){modal.classList.remove('show');return;}
+  const p=G.players[0],card=p.hand[0],sig=`${G.round}:${card.id}:${G.melds.length}:${G.turnUndo&&G.turnUndo.dirty?1:0}`;
+  $('wildCloseUndo').hidden=!(G.turnUndo&&G.turnUndo.dirty);
+  if(G.wildCloseWarned!==sig){G.wildCloseWarned=sig;modal.classList.add('show');}
+}
 function renderButtons(){
   const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,p=G.players[0];const selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;
   $('drawStockBtn').disabled=!draw;$('undoDiscardBtn').disabled=!(play&&G.discardUndo);$('undoTurnBtn').disabled=!(play&&G.turnUndo&&G.turnUndo.dirty);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('sortBtn').disabled=!p.hand.length;
@@ -998,7 +1416,7 @@ function renderButtons(){
 function updateScrollHint(){const main=$('app').querySelector('main'),up=$('scrollHintUp'),down=$('scrollHintDown');if(!main||!up||!down)return;const max=Math.max(0,main.scrollHeight-main.clientHeight),showUp=max>24&&main.scrollTop>90,showDown=G.melds.length>4&&max>24&&main.scrollTop<max-90;up.hidden=!showUp;up.classList.toggle('show',showUp);down.hidden=!showDown;down.classList.toggle('show',showDown);}
 function render(){
   if(!G)return;ensureStockBack();$('roundPill').textContent=`Smazzata ${G.round}`;$('targetPill').textContent=`${G.variant==='international'?'Internazionale':'Classico'} · ${G.target}`;renderOpponents();renderDiscard();renderMelds();renderHand();renderButtons();$('pendingBox').classList.remove('show');
-  const p=G.players[G.turn];let banner='';if(G.phase==='round-end')banner='Smazzata conclusa';else if(!p.human)banner=G.lastLog||`${p.name} sta giocando…`;else if(G.phase==='draw')banner='È il tuo turno · pesca oppure raccogli il Monte';else if(G.mustPlayAfterPickup)banner='Burraco internazionale · devi subito calare o attaccare';else if(!G.teamTookPot[0])banner='È il tuo turno · cerca di andare a pozzo e fare burraco';else if(!teamHasBurraco(0,G.variant==='international'))banner=G.variant==='international'?'Pozzo preso · ora serve un burraco pulito':'Pozzo preso · ora serve almeno un burraco';else banner='Pozzo e burraco ottenuti · puoi preparare la chiusura';$('turnBanner').textContent=banner;updateScrollHint();
+  const p=G.players[G.turn];let banner='';if(G.phase==='round-end')banner='Smazzata conclusa';else if(!p.human)banner=G.lastLog||`${p.name} sta giocando…`;else if(G.phase==='draw')banner='È il tuo turno · pesca oppure raccogli il Monte';else if(G.mustPlayAfterPickup)banner='Burraco internazionale · devi subito calare o attaccare';else if(!G.teamTookPot[0])banner='È il tuo turno · cerca di andare a pozzo e fare burraco';else if(!teamHasBurraco(0,G.variant==='international'))banner=G.variant==='international'?'Pozzo preso · ora serve un burraco pulito':'Pozzo preso · ora serve almeno un burraco';else banner='Pozzo e burraco ottenuti · puoi preparare la chiusura';$('turnBanner').textContent=banner;updateScrollHint();updateWildCloseReminder();
 }
 
 let lastHandTapId=null,lastHandTapAt=0,suppressHandClickUntil=0,handReorder=null;
@@ -1069,6 +1487,7 @@ $('hand').addEventListener('contextmenu',e=>{if(e.target.closest('.hand-card'))e
 $('hand').addEventListener('click',e=>{if(performance.now()<suppressHandClickUntil)return;const el=e.target.closest('[data-card]');if(!el||G.turn!==0||G.phase!=='play')return;const id=+el.dataset.card,now=performance.now(),dbl=id===lastHandTapId&&now-lastHandTapAt<360;lastHandTapId=id;lastHandTapAt=now;if(dbl){lastHandTapId=null;lastHandTapAt=0;humanDiscard(id);return;}if(G.selected.has(id))G.selected.delete(id);else G.selected.add(id);render();});
 $('melds').addEventListener('click',e=>{const el=e.target.closest('[data-meld]');if(!el||!G||G.turn!==0||G.phase!=='play'||!G.selected.size)return;const m=G.melds.find(x=>x.id===el.dataset.meld);if(!m)return;G.targetMeld=m.id;performAttachSelected(m.id);});
 $('app').querySelector('main').addEventListener('click',e=>{if(!G||G.turn!==0||G.phase!=='play')return;if(e.target.closest('.card,.meld,.pile,[role="button"],button,a,input,select,label,#turnBanner,#piles'))return;if(G.selected.size>=3)stageOrMeld();});
+$('wildCloseOk').onclick=()=>$('wildCloseModal').classList.remove('show');$('wildCloseUndo').onclick=()=>{$('wildCloseModal').classList.remove('show');if(G&&G.turnUndo&&G.turnUndo.dirty)undoHumanTurnMoves();else toast('Non ci sono mosse da annullare');};
 $('stockPile').onclick=humanDrawStock;$('discardPile').onclick=humanDrawDiscard;$('drawStockBtn').onclick=humanDrawStock;$('undoDiscardBtn').onclick=undoDiscardPickup;$('undoTurnBtn').onclick=undoHumanTurnMoves;$('meldBtn').onclick=stageOrMeld;$('discardBtn').onclick=()=>humanDiscard();
 const mainScrollEl=$('app').querySelector('main');mainScrollEl.addEventListener('scroll',updateScrollHint,{passive:true});$('scrollHintUp').onclick=()=>mainScrollEl.scrollBy({top:-Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});$('scrollHintDown').onclick=()=>mainScrollEl.scrollBy({top:Math.max(220,mainScrollEl.clientHeight*.68),behavior:'smooth'});
 $('runJokerLowBtn').onclick=()=>completeRunJokerChoice('low');$('runJokerHighBtn').onclick=()=>completeRunJokerChoice('high');$('cancelRunJokerChoice').onclick=()=>{pendingRunChoice=null;$('runJokerChoiceModal').classList.remove('show');};
@@ -1085,9 +1504,9 @@ function cancelNewGameDialog(){
   returnToScoreAfterNewCancel=false;
 }
 $('sortBtn').onclick=()=>{sortMode=sortMode==='manual'?'rank':sortMode==='rank'?'suit':'rank';if(sortMode!=='manual')manualOrderIds=[];sortHand(G.players[0].hand,sortMode);render();};$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('newBtn').onclick=()=>openNewGameDialog(false);$('cancelNew').onclick=cancelNewGameDialog;
-$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;returnToScoreAfterNewCancel=false;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target,{variant:p.variant});};$('nextRound').onclick=()=>{returnToScoreAfterNewCancel=false;$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>openNewGameDialog(true);
+$('startNew').onclick=()=>{const p=prefsFromForm();savePrefs(p);activeDeckStyle=p.deck;returnToScoreAfterNewCancel=false;$('newModal').classList.remove('show');$('scoreModal').classList.remove('show');startGame(p.players,p.target,{variant:p.variant,aiLevel:p.aiLevel});};$('nextRound').onclick=()=>{returnToScoreAfterNewCancel=false;$('scoreModal').classList.remove('show');startRound();};$('restartAfterGame').onclick=()=>openNewGameDialog(true);
 for(const modal of document.querySelectorAll('.modal'))modal.addEventListener('click',e=>{if(e.target!==modal||modal.id==='scoreModal')return;if(modal.id==='newModal')cancelNewGameDialog();else modal.classList.remove('show');});window.addEventListener('resize',()=>{if(G){layoutHumanHand();renderDiscard();renderMelds();}},{passive:true});if('ResizeObserver' in window)new ResizeObserver(()=>{if(G)layoutHumanHand();}).observe($('hand'));
-const savedPrefs=loadPrefs();applyPrefsToForm(savedPrefs);activeDeckStyle=savedPrefs.deck;startGame(savedPrefs.players,savedPrefs.target,{variant:savedPrefs.variant});
+const savedPrefs=loadPrefs();applyPrefsToForm(savedPrefs);activeDeckStyle=savedPrefs.deck;startGame(savedPrefs.players,savedPrefs.target,{variant:savedPrefs.variant,aiLevel:savedPrefs.aiLevel});
 })();
 </script>
 </body>

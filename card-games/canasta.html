@@ -678,7 +678,7 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
   <h3>Carte speciali</h3>
   <p>Dal 4 all’Asso le carte sono naturali. Due e Jolly sono Matte. I Tre rossi vengono subito accantonati scoperti e, quando provengono dal tallone, sostituiti con un’altra pesca. Tre o quattro Tre neri si possono calare soltanto come ultima mossa di chiusura.</p>
   <h3>Pozzo degli scarti</h3>
-  <p>La carta in cima deve essere naturale e va usata immediatamente per calare o integrare un gioco. Il Pozzo è congelato se contiene una Matta o un Tre rosso, e anche contro la squadra che non ha ancora aperto: in tal caso servono la carta in cima più due naturali dello stesso valore già presenti in mano. Per impostazione predefinita (Hoyle), un Tre nero blocca soltanto il giocatore immediatamente seguente; nelle opzioni si può scegliere la variante in cui anche il Tre nero congela stabilmente il Pozzo. Dopo la presa, i Tre rossi trovati nel Pozzo vengono accantonati senza pesca sostitutiva.</p>
+  <p>La presa del Pozzo avviene in <b>due tempi</b>. Prima si prende soltanto la carta naturale in cima e la si deve usare immediatamente con le carte che erano già in mano: se il Pozzo è congelato servono due naturali dello stesso valore. Solo dopo che questo uso è legalmente completato viene raccolto il resto del Pozzo. Se la squadra non ha ancora aperto, il resto del Pozzo arriva in mano soltanto dopo un'apertura valida raggiunta con la cima e con le sole carte possedute prima della presa. Il Pozzo è congelato se contiene una Matta o un Tre rosso, e anche contro la squadra che non ha ancora aperto. Per impostazione predefinita (Hoyle), un Tre nero blocca soltanto il giocatore immediatamente seguente; nelle opzioni si può scegliere la variante in cui anche il Tre nero congela stabilmente il Pozzo. I Tre rossi presenti nel resto del Pozzo vengono accantonati senza pesca sostitutiva quando la presa viene completata.</p>
   <h3>Giochi, apertura e canaste</h3>
   <p>Le combinazioni sono di almeno tre carte dello stesso valore, con almeno due naturali. Una canasta nasce a sette carte; è <b>rossa</b> se contiene solo naturali, <b>nera</b> se contiene Matte. Una canasta non può contenere più di tre Matte.</p>
   <p>Il minimo di apertura dipende dal punteggio della squadra: negativo 15; 0–1495: 50; 1500–2995: 90; 3000 o più: 120. Se si apre prendendo il Pozzo, solo la carta in cima del Pozzo conta per raggiungere il minimo. La deroga al minimo è ammessa soltanto nella chiusura in mano dopo pesca dal tallone.</p>
@@ -807,11 +807,11 @@ function cpuDiagnosticText(){
   if(!G)return 'Nessuna partita attiva.';
   const p=G.players[G.turn],team=teamOf(G.turn),pk=G.pickup;
   const head=[
-    'CANASTA v21 CPU diagnostic',
+    'CANASTA v24 CPU diagnostic',
     `round=${G.round} turn=${G.turn} player=${p?.name||'?'} human=${!!p?.human} phase=${G.phase}`,
     `team=${team} opened=${teamOpened(team)} score=${G.teamScores[team]} hand=${p?.hand?.length??0}`,
     `stock=${G.stock.length} discard=${G.discard.length} discardFrozen=${G.discardFrozen} mustUseTop=${G.mustUseDiscardTop}`,
-    `pickup=${pk?`topId=${pk.topId} frozen=${pk.frozen} topUsed=${pk.topUsed}`:'none'}`,
+    `pickup=${pk?`topId=${pk.topId} frozen=${pk.frozen} topUsed=${pk.topUsed} pendingRest=${!!pk.pendingRest} rest=${pk.pendingRest?G.discard.length:0}`:'none'}`,
     `partnerClose=${partnerCloseDecision.turnSerial===G.turnSerial&&partnerCloseDecision.pi===G.turn?String(partnerCloseDecision.answer):'n/a'}`,
     `lastLog=${G.lastLog||''}`,
     '', 'Ultimi passi:'
@@ -891,6 +891,7 @@ function openingCardContribution(c){
   return scoreCard(c);
 }
 function pendingOpeningPoints(){return G.pendingOpening.reduce((s,m)=>s+m.cards.reduce((v,c)=>v+openingCardContribution(c),0),0);}
+function pendingDiscardHandGain(){return G.pickup?.pendingRest?G.discard.reduce((n,c)=>n+(isRedThree(c)?0:1),0):0;}
 function pendingCanastaCount(){return G.pendingOpening.reduce((n,m)=>n+(canastaKind(m)?1:0),0);}
 function pendingContainsTop(){return !!(G.pickup&&G.pendingOpening.some(m=>m.cards.some(c=>c.id===G.pickup.topId)));}
 function canConcealedCloseFromPending(){
@@ -903,7 +904,7 @@ function canConcealedCloseFromPending(){
 function canWaiveOpeningMinimum(){return G.drawSource==='stock'&&canConcealedCloseFromPending();}
 function canCommitOpening(){if(!G.pendingOpening.length||G.mustUseDiscardTop)return false;return pendingOpeningPoints()>=openingThreshold(teamOf(G.turn))||canWaiveOpeningMinimum();}
 function cancelOpening(){
-  if(!G.pendingOpening.length)return;const p=G.players[G.turn];for(const m of G.pendingOpening)p.hand.push(...m.cards);G.pendingOpening=[];sortHand(p.hand,'rank');if(G.pickup)G.mustUseDiscardTop=true;G.lastLog='Apertura annullata.';render();
+  if(!G.pendingOpening.length)return;const p=G.players[G.turn];for(const m of G.pendingOpening)p.hand.push(...m.cards);G.pendingOpening=[];sortHand(p.hand,'rank');if(G.pickup){G.mustUseDiscardTop=true;G.pickup.topUsed=false;}G.lastLog='Apertura annullata: la cima resta da usare e il resto del Pozzo è ancora in attesa.';render();
 }
 function markTableAction(pi,{existingMeld=null}={}){const p=G.players[pi];p.everMelded=true;if(existingMeld&&existingMeld.createdTurn!==G.turnSerial)G.turnUsedPriorMeld=true;G.discardUndo=null;}
 function finishIfHandEmpty(pi){const p=G.players[pi],team=teamOf(pi);if(p.hand.length!==0)return false;if(!canTeamClose(team)){return false;}const concealed=!G.turnStartedEverMelded&&!G.turnUsedPriorMeld;finishRound(team,pi,'Chiusura',concealed);return true;}
@@ -911,7 +912,7 @@ function commitOpening(){
   if(!G||G.phase!=='play'||!G.players[G.turn].human||!G.pendingOpening.length)return;
   if(G.mustUseDiscardTop){toast('Devi prima usare la carta in cima al Pozzo');return;}
   if(!canCommitOpening()){toast(`Apertura insufficiente: servono ${openingThreshold(teamOf(G.turn))} punti`);return;}
-  const p=G.players[G.turn],team=teamOf(G.turn);for(const m of G.pendingOpening){m.team=team;G.melds.push(m);}G.pendingOpening=[];setTeamOpened(team,true);markTableAction(G.turn);G.lastLog='Apertura completata.';
+  const p=G.players[G.turn],team=teamOf(G.turn);for(const m of G.pendingOpening){m.team=team;G.melds.push(m);}G.pendingOpening=[];setTeamOpened(team,true);markTableAction(G.turn);const rel=releaseDiscardRemainder(G.turn);G.lastLog=rel?`Apertura completata. Il resto del Pozzo (${rel.total} ${rel.total===1?'carta':'carte'}) arriva ora in mano.`:'Apertura completata.';
   if(finishIfHandEmpty(G.turn))return;render();
 }
 
@@ -965,14 +966,41 @@ function validateTopUse(cards,pi){
   if(G.pickup.frozen){const naturals=cards.filter(c=>c.id!==top.id&&isNatural(c)&&c.rank===top.rank&&G.pickup.preHandIds.has(c.id));if(naturals.length<2)return {ok:false,msg:'Pozzo congelato: servono due carte naturali di mano con la carta in cima'};}
   return {ok:true};
 }
-function consumeTopUse(){G.mustUseDiscardTop=false;if(G.pickup)G.pickup.topUsed=true;}
-function takeDiscardIntoHand(pi){
-  if(!canLegallyPickupDiscard(pi))return false;const p=G.players[pi],team=teamOf(pi),physicalFrozen=G.discardFrozen,frozen=pickupFrozenForTeam(team),preIds=new Set(p.hand.map(c=>c.id)),all=G.discard.splice(0),top=all[all.length-1],added=[],red=[];
-  for(const c of all){if(isRedThree(c)){takeRedThreeForTeam(team,c);red.push(c);}else{p.hand.push(c);added.push(c);}}
-  sortHand(p.hand,'rank');G.pickup={topId:top.id,acquiredIds:new Set(added.map(c=>c.id)),preHandIds:preIds,frozen,topUsed:false};G.mustUseDiscardTop=true;G.drawSource='discard';G.discardUndo={cards:all.slice(),physicalFrozen,addedIds:new Set(added.map(c=>c.id)),redIds:new Set(red.map(c=>c.id))};G.discardFrozen=false;G.phase='play';G.targetMeld=null;G.pendingOpening=[];G.selected.clear();if(p.human)G.selected.add(top.id);G.lastLog=`${p.name} prende il Pozzo (${all.length} ${all.length===1?'carta':'carte'}). ${frozen?'Deve usare la carta in cima con due naturali di mano.':'Deve usare subito la carta in cima.'}`;return true;
+function releaseDiscardRemainder(pi){
+  if(!G.pickup?.pendingRest)return null;
+  const p=G.players[pi],team=teamOf(pi),rest=G.discard.splice(0),added=[],red=[];
+  for(const c of rest){
+    if(isRedThree(c)){takeRedThreeForTeam(team,c);red.push(c);}
+    else{p.hand.push(c);added.push(c);G.pickup.acquiredIds.add(c.id);}
+  }
+  G.pickup.pendingRest=false;G.pickup.releasedCount=rest.length;G.pickup.releasedHandCount=added.length;
+  G.discardFrozen=false;G.discardUndo=null;sortHand(p.hand,'rank');
+  if(p.human&&added.length){G.justDrawnIds=added.map(c=>c.id);const ids=G.justDrawnIds.slice();setTimeout(()=>{if(G){G.justDrawnIds=G.justDrawnIds.filter(id=>!ids.includes(id));render();}},980);}
+  return {total:rest.length,added:red.length?added.length:added.length,red:red.length,hand:added.length};
+}
+function consumeTopUse(pi=G.turn){
+  G.mustUseDiscardTop=false;
+  if(!G.pickup)return null;
+  G.pickup.topUsed=true;
+  /* If the team was already open, the legal use of the top card completes the
+     pickup immediately.  During an opening the buried cards remain outside the
+     hand until commitOpening() succeeds. */
+  if(teamOpened(teamOf(pi)))return releaseDiscardRemainder(pi);
+  return null;
+}
+function beginDiscardPickup(pi){
+  if(!canLegallyPickupDiscard(pi))return false;
+  const p=G.players[pi],team=teamOf(pi),physicalFrozen=G.discardFrozen,frozen=pickupFrozenForTeam(team),preIds=new Set(p.hand.map(c=>c.id)),all=G.discard.slice(),top=G.discard.pop();
+  if(!top)return false;
+  p.hand.push(top);sortHand(p.hand,'rank');
+  G.pickup={topId:top.id,acquiredIds:new Set([top.id]),preHandIds:preIds,frozen,topUsed:false,pendingRest:true,originalCount:all.length,releasedCount:0};
+  G.mustUseDiscardTop=true;G.drawSource='discard';G.discardUndo={cards:all,physicalFrozen,addedIds:new Set([top.id]),redIds:new Set()};
+  G.phase='play';G.targetMeld=null;G.pendingOpening=[];G.selected.clear();if(p.human)G.selected.add(top.id);
+  G.lastLog=`${p.name} prende per prima la cima del Pozzo (${cardText(top)}). ${frozen?'Deve combinarla con due naturali che aveva già in mano.':'Deve usarla subito.'} Il resto (${G.discard.length} ${G.discard.length===1?'carta':'carte'}) resta in attesa.`;return true;
 }
 function undoDiscardPickup(){
-  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo||G.pendingOpening.length)return;const p=G.players[0],u=G.discardUndo;p.hand=p.hand.filter(c=>!u.addedIds.has(c.id));const team=teamOf(0);G.redThrees[team]=G.redThrees[team].filter(c=>!u.redIds.has(c.id));G.discard=u.cards.slice();G.discardFrozen=u.physicalFrozen;G.discardUndo=null;G.pickup=null;G.mustUseDiscardTop=false;G.drawSource=null;G.selected.clear();G.phase='draw';sortHand(p.hand,'rank');G.lastLog='Presa del Pozzo annullata.';render();
+  if(!G||G.turn!==0||G.phase!=='play'||!G.discardUndo||G.pendingOpening.length||!G.pickup?.pendingRest)return;
+  const p=G.players[0],u=G.discardUndo;p.hand=p.hand.filter(c=>!u.addedIds.has(c.id));G.discard=u.cards.slice();G.discardFrozen=u.physicalFrozen;G.discardUndo=null;G.pickup=null;G.mustUseDiscardTop=false;G.drawSource=null;G.selected.clear();G.phase='draw';sortHand(p.hand,'rank');G.lastLog='Presa provvisoria del Pozzo annullata.';render();
 }
 
 function drawUsableFromStock(pi,wanted){
@@ -985,11 +1013,11 @@ function humanDrawStock(){
   if(res.drawn.length)G.lastLog=`Hai pescato ${res.drawn.map(cardText).join(' e ')} dal tallone.`;else G.lastLog='L’ultima carta del tallone era un Tre rosso.';
   if(res.stockEmpty&&res.lastWasRed)G.endAfterPlay=true;render();const ids=G.justDrawnIds.slice();setTimeout(()=>{if(G){G.justDrawnIds=[];for(const id of ids){const el=$('hand').querySelector(`[data-card="${id}"]`);if(el)el.classList.remove('just-drawn');}}},980);
 }
-function humanDrawDiscard(){if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;const st=pickupDiscardStatus(0);if(!st.ok){toast(st.msg);return;}takeDiscardIntoHand(0);render();}
+function humanDrawDiscard(){if(!G||G.turn!==0||G.phase!=='draw'||!G.discard.length)return;const st=pickupDiscardStatus(0);if(!st.ok){toast(st.msg);return;}beginDiscardPickup(0);render();}
 
 function extraMeldsForClosing(oldMeld,newInfo,newMeld){const team=teamOf(G.turn),base=G.melds.filter(m=>m.team===team&&(!oldMeld||m.id!==oldMeld.id));if(newInfo)base.push(newMeld?{...newInfo,team}:{...oldMeld,...newInfo,team});if(G.pendingOpening.length)base.push(...G.pendingOpening.map(m=>({...m,team})));return base;}
 function checkPlayRemainder(pi,cardsCount,oldMeld=null,newInfo=null,newMeld=false){
-  const p=G.players[pi],left=p.hand.length-cardsCount;if(left<0)return {ok:false,msg:'Carte non disponibili'};if(left>0)return {ok:true};const extra=extraMeldsForClosing(oldMeld,newInfo,newMeld),count=extra.reduce((n,m)=>n+(canastaKind(m)?1:0),0);if(count<requiredCanastas())return {ok:false,msg:`Per chiudere servono ${requiredCanastas()} canaste`};return {ok:true};
+  const p=G.players[pi],left=p.hand.length-cardsCount+pendingDiscardHandGain();if(left<0)return {ok:false,msg:'Carte non disponibili'};if(left>0)return {ok:true};const extra=extraMeldsForClosing(oldMeld,newInfo,newMeld),count=extra.reduce((n,m)=>n+(canastaKind(m)?1:0),0);if(count<requiredCanastas())return {ok:false,msg:`Per chiudere servono ${requiredCanastas()} canaste`};return {ok:true};
 }
 function stageOrMeld(){
   if(!G||G.turn!==0||G.phase!=='play')return;const p=G.players[0],team=teamOf(0),cards=selectedCards();if(cards.length<3){toast('Seleziona almeno 3 carte');return;}
@@ -998,7 +1026,7 @@ function stageOrMeld(){
   if(info.kind==='black3'&&!blackClose){toast('I Tre neri si possono calare solo come ultima mossa di chiusura');return;}
   if(!teamOpened(team)){
     removeFromHand(p,cards);G.selected.clear();const m=normalizedMeld(info,0);G.pendingOpening.push(m);if(G.mustUseDiscardTop)consumeTopUse();
-    if(p.hand.length===0){const extra=G.pendingOpening.map(x=>({...x,team}));if(teamCanastaCount(team,extra)<requiredCanastas()){G.pendingOpening.pop();p.hand.push(...cards);sortHand(p.hand,'rank');if(G.pickup)G.mustUseDiscardTop=!pendingContainsTop();toast(`Non puoi esaurire la mano senza ${requiredCanastas()} canaste`);render();return;}}
+    if(p.hand.length+pendingDiscardHandGain()===0){const extra=G.pendingOpening.map(x=>({...x,team}));if(teamCanastaCount(team,extra)<requiredCanastas()){G.pendingOpening.pop();p.hand.push(...cards);sortHand(p.hand,'rank');if(G.pickup){G.mustUseDiscardTop=!pendingContainsTop();G.pickup.topUsed=!G.mustUseDiscardTop;}toast(`Non puoi esaurire la mano senza ${requiredCanastas()} canaste`);render();return;}}
     G.lastLog=`Apertura provvisoria: ${pendingOpeningPoints()} / ${openingThreshold(team)} punti.`;render();return;
   }
   const ck=checkPlayRemainder(0,cards.length,null,info,true);if(!ck.ok){toast(ck.msg);return;}removeFromHand(p,cards);G.selected.clear();const m=normalizedMeld(info,0);G.melds.push(m);if(G.mustUseDiscardTop)consumeTopUse();markTableAction(0);const cknd=canastaKind(m);G.lastLog=cknd?`Hai realizzato una canasta ${canastaDisplayName(cknd)}!`:'Combinazione calata.';if(finishIfHandEmpty(0))return;render();
@@ -1034,10 +1062,10 @@ function findOpeningPlan(pi){
   if(G.mustUseDiscardTop&&G.pickup){const top=temp.find(c=>c.id===G.pickup.topId);if(!top)return null;const same=temp.filter(c=>c.id!==top.id&&isNatural(c)&&c.rank===top.rank&&G.pickup.preHandIds.has(c.id));if(same.length<2)return null;const info=setOption([top,same[0],same[1]]);if(!info)return null;plan.push(info);points+=openingContribution(info);const used=new Set(info.cards.map(c=>c.id));temp=temp.filter(c=>!used.has(c.id));}
   let guard=0;while(points<need&&guard++<20){const cand=generateMeldCandidates(temp).sort((a,b)=>openingContribution(b)-openingContribution(a)||candidateScore(b)-candidateScore(a));const best=cand.find(x=>openingContribution(x)>0);if(!best)break;plan.push(best);points+=openingContribution(best);const ids=new Set(best.cards.map(c=>c.id));temp=temp.filter(c=>!ids.has(c.id));}
   if(points<need)return null;
-  const used=new Set(plan.flatMap(info=>info.cards.map(c=>c.id))),left=p.hand.filter(c=>!used.has(c.id));
+  const used=new Set(plan.flatMap(info=>info.cards.map(c=>c.id))),left=p.hand.filter(c=>!used.has(c.id)),futureGain=pendingDiscardHandGain();
   const projected=[...G.melds.filter(m=>m.team===team).map(m=>({...m,cards:[...m.cards]})),...plan.map(m=>({...m,team,cards:[...m.cards]}))];
-  if(left.length===0&&projectedCanastaCount(projected)<requiredCanastas())return null;
-  if(left.length===1&&projectedCanastaCount(projected)<requiredCanastas()){
+  if(left.length+futureGain===0&&projectedCanastaCount(projected)<requiredCanastas())return null;
+  if(left.length+futureGain===1&&futureGain===0&&projectedCanastaCount(projected)<requiredCanastas()){
     const last=left[0];let canFinish=false;for(let i=0;i<projected.length&&!canFinish;i++){const m=projected[i];if(m.kind!=='set')continue;const info=candidateAttach(m,last);if(!info)continue;const next=projected.slice();next[i]={...m,...info,cards:[...info.cards]};canFinish=projectedCanastaCount(next)>=requiredCanastas();}
     if(!canFinish)return null;
   }
@@ -1052,6 +1080,22 @@ function projectedMeldsAfterPlay(pi,oldMeld=null,newInfo=null,newMeld=false){
   return list;
 }
 function projectedCanastaCount(melds){return melds.reduce((n,m)=>n+(canastaKind(m)?1:0),0);}
+function cpuPublicTableScore(team,meldsOverride=null){
+  /* Public/live score only: cards already laid, canasta bonuses and visible red
+     Threes.  No hidden hand values are inspected. */
+  const melds=meldsOverride||G.melds.filter(m=>m.team===team);
+  const cardPts=melds.reduce((s,m)=>s+m.cards.reduce((v,c)=>v+scoreCard(c),0),0);
+  const canastaPts=melds.reduce((s,m)=>s+canastaBonus(canastaKind(m)),0);
+  const r3=G.redThrees[team]?.length||0,rawR3=r3*100+(r3===4?400:0);
+  const redPts=melds.length?rawR3:-rawR3;
+  return cardPts+canastaPts+redPts;
+}
+function cpuRoundStanding(team,projectedOwn=null){
+  const own=cpuPublicTableScore(team,projectedOwn),opp=[];
+  for(let t=0;t<teamCount();t++)if(t!==team)opp.push(cpuPublicTableScore(t));
+  const bestOpp=opp.length?Math.max(...opp):0;
+  return {own,bestOpp,margin:own-bestOpp};
+}
 function humanPartnerCpuIndex(){
   if(!G||G.players.length!==4)return -1;
   const ourTeam=teamOf(0);
@@ -1089,38 +1133,70 @@ async function askPartnerClosePermission(pi){
   return new Promise(resolve=>{partnerCloseResolve=resolve;});
 }
 function cpuPlayWouldClose(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
-  const p=G.players[pi];if(!p||usedCards.length!==p.hand.length)return false;
+  const p=G.players[pi];if(!p||usedCards.length+pendingDiscardHandGain()!==p.hand.length)return false;
   const melds=projectedMeldsAfterPlay(pi,oldMeld,newInfo,newMeld);
   return projectedCanastaCount(melds)>=requiredCanastas();
 }
 function cpuOpeningPlanWouldClose(pi,plan){
   const p=G.players[pi];if(!p||!plan?.length)return false;
-  const ids=new Set(plan.flatMap(x=>x.cards.map(c=>c.id)));if(ids.size!==p.hand.length)return false;
+  const ids=new Set(plan.flatMap(x=>x.cards.map(c=>c.id)));if(ids.size+pendingDiscardHandGain()!==p.hand.length)return false;
   const team=teamOf(pi),melds=G.melds.filter(m=>m.team===team).map(m=>({...m,cards:[...m.cards]}));
   melds.push(...plan.map(x=>({...x,team,cards:[...x.cards]})));
   return projectedCanastaCount(melds)>=requiredCanastas();
 }
 function cpuShouldDelayClose(pi,usedCards,projectedMelds){
   const team=teamOf(pi),p=G.players[pi];
-  if(G.stock.length<10)return false;
+  /* Never gamble the hand when the round itself is close to ending or an
+     opponent is already one short turn from going out. */
+  if(G.stock.length<9)return false;
   const oppHands=G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99),oppMin=Math.min(...oppHands);
-  if(oppMin<=3)return false; // an opponent is already dangerous: bank the close.
+  if(oppMin<=3)return false;
+
   const oppScores=G.teamScores.filter((_,t)=>t!==team),bestOpp=oppScores.length?Math.max(...oppScores):0;
-  const margin=G.teamScores[team]-bestOpp;
-  if(margin>=500)return false;
-  /* Near the match target, the 100-point closing bonus and ending the hand are
-     normally more valuable than speculative extra cards. */
+  const matchMargin=G.teamScores[team]-bestOpp;
+  const round=cpuRoundStanding(team,projectedMelds);
+  if(matchMargin>=700&&round.margin>=0)return false;
   if(G.teamScores[team]>=G.target-500)return false;
-  let desire=0;
-  if(margin<0)desire+=2;if(margin<=-500)desire+=3;
-  if(oppMin>=7)desire+=2;else if(oppMin>=5)desire+=1;
-  if(G.stock.length>=24)desire+=2;else if(G.stock.length>=15)desire+=1;
-  if(G.players.length===4){const mate=teamMembers(team).find(i=>i!==pi);if(mate!==undefined){const n=G.players[mate].hand.length;if(n>=8)desire+=2;else if(n>=5)desire+=1;}}
-  for(const m of projectedMelds){if(m.kind!=='set'||canastaKind(m))continue;if(m.cards.length===6)desire+=3;else if(m.cards.length===5)desire+=2;else if(m.cards.length===4)desire+=1;}
-  const held=[...p.hand];
-  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){const n=held.filter(c=>isNatural(c)&&c.rank===rank).length;if(n>=2)desire+=1;}
-  if(usedCards.some(isWild))desire+=1;
-  return desire>=7;
+
+  let pressure=0,growth=0;
+  /* Match deficit: keep playing when there is something useful left to build. */
+  if(matchMargin<0)pressure+=2;
+  if(matchMargin<=-500)pressure+=2;
+  if(matchMargin<=-1200)pressure+=2;
+
+  /* Current-deal deficit matters independently of the match total.  This was
+     missing before v23 and is the main reason a CPU could bank a poor hand too
+     eagerly despite being far behind on the table. */
+  if(round.margin<=-500)pressure+=5;
+  else if(round.margin<=-300)pressure+=4;
+  else if(round.margin<=-150)pressure+=3;
+  else if(round.margin<=-60)pressure+=1;
+  if(round.own<250&&round.margin<0)pressure+=1;
+  if(round.margin>=350)pressure-=2;
+
+  if(oppMin>=8)growth+=2;else if(oppMin>=5)growth+=1;
+  if(G.stock.length>=28)growth+=3;else if(G.stock.length>=18)growth+=2;else if(G.stock.length>=12)growth+=1;
+  if(G.players.length===4){
+    const mate=teamMembers(team).find(i=>i!==pi);
+    if(mate!==undefined){const n=G.players[mate].hand.length;if(n>=9)growth+=3;else if(n>=6)growth+=2;else if(n>=4)growth+=1;}
+  }
+  for(const m of projectedMelds){
+    if(m.kind!=='set'||canastaKind(m))continue;
+    if(m.cards.length===6)growth+=4;else if(m.cards.length===5)growth+=3;else if(m.cards.length===4)growth+=2;else if(m.cards.length===3)growth+=1;
+  }
+  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){
+    const same=p.hand.filter(c=>isNatural(c)&&c.rank===rank);
+    if(same.length>=3)growth+=2;else if(same.length===2)growth+=1;
+    if(same.length>=2&&same.some(c=>scoreCard(c)>=10))growth+=1;
+  }
+  if(p.hand.some(isWild))growth+=1;
+  if(usedCards.some(isWild))growth+=1;
+
+  /* A deficit alone is not enough: delaying only makes sense when stock,
+     partner hand or unfinished structures offer a credible way to add points. */
+  const desire=pressure+growth;
+  cpuDiagPush('close timing',`team=${team} match=${matchMargin} round=${round.margin} ownLive=${round.own} oppLive=${round.bestOpp} pressure=${pressure} growth=${growth} desire=${desire}`);
+  return growth>=3&&desire>=8;
 }
 function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
   const p=G.players[pi],ids=new Set(usedCards.map(c=>c.id)),left=p.hand.filter(c=>!ids.has(c.id));
@@ -1135,9 +1211,95 @@ function cpuMoveKeepsExit(pi,usedCards,oldMeld=null,newInfo=null,newMeld=false){
   }
   return false;
 }
-function bestNewMeld(pi){const p=G.players[pi],team=teamOf(pi);for(const info of generateMeldCandidates(p.hand)){const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(ck.ok&&cpuMoveKeepsExit(pi,info.cards,null,info,true))return info;}if(p.hand.length>=3&&p.hand.length<=4&&p.hand.every(isBlackThree)&&canTeamClose(team)){return setOption(p.hand,{allowBlackThreeClose:true});}return null;}
+function cpuWildReserveNeed(pi,excludeIds=new Set()){
+  /* Value of keeping a Matta in hand.  This deliberately uses only the CPU's
+     own cards and its team's public melds.  Natural pairs and near-canastas
+     are the situations in which a held Matta has the greatest future value. */
+  const p=G.players[pi],team=teamOf(pi);let need=0;
+  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){
+    const own=p.hand.filter(c=>!excludeIds.has(c.id)&&isNatural(c)&&c.rank===rank).length;
+    const m=G.melds.find(x=>x.team===team&&x.kind==='set'&&x.rank===rank);
+    if(!m){if(own===2)need+=3;else if(own>=3)need+=1;continue;}
+    if(canastaKind(m))continue;
+    const gap=7-m.cards.length;
+    if(gap===1)need+=4;else if(gap===2)need+=3;else if(gap===3)need+=2;
+    if(own&&gap>0)need+=Math.min(2,own);
+  }
+  return need;
+}
+function cpuNewMeldScore(pi,info){
+  const p=G.players[pi],wc=wildCount(info.cards),nc=naturalCount(info.cards),kind=canastaKind(info);
+  let score=920+nc*115+info.points*2+info.cards.length*35;
+  if(!wc)score+=360; // preserve a possible red canasta and, above all, the Matte.
+  if(kind)score+=canastaBonus(kind)*6;
+  if(wc){
+    const necessary=nc===2?1:0,extra=Math.max(0,wc-necessary);
+    /* One Matta may be structurally necessary to turn a natural pair into a
+       legal game. Extra Matte in an already legal set are normally wasteful. */
+    score-=necessary?90:0;
+    score-=extra*620;
+    if(info.cards.length===6)score+=220;
+    if(info.cards.length>=7)score+=700;
+    const used=new Set(info.cards.map(c=>c.id));score-=Math.min(6,cpuWildReserveNeed(pi,used))*75;
+  }
+  /* Near endgame, shedding cards becomes more important than reserve value. */
+  const left=p.hand.length-info.cards.length;if(left<=2)score+=260;if(left<=1)score+=420;
+  return score;
+}
+function bestNewMeld(pi){
+  const p=G.players[pi],team=teamOf(pi);let best=null;
+  for(const info of generateMeldCandidates(p.hand)){
+    const ck=checkPlayRemainder(pi,info.cards.length,null,info,true);if(!ck.ok||!cpuMoveKeepsExit(pi,info.cards,null,info,true))continue;
+    const score=cpuNewMeldScore(pi,info);if(!best||score>best.score)best={info,score};
+  }
+  if(best)return best;
+  if(p.hand.length>=3&&p.hand.length<=4&&p.hand.every(isBlackThree)&&canTeamClose(team)){const info=setOption(p.hand,{allowBlackThreeClose:true});return info?{info,score:5000}:null;}
+  return null;
+}
+function cpuAttachmentScore(pi,m,c,info){
+  const p=G.players[pi],before=canastaKind(m),after=canastaKind({...m,...info});
+  let score=1000+scoreCard(c)*3;
+  if(!before&&after)score+=canastaBonus(after)*6;
+  if(!isWild(c)){
+    if(!before)score+=Math.max(0,7-m.cards.length)*55;
+    if(before)score+=80; // harmless point consolidation once a canasta exists.
+    return score;
+  }
+  /* Wild-card economy. A Matta on a completed black canasta adds points but
+     almost no structure, so keep it unless the hand is in a real endgame.
+     Turning a red canasta black is even worse. */
+  if(before==='pura'&&after==='mista')score-=3400;
+  else if(before==='mista')score-=2350;
+  else{
+    const len=m.cards.length;
+    if(len===6&&after)score+=950;       // completes a canasta now
+    else if(len===5)score+=260;        // one step from completion
+    else if(len===4)score-=80;
+    else score-=320;
+    if(wildCount(m.cards)>=1)score-=260; // prefer spreading scarce Matte
+  }
+  const reserve=cpuWildReserveNeed(pi,new Set([c.id]));score-=Math.min(7,reserve)*85;
+  const left=p.hand.length-1;if(left<=2)score+=700;if(left<=1)score+=1100;
+  return score;
+}
 function bestAttachment(pi){
-  const p=G.players[pi],team=teamOf(pi);let best=null;for(const m of G.melds){if(m.team!==team||m.kind!=='set')continue;for(const c of p.hand){const info=candidateAttach(m,c);if(!info)continue;const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;const before=canastaKind(m),after=canastaKind({...m,...info});let score=1000+scoreCard(c);if(!before&&after)score+=canastaBonus(after)*6;if(before==='pura'&&after==='mista')score-=1500;if(isWild(c))score-=250;if(!best||score>best.score)best={m,c,info,score};}}return best;
+  const p=G.players[pi],team=teamOf(pi);let best=null;
+  for(const m of G.melds){if(m.team!==team||m.kind!=='set')continue;for(const c of p.hand){
+    const info=candidateAttach(m,c);if(!info)continue;const ck=checkPlayRemainder(pi,1,m,info,false);if(!ck.ok||!cpuMoveKeepsExit(pi,[c],m,info,false))continue;
+    const score=cpuAttachmentScore(pi,m,c,info);if(!best||score>best.score)best={m,c,info,score};
+  }}
+  return best;
+}
+function bestCpuTableAction(pi){
+  /* Compare attachment and new meld on the same strategic scale instead of
+     always attaching first.  A negative-scoring wild attachment is deferred
+     while the hand is still comfortable: legality alone is not a reason to
+     dump a Matta onto a canasta already finished. */
+  const p=G.players[pi],a=bestAttachment(pi),nm=bestNewMeld(pi);
+  const usableA=!!(a&&(!isWild(a.c)||a.score>=0||p.hand.length<=3));
+  if(usableA&&(!nm||a.score>=nm.score))return {kind:'attach',value:a,score:a.score};
+  if(nm)return {kind:'meld',value:nm.info,score:nm.score};
+  return null;
 }
 function cpuStructurePotential(cards,team){
   const wilds=cards.filter(isWild).length;let value=wilds*2.5,pairs=0;
@@ -1168,38 +1330,127 @@ function cpuDiscardPickupFeasible(pi){
   const live=G;let sim=null;
   try{
     sim=structuredClone(live);G=sim;
-    if(!takeDiscardIntoHand(pi))return false;
+    if(!beginDiscardPickup(pi))return false;
     if(!teamOpened(teamOf(pi))&& !findOpeningPlan(pi))return false;
     return true;
   }catch(e){cpuDiagPush('pickup preflight exception',String(e?.message||e));return false;}
   finally{G=live;}
 }
+function cpuDiscardPileClusterMemory(pi,incoming,team){
+  /* Exact memory of the CURRENT discard pile is fair information: every card
+     entered it face-up.  Reward buried clusters explicitly instead of relying
+     only on the generic structure metric. */
+  const p=G.players[pi],clusters=[];let value=0;
+  for(const rank of [1,4,5,6,7,8,9,10,11,12,13]){
+    const buried=incoming.filter(c=>isNatural(c)&&c.rank===rank).length;
+    if(!buried)continue;
+    const own=p.hand.filter(c=>isNatural(c)&&c.rank===rank).length;
+    const m=G.melds.find(x=>x.team===team&&x.kind==='set'&&x.rank===rank);
+    let bonus=0;
+    if(buried>=2)bonus+=(buried-1)*5;
+    if(buried>=3)bonus+=10;if(buried>=4)bonus+=12;if(buried>=5)bonus+=16;if(buried>=7)bonus+=30;
+    if(own)bonus+=Math.min(4,own)*buried*2.2;
+    if(m){
+      bonus+=buried*5;
+      if(!canastaKind(m)&&m.cards.length+buried>=7)bonus+=28;
+    }else if(own+buried>=3)bonus+=10;
+    if(bonus>0){value+=bonus;clusters.push({rank,buried,own,bonus});}
+  }
+  clusters.sort((a,b)=>b.bonus-a.bonus||b.buried-a.buried);
+  return {value,clusters};
+}
 function cpuDiscardPileAnalysis(pi){
-  if(!canLegallyPickupDiscard(pi)||!cpuDiscardPickupFeasible(pi))return {take:false,value:-1e9,structureGain:0,knownCards:G.discard.length};
+  if(!canLegallyPickupDiscard(pi)||!cpuDiscardPickupFeasible(pi))return {take:false,value:-1e9,structureGain:0,memoryValue:0,clusters:[],knownCards:G.discard.length};
   const p=G.players[pi],team=teamOf(pi),top=topDiscard();
   const incoming=G.discard.filter(c=>!isRedThree(c));
   const before=cpuStructurePotential(p.hand,team),after=cpuStructurePotential([...p.hand,...incoming],team);
   const structureGain=after-before;
   const redThrees=G.discard.filter(isRedThree).length,wilds=incoming.filter(isWild).length;
-  const cardPoints=incoming.reduce((sum,c)=>sum+scoreCard(c),0);
-  let value=structureGain + wilds*4 + redThrees*3 + cardPoints/35;
+  const cardPoints=incoming.reduce((sum,c)=>sum+scoreCard(c),0),memory=cpuDiscardPileClusterMemory(pi,incoming,team);
+  let value=structureGain + memory.value + wilds*4 + redThrees*3 + cardPoints/35;
   const existing=G.melds.find(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank);
   if(existing)value+=8;
   value+=matchingNaturals(p.hand,top.rank).length*3;
   /* Large piles are not intrinsically bad: all their formerly discarded cards are
      public information and may contain complete sets.  Penalise only the truly
      unstructured bulk, and more heavily when an opponent is close to going out. */
-  const useful=Math.max(0,Math.round(structureGain/4)+wilds*2+redThrees);
+  const useful=Math.max(0,Math.round(structureGain/4)+Math.round(memory.value/10)+wilds*2+redThrees);
   const excess=Math.max(0,incoming.length-useful-6);
   const oppMin=Math.min(...G.players.map((x,i)=>teamOf(i)!==team?x.hand.length:99));
   value-=excess*(oppMin<=3?.34:.10);
   if(!teamOpened(team))value+=4;
-  return {take:value>=6,value,structureGain,knownCards:G.discard.length};
+  return {take:value>=6,value,structureGain,memoryValue:memory.value,clusters:memory.clusters,knownCards:G.discard.length};
 }
 function cpuWantsDiscardPile(pi){return cpuDiscardPileAnalysis(pi).take;}
-function cpuDiscardChoice(pi){
-  const p=G.players[pi],team=teamOf(pi),best=[];for(const c of p.hand){const cd=canDiscardCard(pi,c);if(!cd.ok)continue;let v=scoreCard(c)*10;if(isWild(c))v-=900;if(canAttachToTeam(team,c))v-=500;if(isBlackThree(c))v+=260;const same=p.hand.filter(x=>x.id!==c.id&&isNatural(x)&&x.rank===c.rank).length;if(same>=1)v-=180*same;best.push({c,v});}best.sort((a,b)=>b.v-a.v);return best[0]?.c||null;
+function cpuPublicRankUnknown(pi,rank){
+  /* Fair-information estimate: do not inspect any other player's cards.
+     Cards in this CPU's hand and all table/discard cards are known; everything
+     in the stock or another hand remains an undifferentiated hidden pool. */
+  const own=G.players[pi].hand.filter(c=>isNatural(c)&&c.rank===rank).length;
+  const table=G.melds.reduce((n,m)=>n+m.cards.filter(c=>isNatural(c)&&c.rank===rank).length,0);
+  const disc=G.discard.filter(c=>isNatural(c)&&c.rank===rank).length;
+  const known=own+table+disc;
+  return Math.max(0,8-known); // two 52-card decks -> eight naturals of each rank
 }
+function cpuHypergeomAtLeast2(successes,population,draws){
+  if(successes<2||draws<2||population<2)return 0;
+  draws=Math.min(draws,population);successes=Math.min(successes,population);
+  const p0=(()=>{let p=1;for(let i=0;i<draws;i++)p*=Math.max(0,population-successes-i)/Math.max(1,population-i);return p;})();
+  let p1=0;if(successes>0&&draws>0){
+    /* P(X=1) = C(K,1) C(N-K,n-1) / C(N,n), evaluated as a stable product. */
+    let q=successes*draws/population;
+    for(let i=0;i<draws-1;i++)q*=Math.max(0,population-successes-i)/Math.max(1,population-1-i);
+    p1=q;
+  }
+  return Math.max(0,Math.min(1,1-p0-p1));
+}
+function cpuOpponentDiscardDanger(pi,c){
+  const team=teamOf(pi),next=nextPlayer(pi),oppTeam=teamOf(next),nextCount=G.players[next].hand.length;
+  if(oppTeam===team)return 0;
+  /* A Matta itself freezes the pile and a black Three is a defensive stop; the
+     self-value of those cards is handled separately by cpuDiscardChoice(). */
+  if(isWild(c))return -Math.min(180,40+G.discard.length*5);
+  if(isBlackThree(c))return -Math.min(300,120+G.discard.length*7+(nextCount<=4?80:0));
+  if(!isNatural(c))return 0;
+  let danger=0;
+  const buriedSame=G.discard.filter(x=>isNatural(x)&&x.rank===c.rank).length;
+  const buriedWindfall=buriedSame*85+(buriedSame>=3?180:0)+(buriedSame>=5?260:0);
+  const oppMelds=G.melds.filter(m=>m.team===oppTeam&&m.kind==='set'&&m.rank===c.rank);
+  for(const m of oppMelds){
+    const kind=canastaKind(m),len=m.cards.length;
+    if(!kind){if(len>=6)danger+=1050;else if(len===5)danger+=780;else if(len===4)danger+=560;else danger+=390;}
+    else danger+=140; // still feeds points/hand reduction, but no new canasta is created.
+  }
+  const physicalFrozen=G.discardFrozen;
+  if(!physicalFrozen&&teamOpened(oppTeam)&&oppMelds.length){
+    danger+=520+Math.min(520,G.discard.length*18)+buriedWindfall; // immediate legal pickup is publicly visible.
+  }else{
+    const hiddenPool=G.stock.length+G.players.reduce((s,p,i)=>s+(i===pi?0:p.hand.length),0);
+    const unknownRank=cpuPublicRankUnknown(pi,c.rank),pairP=cpuHypergeomAtLeast2(unknownRank,hiddenPool,nextCount);
+    let pickupWeight=180+Math.min(520,G.discard.length*16)+buriedWindfall;
+    if(!teamOpened(oppTeam))pickupWeight*=0.72; // opening threshold still has to be met.
+    if(physicalFrozen)pickupWeight*=0.82;
+    danger+=pairP*pickupWeight;
+    if(buriedSame>=3)danger+=Math.min(260,buriedSame*45); // public pile-memory premium
+  }
+  if(nextCount<=3)danger*=1.45;else if(nextCount<=5)danger*=1.2;
+  return danger;
+}
+function cpuDiscardChoiceDetails(pi){
+  const p=G.players[pi],team=teamOf(pi),best=[];
+  for(const c of p.hand){
+    const cd=canDiscardCard(pi,c);if(!cd.ok)continue;
+    let v=scoreCard(c)*10;
+    if(isWild(c))v-=900;
+    if(canAttachToTeam(team,c))v-=500;
+    if(isBlackThree(c))v+=260;
+    const same=p.hand.filter(x=>x.id!==c.id&&isNatural(x)&&x.rank===c.rank).length;if(same>=1)v-=180*same;
+    const danger=cpuOpponentDiscardDanger(pi,c);v-=danger;
+    best.push({c,v,danger});
+  }
+  best.sort((a,b)=>b.v-a.v||a.danger-b.danger||a.c.id-b.c.id);return best[0]||null;
+}
+function cpuDiscardChoice(pi){return cpuDiscardChoiceDetails(pi)?.c||null;}
 function cpuSourceElement(pi){return document.querySelector(`.opp[data-player="${pi}"]`)||$('opponents');}
 function cpuTargetElementForTeam(team){return document.querySelector(`.team-zone[data-team="${team}"] .team-meld-list`)||$('melds');}
 async function animateCpuCardsTo(pi,cards,target,label='CALA'){
@@ -1245,11 +1496,11 @@ async function cpuSatisfyDiscardTop(pi,epoch){
   if(!teamOpened(team)){
     const plan=findOpeningPlan(pi);if(!plan){cpuDiagPush('mandatory discard top FAILED','no legal opening plan after pickup');return false;}
     if(cpuOpeningPlanWouldClose(pi,plan)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied during pickup opening','rollback pickup');return false;}
-    setTeamOpened(team,true);for(const info of plan){if(epoch!==cpuEpoch||G.turn!==pi)return false;await animateCpuCardsTo(pi,info.cards,cpuTargetElementForTeam(team),'APRE');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,info.cards);const m=normalizedMeld(info,pi);G.melds.push(m);markTableAction(pi);G.cpuFocusMeld=m.id;G.lastLog=`${p.name} apre dal Pozzo: ${RANK_NAMES[m.rank]||m.rank} · ${m.cards.length} carte.`;render();await sleep(620);}consumeTopUse();G.lastLog=`${p.name} ha aperto con ${plan.reduce((s,x)=>s+openingContribution(x),0)} punti prendendo il Pozzo.`;render();await sleep(560);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;
+    setTeamOpened(team,true);for(const info of plan){if(epoch!==cpuEpoch||G.turn!==pi)return false;await animateCpuCardsTo(pi,info.cards,cpuTargetElementForTeam(team),'APRE');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,info.cards);const m=normalizedMeld(info,pi);G.melds.push(m);markTableAction(pi);G.cpuFocusMeld=m.id;G.lastLog=`${p.name} apre dal Pozzo: ${RANK_NAMES[m.rank]||m.rank} · ${m.cards.length} carte.`;render();await sleep(620);}const rel=consumeTopUse(pi);G.lastLog=`${p.name} ha aperto con ${plan.reduce((s,x)=>s+openingContribution(x),0)} punti; ora raccoglie il resto del Pozzo${rel?` (${rel.total} carte)`:''}.`;render();await sleep(560);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;
   }
-  const same=matchingNaturals(p.hand,top.rank,G.pickup.preHandIds);let cards=[top];if(G.pickup.frozen){if(same.length<2)return false;cards.push(same[0],same[1]);const existing=G.melds.find(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttachOptions(m,cards).length);if(existing){const prospective=candidateAttachOptions(existing,cards)[0];if(cpuPlayWouldClose(pi,cards,existing,prospective,false)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied while unlocking discard','existing meld');return false;}G.cpuFocusMeld=existing.id;G.lastLog=`${p.name} usa la cima del Pozzo congelato…`;render();await sleep(180);await animateCpuCardsTo(pi,cards,document.querySelector(`.meld[data-meld="${existing.id}"]`)||cpuTargetElementForTeam(team),'SBLOCCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;const info=candidateAttachOptions(existing,cards)[0];removeFromHand(p,cards);Object.assign(existing,info);markTableAction(pi,{existingMeld:existing});}else{const info=setOption(cards);if(!info)return false;if(cpuPlayWouldClose(pi,cards,null,info,true)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied while unlocking discard','new meld');return false;}await animateCpuCardsTo(pi,cards,cpuTargetElementForTeam(team),'SBLOCCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,cards);const m=normalizedMeld(info,pi);G.melds.push(m);G.cpuFocusMeld=m.id;markTableAction(pi);}consumeTopUse();G.lastLog=`${p.name} usa ${cardRankText(top)} e sblocca il Pozzo.`;render();await sleep(700);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;}
-  const existing=G.melds.find(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttach(m,top));if(existing){const prospective=candidateAttach(existing,top);if(cpuPlayWouldClose(pi,[top],existing,prospective,false)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied on discard top attachment','existing meld');return false;}G.cpuFocusMeld=existing.id;G.lastLog=`${p.name} usa subito la cima del Pozzo…`;render();await sleep(180);await animateCpuCardsTo(pi,[top],document.querySelector(`.meld[data-meld="${existing.id}"]`)||cpuTargetElementForTeam(team),'ATTACCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;const info=candidateAttach(existing,top);removeFromHand(p,[top]);Object.assign(existing,info);markTableAction(pi,{existingMeld:existing});consumeTopUse();G.lastLog=`${p.name} porta il gioco a ${existing.cards.length} carte.`;render();await sleep(680);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;}
-  const sameAll=matchingNaturals(p.hand,top.rank).filter(c=>c.id!==top.id);if(sameAll.length>=2)cards=[top,sameAll[0],sameAll[1]];else if(sameAll.length>=1){const w=p.hand.find(c=>isWild(c));if(!w)return false;cards=[top,sameAll[0],w];}else return false;const info=setOption(cards);if(!info)return false;if(cpuPlayWouldClose(pi,cards,null,info,true)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied on discard top meld','new meld');return false;}await animateCpuCardsTo(pi,cards,cpuTargetElementForTeam(team),'CALA');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,cards);const m=normalizedMeld(info,pi);G.melds.push(m);G.cpuFocusMeld=m.id;setTeamOpened(team,true);markTableAction(pi);consumeTopUse();G.lastLog=`${p.name} usa la cima del Pozzo e cala ${RANK_NAMES[m.rank]||m.rank}.`;render();await sleep(700);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;
+  const same=matchingNaturals(p.hand,top.rank,G.pickup.preHandIds);let cards=[top];if(G.pickup.frozen){if(same.length<2)return false;cards.push(same[0],same[1]);const existing=G.melds.find(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttachOptions(m,cards).length);if(existing){const prospective=candidateAttachOptions(existing,cards)[0];if(cpuPlayWouldClose(pi,cards,existing,prospective,false)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied while unlocking discard','existing meld');return false;}G.cpuFocusMeld=existing.id;G.lastLog=`${p.name} usa la cima del Pozzo congelato…`;render();await sleep(180);await animateCpuCardsTo(pi,cards,document.querySelector(`.meld[data-meld="${existing.id}"]`)||cpuTargetElementForTeam(team),'SBLOCCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;const info=candidateAttachOptions(existing,cards)[0];removeFromHand(p,cards);Object.assign(existing,info);markTableAction(pi,{existingMeld:existing});}else{const info=setOption(cards);if(!info)return false;if(cpuPlayWouldClose(pi,cards,null,info,true)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied while unlocking discard','new meld');return false;}await animateCpuCardsTo(pi,cards,cpuTargetElementForTeam(team),'SBLOCCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,cards);const m=normalizedMeld(info,pi);G.melds.push(m);G.cpuFocusMeld=m.id;markTableAction(pi);}consumeTopUse(pi);G.lastLog=`${p.name} usa ${cardRankText(top)} e sblocca il Pozzo.`;render();await sleep(700);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;}
+  const existing=G.melds.find(m=>m.team===team&&m.kind==='set'&&m.rank===top.rank&&candidateAttach(m,top));if(existing){const prospective=candidateAttach(existing,top);if(cpuPlayWouldClose(pi,[top],existing,prospective,false)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied on discard top attachment','existing meld');return false;}G.cpuFocusMeld=existing.id;G.lastLog=`${p.name} usa subito la cima del Pozzo…`;render();await sleep(180);await animateCpuCardsTo(pi,[top],document.querySelector(`.meld[data-meld="${existing.id}"]`)||cpuTargetElementForTeam(team),'ATTACCA');if(epoch!==cpuEpoch||G.turn!==pi)return false;const info=candidateAttach(existing,top);removeFromHand(p,[top]);Object.assign(existing,info);markTableAction(pi,{existingMeld:existing});consumeTopUse(pi);G.lastLog=`${p.name} porta il gioco a ${existing.cards.length} carte.`;render();await sleep(680);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;}
+  const sameAll=matchingNaturals(p.hand,top.rank).filter(c=>c.id!==top.id);if(sameAll.length>=2)cards=[top,sameAll[0],sameAll[1]];else if(sameAll.length>=1){const w=p.hand.find(c=>isWild(c));if(!w)return false;cards=[top,sameAll[0],w];}else return false;const info=setOption(cards);if(!info)return false;if(cpuPlayWouldClose(pi,cards,null,info,true)&&!await askPartnerClosePermission(pi)){cpuDiagPush('partner close denied on discard top meld','new meld');return false;}await animateCpuCardsTo(pi,cards,cpuTargetElementForTeam(team),'CALA');if(epoch!==cpuEpoch||G.turn!==pi)return false;removeFromHand(p,cards);const m=normalizedMeld(info,pi);G.melds.push(m);G.cpuFocusMeld=m.id;setTeamOpened(team,true);markTableAction(pi);consumeTopUse(pi);G.lastLog=`${p.name} usa la cima del Pozzo e cala ${RANK_NAMES[m.rank]||m.rank}.`;render();await sleep(700);G.cpuFocusMeld=null;if(finishIfHandEmpty(pi))return false;return true;
 }
 async function cpuTryOpen(pi,epoch){
   if(teamOpened(teamOf(pi)))return true;const plan=findOpeningPlan(pi);if(!plan)return false;const p=G.players[pi],team=teamOf(pi),pts=plan.reduce((s,x)=>s+openingContribution(x),0);
@@ -1275,18 +1526,19 @@ async function cpuRecoverFailedDiscardPickup(pi,epoch,turnStart,why){
 async function cpuTurn(){
   if(!G||G.phase==='round-end'||G.players[G.turn].human)return;const epoch=cpuEpoch,pi=G.turn;let p=G.players[pi];cpuDiagPush('CPU turn start',`hand=${p.hand.length} stock=${G.stock.length} discard=${G.discard.length}`);const turnStart=cloneCpuState();let drewDiscard=false;
   if(G.phase==='draw'){
-    if(G.stock.length&&cpuWantsDiscardPile(pi)){const pa=cpuDiscardPileAnalysis(pi);G.cpuFocusPile='discard';G.lastLog=`${p.name} valuta il Pozzo (${pa.knownCards} carte note)…`;render();await sleep(460);if(epoch!==cpuEpoch||G.turn!==pi)return;takeDiscardIntoHand(pi);drewDiscard=true;cpuDiagPush('CPU took discard',`cards=${G.discardUndo?.cards.length||0} frozen=${G.pickup?.frozen} mustUse=${G.mustUseDiscardTop}`);G.lastLog=`${p.name} prende il Pozzo (${G.discardUndo?.cards.length||0} carte).`;render();await sleep(700);G.cpuFocusPile=null;if(epoch!==cpuEpoch||G.turn!==pi)return;{const ok=await cpuSatisfyDiscardTop(pi,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;const why=partnerCloseWasDenied(pi)?'il partner umano ha negato la chiusura dopo la presa del Pozzo':'presa scelta dal valutatore ma uso obbligatorio della cima fallito';if(!await cpuRecoverFailedDiscardPickup(pi,epoch,turnStart,why))return;p=G.players[pi];drewDiscard=false;}}}
+    if(G.stock.length&&cpuWantsDiscardPile(pi)){const pa=cpuDiscardPileAnalysis(pi);const mem=pa.clusters?.slice(0,3).map(x=>`${RANK_NAMES[x.rank]||x.rank}x${x.buried}`).join(',')||'nessun cluster';cpuDiagPush('discard memory',`cards=${pa.knownCards} value=${pa.value.toFixed(1)} structure=${pa.structureGain.toFixed(1)} memory=${pa.memoryValue.toFixed(1)} clusters=${mem}`);G.cpuFocusPile='discard';G.lastLog=`${p.name} valuta il Pozzo (${pa.knownCards} carte note)…`;render();await sleep(460);if(epoch!==cpuEpoch||G.turn!==pi)return;beginDiscardPickup(pi);drewDiscard=true;cpuDiagPush('CPU took discard',`cards=${G.pickup?.originalCount||0} frozen=${G.pickup?.frozen} mustUse=${G.mustUseDiscardTop}`);G.lastLog=`${p.name} prende la cima del Pozzo; ${G.discard.length} carte restano in attesa.`;render();await sleep(700);G.cpuFocusPile=null;if(epoch!==cpuEpoch||G.turn!==pi)return;{const ok=await cpuSatisfyDiscardTop(pi,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;const why=partnerCloseWasDenied(pi)?'il partner umano ha negato la chiusura dopo la presa del Pozzo':'presa scelta dal valutatore ma uso obbligatorio della cima fallito';if(!await cpuRecoverFailedDiscardPickup(pi,epoch,turnStart,why))return;p=G.players[pi];drewDiscard=false;}}}
     else if(G.stock.length){G.cpuFocusPile='stock';G.lastLog=`${p.name} pesca dal tallone…`;render();await sleep(420);if(epoch!==cpuEpoch||G.turn!==pi)return;const res=drawUsableFromStock(pi,G.players.length<=3?2:1);G.drawSource='stock';G.phase='play';render();await sleep(650);G.cpuFocusPile=null;if(res.stockEmpty&&res.lastWasRed)G.endAfterPlay=true;if(epoch!==cpuEpoch||G.turn!==pi)return;}
-    else if(canLegallyPickupDiscard(pi)){G.cpuFocusPile='discard';G.lastLog=`${p.name} prende il Pozzo…`;render();await sleep(420);takeDiscardIntoHand(pi);drewDiscard=true;cpuDiagPush('CPU took discard (no stock)',`cards=${G.discardUndo?.cards.length||0} frozen=${G.pickup?.frozen}`);render();await sleep(650);G.cpuFocusPile=null;{const ok=await cpuSatisfyDiscardTop(pi,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;const why=partnerCloseWasDenied(pi)?'il partner umano ha negato la chiusura con Tallone vuoto':'Tallone vuoto/ramo Pozzo: uso obbligatorio della cima fallito';if(!await cpuRecoverFailedDiscardPickup(pi,epoch,turnStart,why))return;p=G.players[pi];drewDiscard=false;}}}
+    else if(canLegallyPickupDiscard(pi)){G.cpuFocusPile='discard';G.lastLog=`${p.name} prende il Pozzo…`;render();await sleep(420);beginDiscardPickup(pi);drewDiscard=true;cpuDiagPush('CPU took discard (no stock)',`cards=${G.pickup?.originalCount||0} frozen=${G.pickup?.frozen}`);render();await sleep(650);G.cpuFocusPile=null;{const ok=await cpuSatisfyDiscardTop(pi,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;const why=partnerCloseWasDenied(pi)?'il partner umano ha negato la chiusura con Tallone vuoto':'Tallone vuoto/ramo Pozzo: uso obbligatorio della cima fallito';if(!await cpuRecoverFailedDiscardPickup(pi,epoch,turnStart,why))return;p=G.players[pi];drewDiscard=false;}}}
     else {finishRound(null,null,'Tallone esaurito: il Pozzo non è prendibile');return;}
   }
   const optionalStart=cloneCpuState();
   if(!teamOpened(teamOf(pi))){await cpuTryOpen(pi,epoch);if(epoch!==cpuEpoch||G.phase==='round-end'||G.turn!==pi)return;}
   let guard=0;while(teamOpened(teamOf(pi))&&guard++<50&&epoch===cpuEpoch&&G.turn===pi&&G.phase==='play'){
-    const a=bestAttachment(pi);if(a){const ok=await cpuPlayAttachment(pi,a,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;if(partnerCloseWasDenied(pi))break;return;}continue;}const info=bestNewMeld(pi);if(info){const ok=await cpuPlayMeld(pi,info,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;if(partnerCloseWasDenied(pi))break;return;}continue;}break;
+    const action=bestCpuTableAction(pi);if(action?.kind==='attach'){const ok=await cpuPlayAttachment(pi,action.value,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;if(partnerCloseWasDenied(pi))break;return;}continue;}if(action?.kind==='meld'){const ok=await cpuPlayMeld(pi,action.value,epoch);if(!ok){if(G.phase==='round-end'||epoch!==cpuEpoch||G.turn!==pi)return;if(partnerCloseWasDenied(pi))break;return;}continue;}break;
   }
   if(G.endAfterPlay){finishRound(null,null,'Tallone esaurito dopo l’ultimo Tre rosso');return;}
-  let c=cpuDiscardChoice(pi);
+  let discardPick=cpuDiscardChoiceDetails(pi),c=discardPick?.c||null;
+  if(c)cpuDiagPush('discard choice',`${cardText(c)} danger=${(discardPick.danger||0).toFixed(1)} score=${discardPick.v.toFixed(1)}`);
   if(!c&&optionalStart&&restoreCpuState(optionalStart)){
     p=G.players[pi];G.lastLog=`${p.name} annulla una sequenza che non lascerebbe uno scarto legale.`;render();await sleep(520);if(epoch!==cpuEpoch||G.turn!==pi)return;c=cpuDiscardChoice(pi);
   }
@@ -1380,7 +1632,7 @@ function renderDiscard(){
     if(freezeIndex!==n-1){const wrap=document.createElement('div');wrap.innerHTML=face(top,'discard-card discard-top-card');strip.appendChild(wrap.firstElementChild);}
     el.appendChild(strip);
   }
-  $('stockLabel').textContent=`Tallone · ${G.stock.length}`;$('discardLabel').textContent=`Pozzo · ${n}`;const humanFrozen=!!(G.turn===0&&G.phase==='draw'&&n&&pickupFrozenForTeam(0)&&!canLegallyPickupDiscard(0));$('discardWrap').classList.toggle('human-frozen',humanFrozen);renderRedThrees();
+  $('stockLabel').textContent=`Tallone · ${G.stock.length}`;const waiting=!!G.pickup?.pendingRest;$('discardLabel').textContent=waiting?`Pozzo · ${n} in attesa`:`Pozzo · ${n}`;const humanFrozen=!!(G.turn===0&&G.phase==='draw'&&n&&pickupFrozenForTeam(0)&&!canLegallyPickupDiscard(0));$('discardWrap').classList.toggle('human-frozen',humanFrozen);renderRedThrees();
 }
 function renderMelds(){
   const root=$('melds'),zones=Array.from({length:teamCount()},(_,team)=>{
@@ -1433,12 +1685,12 @@ function renderHand(){
 }
 function setActionBar(ids){const bar=$('actions'),all=['undoDiscardBtn','cancelPendingBtn','meldBtn','openBtn','discardBtn','drawStockBtn','endTurnBtn'];for(const id of all){const el=$(id);if(el)el.hidden=!ids.includes(id);}for(const id of ids){const el=$(id);if(el)bar.appendChild(el);}}
 function renderButtons(){
-  const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;$('drawStockBtn').disabled=!(draw&&G.stock.length);$('undoDiscardBtn').disabled=!(play&&G.discardUndo&&!G.pendingOpening.length);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('openBtn').disabled=!canCommitOpening();$('openBtn').textContent=G.pendingOpening.length?`Apri ${pendingOpeningPoints()}/${openingThreshold(0)}`:'Apri';
-  const ids=[];if(play&&G.discardUndo&&!G.pendingOpening.length)ids.push('undoDiscardBtn');if(play&&sel>=3)ids.push('meldBtn');if(G.pendingOpening.length){ids.push('openBtn','cancelPendingBtn');}if(canDiscard)ids.push('discardBtn');if(draw&&G.stock.length)ids.push('drawStockBtn');if(play&&G.endAfterPlay)ids.push('endTurnBtn');setActionBar(ids);$('stockPile').classList.toggle('can-draw',draw&&G.stock.length);$('discardPile').classList.toggle('can-draw',draw&&canLegallyPickupDiscard(0));$('stockPile').style.opacity=draw&&G.stock.length?'1':'.55';$('discardPile').style.opacity=draw&&G.discard.length?'1':'.72';
+  const human=G.turn===0,draw=human&&G.phase==='draw',play=human&&G.phase==='play',sel=G.selected.size,selected=selectedCards();let canDiscard=false;if(play&&sel===1)canDiscard=canDiscardCard(0,selected[0]).ok;$('drawStockBtn').disabled=!(draw&&G.stock.length);$('undoDiscardBtn').disabled=!(play&&G.discardUndo&&G.pickup?.pendingRest&&!G.pendingOpening.length);$('meldBtn').disabled=!(play&&sel>=3);$('discardBtn').disabled=!canDiscard;$('openBtn').disabled=!canCommitOpening();$('openBtn').textContent=G.pendingOpening.length?`Apri ${pendingOpeningPoints()}/${openingThreshold(0)}`:'Apri';
+  const ids=[];if(play&&G.discardUndo&&G.pickup?.pendingRest&&!G.pendingOpening.length)ids.push('undoDiscardBtn');if(play&&sel>=3)ids.push('meldBtn');if(G.pendingOpening.length){ids.push('openBtn','cancelPendingBtn');}if(canDiscard)ids.push('discardBtn');if(draw&&G.stock.length)ids.push('drawStockBtn');if(play&&G.endAfterPlay)ids.push('endTurnBtn');setActionBar(ids);$('stockPile').classList.toggle('can-draw',draw&&G.stock.length);$('discardPile').classList.toggle('can-draw',draw&&canLegallyPickupDiscard(0));$('stockPile').style.opacity=draw&&G.stock.length?'1':'.55';$('discardPile').style.opacity=draw&&G.discard.length?'1':'.72';
 }
 function updateScrollHint(){const main=$('app').querySelector('main'),up=$('scrollHintUp'),down=$('scrollHintDown');if(!main||!up||!down)return;const max=Math.max(0,main.scrollHeight-main.clientHeight),showUp=max>24&&main.scrollTop>90,showDown=G.melds.length>4&&max>24&&main.scrollTop<max-90;up.hidden=!showUp;up.classList.toggle('show',showUp);down.hidden=!showDown;down.classList.toggle('show',showDown);}
 function render(){
-  if(!G)return;ensureStockBack();$('roundPill').textContent=`Smazzata ${G.round}`;$('targetPill').textContent=`Canasta · ${G.target}`;renderOpponents();renderDiscard();renderMelds();renderPending();renderHand();renderButtons();$('stockPile').classList.toggle('cpu-focus',G.cpuFocusPile==='stock');$('discardPile').classList.toggle('cpu-focus',G.cpuFocusPile==='discard');const p=G.players[G.turn];let banner='';if(G.phase==='round-end')banner='Smazzata conclusa';else if(!p.human)banner=G.lastLog||`${p.name} sta giocando…`;else if(G.phase==='draw')banner=G.stock.length?'È il tuo turno · pesca oppure prendi il Pozzo':'Tallone esaurito · devi prendere il Pozzo se possibile';else if(G.endAfterPlay)banner='Ultimo Tre rosso · puoi calare o integrare, poi termina la smazzata';else if(G.mustUseDiscardTop)banner=G.pickup?.frozen?'Pozzo congelato · usa la cima con due naturali che avevi in mano':'Usa subito la carta in cima al Pozzo';else if(G.pendingOpening.length)banner=`Apertura · ${pendingOpeningPoints()} / ${openingThreshold(0)} punti`;else if(!teamOpened(0))banner=`Devi aprire con almeno ${openingThreshold(0)} punti`;else if(!canTeamClose(0))banner=`Aperti · servono ${requiredCanastas()} canaste per chiudere`;else banner='Requisito di canasta raggiunto · puoi preparare la chiusura';$('turnBanner').textContent=banner;updateScrollHint();
+  if(!G)return;ensureStockBack();$('roundPill').textContent=`Smazzata ${G.round}`;$('targetPill').textContent=`Canasta · ${G.target}`;renderOpponents();renderDiscard();renderMelds();renderPending();renderHand();renderButtons();$('stockPile').classList.toggle('cpu-focus',G.cpuFocusPile==='stock');$('discardPile').classList.toggle('cpu-focus',G.cpuFocusPile==='discard');const p=G.players[G.turn];let banner='';if(G.phase==='round-end')banner='Smazzata conclusa';else if(!p.human)banner=G.lastLog||`${p.name} sta giocando…`;else if(G.phase==='draw')banner=G.stock.length?'È il tuo turno · pesca oppure prendi il Pozzo':'Tallone esaurito · devi prendere il Pozzo se possibile';else if(G.endAfterPlay)banner='Ultimo Tre rosso · puoi calare o integrare, poi termina la smazzata';else if(G.mustUseDiscardTop)banner=G.pickup?.frozen?'Pozzo congelato · usa la cima con due naturali che avevi in mano':'Usa subito la carta in cima al Pozzo';else if(G.pendingOpening.length)banner=G.pickup?.pendingRest?`Apertura · ${pendingOpeningPoints()} / ${openingThreshold(0)} · il resto del Pozzo arriverà dopo Apri`:`Apertura · ${pendingOpeningPoints()} / ${openingThreshold(0)} punti`;else if(!teamOpened(0))banner=`Devi aprire con almeno ${openingThreshold(0)} punti`;else if(!canTeamClose(0))banner=`Aperti · servono ${requiredCanastas()} canaste per chiudere`;else banner='Requisito di canasta raggiunto · puoi preparare la chiusura';$('turnBanner').textContent=banner;updateScrollHint();
 }
 
 let lastHandTapId=null,lastHandTapAt=0,suppressHandClickUntil=0;
