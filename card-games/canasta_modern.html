@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- BUILD: Canasta Americana Moderna v8 STRATEGIC-AI, 2026-08-28; desktop hand centering; source-backed Modern American Canasta AI refinements: concealed triples, A/7 discard-pile counting, pack toxicity, Joker-before-deuce completion, opponent-out urgency, 5+ wild-canasta commitment, one-draw Special-Hand pursuit. -->
+<!-- BUILD: Canasta Americana Moderna v11 TABLE-FLIGHTS, 2026-08-28; v10 smart actions retained; v24-style table card flights; compact meld visualization with a natural rank card fully visible and one representative Wild peeking downward. -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <link rel="icon" type="image/png" href="favicon.ico">
 <meta name="theme-color" content="#075b38">
-<title>Canasta Americana Moderna · Mobile v8</title>
+<title>Canasta Americana Moderna · Mobile v11</title>
 <style>
 :root{--felt:#087044;--felt2:#05492e;--panel:rgba(0,0,0,.22);--ink:#f8f7f2;--gold:#ffd166;--danger:#c64b51;--good:#2f9e62;--cardw:clamp(52px,15.5vw,72px);--cardh:calc(var(--cardw)*1.4);--tablew:clamp(45px,12.5vw,58px);--tableh:calc(var(--tablew)*1.4);--shadow:0 5px 15px rgba(0,0,0,.28)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--felt2);color:var(--ink);overscroll-behavior:none}body{height:100dvh;overflow:hidden}button{font:inherit;color:inherit;border:0;touch-action:manipulation}button:disabled{opacity:.36;filter:saturate(.35)}
@@ -26,6 +26,92 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
 .modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px}.modal.show{display:flex}.sheet{width:min(690px,100%);max-height:90dvh;overflow:auto;background:#f7f4ec;color:#172019;border-radius:17px;padding:17px;box-shadow:0 18px 55px rgba(0,0,0,.45)}.sheet h2{margin:0 0 8px}.sheet h3{margin:15px 0 5px}.sheet p,.sheet li{font-size:13px;line-height:1.4}.sheet table{width:100%;border-collapse:collapse;font-size:12px}.sheet th,.sheet td{padding:6px;border-bottom:1px solid #ddd8cf;text-align:left}.sheet .row{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}.sheet button{background:#087044;color:#fff;border-radius:10px;padding:9px 12px;font-weight:850}.sheet button.secondary{background:#5d6761}.scoreBig{font-size:21px;font-weight:950}.win{color:#087044;font-weight:950}.bad{color:#b3353c;font-weight:900}.ruleNote{background:#fff;border:1px solid #ddd8cf;border-radius:10px;padding:9px;margin:8px 0}
 @media(max-width:430px){header .title{font-size:13px}#matchScore{font-size:11px;padding:3px 6px}.pill{font-size:11px;padding:6px 8px}.iconbtn{min-width:33px;padding:6px 7px}#center{gap:4px}#centerPiles{gap:12px}.zone{padding:4px}.meldGrid{gap:3px}.action{padding:8px 10px}.opp{padding:4px 5px}.opp .name-hand-count{font-size:10px}.threeMini{--tw:24px}}
 @media(orientation:landscape) and (max-height:560px){:root{--cardw:48px;--tablew:42px}header{padding-top:3px}.opp .meta{display:none}main{padding-bottom:calc(var(--cardh) + 75px)}#hand{min-height:calc(var(--cardh)*1.3)}.toast{bottom:100px}}
+
+/* v11: v24-style compact meld piles.
+   The rank/value card stays fully visible.  A representative Wild peeks
+   downward behind it; the header already carries the exact N (M) count. */
+.meld{
+  overflow:visible!important;
+  min-height:calc(var(--tableh)*1.40 + 27px)!important;
+}
+.meldCards,
+.meldCards.hasWild{
+  position:relative!important;
+  width:var(--tablew)!important;
+  height:calc(var(--tableh)*1.40)!important;
+  margin:0 auto!important;
+  overflow:visible!important;
+}
+.meldCards .card{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  width:var(--tablew)!important;
+  height:var(--tableh)!important;
+  margin:0!important;
+}
+.meldCards .meldWildPeek{
+  top:calc(var(--tableh)*.38)!important;
+  z-index:1!important;
+  filter:brightness(.96);
+  pointer-events:none!important;
+}
+.meldCards .meldTopCard{
+  top:0!important;
+  z-index:3!important;
+}
+.meldCards::before,
+.meldCards::after{
+  content:"";
+  position:absolute;
+  left:2px;
+  top:2px;
+  width:calc(var(--tablew) - 4px);
+  height:calc(var(--tableh) - 4px);
+  border-radius:7px;
+  border:1px solid rgba(0,0,0,.18);
+  background:#f7f4ec;
+  pointer-events:none;
+}
+.meldCards::before{transform:translate(2px,2px);z-index:0}
+.meldCards::after{transform:translate(4px,4px);z-index:0}
+.meldGrid{row-gap:8px!important;overflow:visible!important}
+
+/* v11: table flights, modeled on the mature v24 interaction. */
+.tableFlight{
+  position:fixed!important;
+  z-index:1000!important;
+  margin:0!important;
+  pointer-events:none!important;
+  border-radius:8px;
+  box-shadow:0 14px 34px rgba(0,0,0,.42)!important;
+  will-change:left,top,transform,opacity;
+}
+.tableFlight img{
+  display:block;
+  width:100%;
+  height:100%;
+  border-radius:8px;
+}
+.tableFlight::after{
+  content:attr(data-label);
+  position:absolute;
+  left:50%;
+  top:-22px;
+  transform:translateX(-50%);
+  background:#171c18;
+  color:var(--gold);
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.6px;
+  white-space:nowrap;
+}
+@media (prefers-reduced-motion:reduce){
+  .tableFlight{display:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -52,7 +138,6 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
 </div>
 <div id="bottom"><div id="hand"></div><div id="actions">
 <button id="cancelBtn" class="action" hidden>Annulla</button>
-<button id="sortBtn" class="action">Ordina</button>
 <button id="drawBtn" class="action primary">Pesca</button>
 <button id="pickupBtn" class="action primary">Prendi pozzo</button>
 <button id="meldBtn" class="action good">Cala</button>
@@ -3230,8 +3315,7 @@ async function decodeCardPackAsDataURIs(
 const $=id=>document.getElementById(id);
 const SUITS=['♠','♥','♦','♣'], SUIT_NAMES=['picche','cuori','quadri','fiori'];
 const RANK_NAMES={1:'A',10:'10',11:'J',12:'Q',13:'K'};
-let seq=1, meldSeq=1, cpuTimer=0, cpuEpoch=0, toastTimer=0, G=null;
-let sortMode='rank', manualOrder=[], dragId=null;
+let seq=1, meldSeq=1, cpuTimer=0, stockEndTimer=0, cpuEpoch=0, toastTimer=0, G=null;
 let SVG_CARDS=Object.create(null); // populated from CARD_PACK at boot
 
 function esc(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));}
@@ -3346,11 +3430,11 @@ function processDeferredBonusThrees(pi){const t=teamOf(pi),arr=(G.deferredBonusT
 
 function createMeld(team,info){const m={...info,id:`m${meldSeq++}`,team,seq:meldSeq};G.melds.push(m);return m}
 function commitInfoToMeld(m,info){m.kind=info.kind;m.rank=info.rank;m.cards=[...info.cards];m.aceMixed=!!info.aceMixed;m.seq=meldSeq++}
-function removeCards(pi,cards){const ids=new Set(cards.map(c=>c.id));G.players[pi].hand=G.players[pi].hand.filter(c=>!ids.has(c.id));if(pi===0)manualOrder=manualOrder.filter(id=>!ids.has(id))}
-function addCards(pi,cards){G.players[pi].hand.push(...cards);if(pi===0)for(const c of cards)if(!manualOrder.includes(c.id))manualOrder.push(c.id);arrangeHand(pi)}
+function removeCards(pi,cards){const ids=new Set(cards.map(c=>c.id));G.players[pi].hand=G.players[pi].hand.filter(c=>!ids.has(c.id));arrangeHand(pi)}
+function addCards(pi,cards){G.players[pi].hand.push(...cards);arrangeHand(pi)}
 
 function rankOrder(c){if(c.joker)return 15;if(c.rank===2)return 14;if(c.rank===3)return 16;return c.rank}
-function arrangeHand(pi){const h=G.players[pi].hand;if(pi!==0){h.sort((a,b)=>rankOrder(a)-rankOrder(b)||a.suit-b.suit);return}if(sortMode==='manual'){const pos=new Map(manualOrder.map((id,i)=>[id,i]));h.sort((a,b)=>(pos.get(a.id)??9999)-(pos.get(b.id)??9999));return}if(sortMode==='suit')h.sort((a,b)=>(a.joker?9:a.suit)-(b.joker?9:b.suit)||rankOrder(a)-rankOrder(b));else h.sort((a,b)=>rankOrder(a)-rankOrder(b)||a.suit-b.suit);manualOrder=h.map(c=>c.id)}
+function arrangeHand(pi){G.players[pi].hand.sort((a,b)=>rankOrder(a)-rankOrder(b)||a.suit-b.suit)}
 
 function threeScoreCount(n){return [0,100,300,500,1000][Math.min(4,n)]||0}
 function scoreTeam(t,{goingOutTeam=null,specialTeam=null,special=null}={}){
@@ -3607,21 +3691,94 @@ function pendingPickupTop(){return G?.pendingPickup?G.players[0].hand.find(c=>c.
 function pickupUseValid(cards){const top=pendingPickupTop();if(!top)return true;if(!cards.some(c=>c.id===top.id))return false;return cards.filter(c=>c.id!==top.id&&isNatural(c)&&c.rank===top.rank).length>=2}
 function releasePendingPickup(){if(!G?.pendingPickup)return 0;const n=G.discard.length,tail=G.discard.splice(0);G.pendingPickup=null;if(tail.length)addCards(0,tail);return n}
 function cancelPendingPickup(){if(!G?.pendingPickup)return false;const top=pendingPickupTop();G.pendingOpening=[];G.selected.clear();if(top){removeCards(0,[top]);G.discard.push(top)}G.pendingPickup=null;G.phase='draw';G.drawSource=null;G.justDrawn=[];G.lastLog='Hai annullato la presa del Pozzo.';render();return true}
+
+let tableFlightLock=false;
+function humanCardRect(id){
+  const el=document.querySelector(`#hand .handcard[data-id="${id}"] .card`);
+  return el?el.getBoundingClientRect():null;
+}
+function playerBadgeRect(pi){
+  const el=document.querySelector(`#opponents .opp[data-player="${pi}"]`);
+  return el?el.getBoundingClientRect():null;
+}
+function teamTableRect(team){
+  const root=$(team===0?'oursMelds':'theirMelds');
+  const r=root?.getBoundingClientRect();
+  if(r&&r.width>8&&r.height>8)return {left:r.left+r.width*.28,top:r.top+Math.min(34,r.height*.18),width:Math.max(54,r.width*.44),height:Math.max(72,Math.min(96,r.height*.48))};
+  const z=root?.closest('.zone')?.getBoundingClientRect();
+  return z||$('stockPile').getBoundingClientRect();
+}
+function tableMeldRect(id){
+  const el=document.querySelector(`.meld[data-meld="${id}"]`);
+  return el?el.getBoundingClientRect():null;
+}
+function makeTableFlight(card,label='CALA'){
+  const fly=document.createElement('div');fly.className='tableFlight';fly.dataset.label=label;
+  const img=document.createElement('img');img.alt='';img.draggable=false;img.src=faceSrc(card);fly.appendChild(img);
+  return fly;
+}
+async function animateTableCard(card,sourceRect,destRect,label='CALA',duration=430){
+  if(!G||G.fastTest||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  if(!sourceRect||!destRect)return;
+  const base=$('stockPile').getBoundingClientRect(),w=base.width||52,h=base.height||74;
+  const fly=makeTableFlight(card,label);
+  const sx=sourceRect.left+(sourceRect.width-w)/2,sy=sourceRect.top+(sourceRect.height-h)/2;
+  const tx=destRect.left+(destRect.width-w)/2,ty=destRect.top+(destRect.height-h)/2;
+  fly.style.left=`${sx}px`;fly.style.top=`${sy}px`;fly.style.width=`${w}px`;fly.style.height=`${h}px`;
+  document.body.appendChild(fly);
+  try{
+    const anim=fly.animate([
+      {left:`${sx}px`,top:`${sy}px`,transform:'scale(.92) rotate(-5deg)',opacity:.70},
+      {offset:.52,left:`${sx+(tx-sx)*.52}px`,top:`${sy+(ty-sy)*.52}px`,transform:'scale(1.07) rotate(2deg)',opacity:1},
+      {left:`${tx}px`,top:`${ty}px`,transform:'scale(.94) rotate(0deg)',opacity:.96}
+    ],{duration,easing:'cubic-bezier(.22,.72,.22,1)'});
+    await anim.finished;
+  }catch(_e){}
+  fly.remove();
+}
+async function animateHumanGroup(cards,destRect,label='CALA'){
+  if(!cards.length||G?.fastTest)return;
+  const sources=cards.map(c=>humanCardRect(c.id));
+  await Promise.all(cards.map((c,i)=>(async()=>{if(i)await sleep(i*55);await animateTableCard(c,sources[i],{left:destRect.left+Math.min(i,4)*5,top:destRect.top+Math.min(i,4)*3,width:destRect.width,height:destRect.height},label,390)})()));
+}
+async function animateCpuGroup(pi,cards,destRect,label='CALA'){
+  if(!cards.length||G?.fastTest)return;
+  const src=playerBadgeRect(pi);
+  await Promise.all(cards.map((c,i)=>(async()=>{if(i)await sleep(i*50);await animateTableCard(c,src,{left:destRect.left+Math.min(i,4)*5,top:destRect.top+Math.min(i,4)*3,width:destRect.width,height:destRect.height},label,390)})()));
+}
+
 function stageOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0])return;const cards=selectedAvailable();if(!cards.length){toast('Seleziona le carte del gioco');return}const info=analyzeNewMeld(cards,{initial:true,team:0});if(!info){toast('Questo non è un gioco valido per l’apertura');return}if(G.pendingPickup&&cards.some(c=>c.id===G.pendingPickup.topId)&&!pickupUseValid(cards)){toast('La cima del Pozzo va usata con due naturali uguali già in mano');return}if(G.pendingOpening.some(m=>m.kind===info.kind&&(m.kind==='wild'||m.rank===info.rank))){toast('Hai già preparato un gioco di quel valore');return}G.pendingOpening.push(info);G.selected.clear();render()}
-function commitOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0])return;const topId=G.pendingPickup?.topId||null;if(topId){const pm=G.pendingOpening.find(m=>m.cards.some(c=>c.id===topId));if(!pm||!pickupUseValid(pm.cards)){toast('Prima devi usare la cima del Pozzo con due naturali uguali');return}}const ex=new Set(topId?[topId]:[]),check=initialMeldLegalList(G.pendingOpening,0,ex);if(!check.ok){toast(check.msg);return}const n=pendingCards().length,leftAfter=G.players[0].hand.length-n+(G.pendingPickup?G.discard.length:0);if(leftAfter<2&&!(leftAfter===1&&canGoOutWithMelds(0,G.pendingOpening.map(m=>({...m,team:0}))))){toast('Dopo l’apertura devi poter conservare lo scarto finale in modo legale');return}const fromPack=!!G.pendingPickup;for(const info of G.pendingOpening){removeCards(0,info.cards);createMeld(0,info)}G.pendingOpening=[];G.opened[0]=true;G.openOrder.push(0);let tail=0;if(fromPack)tail=releasePendingPickup();else if(G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3}G.lastLog=`Hai aperto con ${check.pts} punti${fromPack?` e raccolto il resto del Pozzo (${tail} carte)`:G.talonPending?` · ${G.talonPending} Bonus Cards dopo lo scarto`:''}.`;render()}
+async function commitOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0]||tableFlightLock)return;const topId=G.pendingPickup?.topId||null;if(topId){const pm=G.pendingOpening.find(m=>m.cards.some(c=>c.id===topId));if(!pm||!pickupUseValid(pm.cards)){toast('Prima devi usare la cima del Pozzo con due naturali uguali');return}}const ex=new Set(topId?[topId]:[]),check=initialMeldLegalList(G.pendingOpening,0,ex);if(!check.ok){toast(check.msg);return}const n=pendingCards().length,leftAfter=G.players[0].hand.length-n+(G.pendingPickup?G.discard.length:0);if(leftAfter<2&&!(leftAfter===1&&canGoOutWithMelds(0,G.pendingOpening.map(m=>({...m,team:0}))))){toast('Dopo l’apertura devi poter conservare lo scarto finale in modo legale');return}const fromPack=!!G.pendingPickup;
+  tableFlightLock=true;
+  try{const base=teamTableRect(0);for(let i=0;i<G.pendingOpening.length;i++){const info=G.pendingOpening[i],d={left:base.left+i*12,top:base.top,width:base.width,height:base.height};await animateHumanGroup(info.cards,d,'APRI')}}finally{tableFlightLock=false}
+  for(const info of G.pendingOpening){removeCards(0,info.cards);createMeld(0,info)}G.pendingOpening=[];G.opened[0]=true;G.openOrder.push(0);let tail=0;if(fromPack)tail=releasePendingPickup();else if(G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3}G.lastLog=`Hai aperto con ${check.pts} punti${fromPack?` e raccolto il resto del Pozzo (${tail} carte)`:G.talonPending?` · ${G.talonPending} Bonus Cards dopo lo scarto`:''}.`;render()}
 function cancelSelectionOrPending(){if(cancelPendingPickup())return;if(G.selected.size){G.selected.clear();render();return}if(G.pendingOpening.length){G.pendingOpening=[];render()}}
-function humanMeld(){if(!G||G.turn!==0||G.phase!=='play')return;if(!G.opened[0]){stageOpening();return}const cards=selectedCards();if(!cards.length)return;if(G.pendingPickup&&!pickupUseValid(cards)){toast('Devi usare subito la cima del Pozzo con due naturali uguali');return}const info=analyzeNewMeld(cards,{team:0});if(!info){toast('Combinazione non valida');return}const tail=G.pendingPickup?G.discard.length:0,left=G.players[0].hand.length-cards.length+tail;if(left<2&&!(left===1&&canGoOutAfterNew(0,info))){toast(canGoOutAfterNew(0,info)?'Devi lasciare la carta dello scarto finale':'Servono due canaste complete e nessun gioco speciale incompleto');return}removeCards(0,cards);createMeld(0,info);const got=G.pendingPickup?releasePendingPickup():0;G.selected.clear();G.lastLog=got?`Hai usato la cima e raccolto altre ${got} carte dal Pozzo.`:`Hai calato ${meldLabel(info)}.`;render()}
-function humanAttachTo(meldId){if(!G||G.turn!==0||G.phase!=='play'||!G.opened[0])return;const cards=selectedCards(),m=G.melds.find(x=>x.id===meldId&&x.team===0);if(!cards.length||!m)return;if(G.pendingPickup&&!pickupUseValid(cards)){toast('Devi aggiungere subito la cima del Pozzo con due naturali uguali');return}const info=analyzeAttached(m,cards);if(!info){toast('Quelle carte non possono essere aggiunte qui');return}const tail=G.pendingPickup?G.discard.length:0,left=G.players[0].hand.length-cards.length+tail;if(left<2&&!(left===1&&canGoOutAfterReplace(0,m.id,info))){toast(canGoOutAfterReplace(0,m.id,info)?'Devi lasciare la carta dello scarto finale':'Servono due canaste complete e nessun gioco speciale incompleto');return}removeCards(0,cards);commitInfoToMeld(m,info);const got=G.pendingPickup?releasePendingPickup():0;G.selected.clear();G.targetMeld=null;G.lastLog=got?`Cima usata: raccolte altre ${got} carte dal Pozzo.`:'Carte aggiunte al gioco.';render()}
+async function humanMeld(){if(!G||G.turn!==0||G.phase!=='play'||tableFlightLock)return;if(!G.opened[0]){stageOpening();return}const cards=selectedCards();if(!cards.length)return;if(G.pendingPickup&&!pickupUseValid(cards)){toast('Devi usare subito la cima del Pozzo con due naturali uguali');return}const info=analyzeNewMeld(cards,{team:0});if(!info){toast('Combinazione non valida');return}const tail=G.pendingPickup?G.discard.length:0,left=G.players[0].hand.length-cards.length+tail;if(left<2&&!(left===1&&canGoOutAfterNew(0,info))){toast(canGoOutAfterNew(0,info)?'Devi lasciare la carta dello scarto finale':'Servono due canaste complete e nessun gioco speciale incompleto');return}
+  tableFlightLock=true;try{await animateHumanGroup(cards,teamTableRect(0),'CALA')}finally{tableFlightLock=false}
+  removeCards(0,cards);createMeld(0,info);const got=G.pendingPickup?releasePendingPickup():0;G.selected.clear();G.lastLog=got?`Hai usato la cima e raccolto altre ${got} carte dal Pozzo.`:`Hai calato ${meldLabel(info)}.`;render()}
+async function humanAttachTo(meldId){if(!G||G.turn!==0||G.phase!=='play'||!G.opened[0]||tableFlightLock)return;const cards=selectedCards(),m=G.melds.find(x=>x.id===meldId&&x.team===0);if(!cards.length||!m)return;if(G.pendingPickup&&!pickupUseValid(cards)){toast('Devi aggiungere subito la cima del Pozzo con due naturali uguali');return}const info=analyzeAttached(m,cards);if(!info){toast('Quelle carte non possono essere aggiunte qui');return}const tail=G.pendingPickup?G.discard.length:0,left=G.players[0].hand.length-cards.length+tail;if(left<2&&!(left===1&&canGoOutAfterReplace(0,m.id,info))){toast(canGoOutAfterReplace(0,m.id,info)?'Devi lasciare la carta dello scarto finale':'Servono due canaste complete e nessun gioco speciale incompleto');return}
+  tableFlightLock=true;try{await animateHumanGroup(cards,tableMeldRect(m.id)||teamTableRect(0),'ATTACCA')}finally{tableFlightLock=false}
+  removeCards(0,cards);commitInfoToMeld(m,info);const got=G.pendingPickup?releasePendingPickup():0;G.selected.clear();G.targetMeld=null;G.lastLog=got?`Cima usata: raccolte altre ${got} carte dal Pozzo.`:'Carte aggiunte al gioco.';render()}
 function legalDiscardBasic(c){if(isThree(c))return false;if(!G.discard.length&&(isSeven(c)||isAce(c)||isWild(c)||isDeadCard(c)))return false;return true}
 function humanCanDiscardCard(c){const p=G.players[0];if(!legalDiscardBasic(c))return {ok:false,msg:'Carta SWAD: non può essere il primo scarto'};const wouldOut=p.hand.length===1;if(wouldOut&&!canGoOutTeam(0))return {ok:false,msg:'Per uscire servono due canaste complete e nessun gioco speciale incompleto'};if(isWild(c)&&!wouldOut){const alt=p.hand.some(x=>x.id!==c.id&&!isWild(x)&&legalDiscardBasic(x));if(alt)return {ok:false,msg:'Una Matta si scarta solo se non esiste un’alternativa legale'}}return {ok:true,wouldOut}}
 function ensureSwadEscape(pi){if(G.discard.length)return;const p=G.players[pi];const has=p.hand.some(c=>legalDiscardBasic(c));if(has)return;const t=teamOf(pi);let ms=teamMelds(t).slice().sort((a,b)=>b.seq-a.seq);while(ms.length&&!p.hand.some(c=>legalDiscardBasic(c))){const m=ms.shift();G.melds=G.melds.filter(x=>x.id!==m.id);addCards(pi,m.cards);G.lastLog=`${p.name} riprende il gioco ${meldLabel(m)} per ottenere uno scarto legale (SWAD).`} }
+function beginStockEnd(){
+  if(!G||G.phase==='round-end'||G.phase==='stock-end')return;
+  clearTimeout(cpuTimer);clearTimeout(stockEndTimer);cpuEpoch++;
+  G.phase='stock-end';G.selected.clear();G.targetMeld=null;G.justDrawn=[];
+  G.lastLog='Il Tallone è esaurito. La smazzata termina.';
+  render();
+  if(G.fastTest){finishHand({});return}
+  stockEndTimer=setTimeout(()=>{if(G&&G.phase==='stock-end')finishHand({})},800);
+}
 function finishDiscard(pi,c){const p=G.players[pi],t=teamOf(pi);removeCards(pi,[c]);G.discard.push(c);const out=p.hand.length===0;
   if(out){finishHand({goingOutTeam:t});return}
   if(G.talonPending&&pi===G.talonOwner){const n=G.talonPending;G.talonPending=0;G.talonOwner=null;drawBonusCards(pi,n);G.lastLog+=` ${p.name} riceve ${n} Bonus Cards.`}
+  if(!G.stock.length){beginStockEnd();return}
   G.turn=nextPlayer(pi);G.phase='draw';G.selected.clear();G.targetMeld=null;G.justDrawn=[];render();scheduleCpu();}
 function humanDiscard(){if(!G||G.turn!==0||G.phase!=='play')return;if(G.pendingPickup){toast('Prima devi usare legalmente la cima del Pozzo');return}const cards=selectedCards();if(cards.length!==1){toast('Seleziona una carta da scartare');return}ensureSwadEscape(0);if(!G.players[0].hand.some(x=>x.id===cards[0].id)){G.selected.clear();render();return}const chk=humanCanDiscardCard(cards[0]);if(!chk.ok){toast(chk.msg);return}if(G.talonPending&&!G.talonOwner)G.talonOwner=0;finishDiscard(0,cards[0])}
 function humanDraw(){if(!G||G.turn!==0||G.phase!=='draw')return;if(!processDeferredBonusThrees(0)){finishHand({});return}const r=drawFromStock(0);if(r.end&&r.lastThree){G.lastLog='L’ultima carta del Tallone è un Tre: la smazzata termina subito.';finishHand({});return}if(!r.drawn.length){finishHand({});return}G.phase='play';G.drawSource='stock';G.justDrawn=r.drawn.map(c=>c.id);G.lastLog='Hai pescato dal Tallone.';G.pendingOpening=[];G.selected.clear();render()}
-function humanPickup(){if(!G||G.turn!==0||G.phase!=='draw')return;const plan=pickupPlan(0);if(!plan){toast('Non puoi prendere il Pozzo: servono la cima e due naturali uguali, con apertura valida se necessaria');return}const top=G.discard.pop();G.players[0].hand.push(top);if(!manualOrder.includes(top.id))manualOrder.push(top.id);arrangeHand(0);G.pendingPickup={topId:top.id,rank:top.rank,wasOpened:G.opened[0]};G.phase='play';G.drawSource='pack-pending';G.selected.clear();G.selected.add(top.id);G.pendingOpening=[];G.justDrawn=[top.id];G.lastLog=`Hai preso la cima ${cardText(top)}. Usala con due naturali uguali; il resto del Pozzo arriverà solo dopo.`;render()}
+function humanPickup(){if(!G||G.turn!==0||G.phase!=='draw')return;const plan=pickupPlan(0);if(!plan){toast('Non puoi prendere il Pozzo: servono la cima e due naturali uguali, con apertura valida se necessaria');return}const top=G.discard.pop();G.players[0].hand.push(top);arrangeHand(0);G.pendingPickup={topId:top.id,rank:top.rank,wasOpened:G.opened[0]};G.phase='play';G.drawSource='pack-pending';G.selected.clear();G.selected.add(top.id);G.pendingOpening=[];G.justDrawn=[top.id];G.lastLog=`Hai preso la cima ${cardText(top)}. Usala con due naturali uguali; il resto del Pozzo arriverà solo dopo.`;render()}
 function declareSpecial(pi){const t=teamOf(pi),sp=detectSpecial(G.players[pi].hand);if(!sp||G.opened[t])return false;G.lastLog=`${G.players[pi].name} dichiara ${sp.name}.`;finishHand({specialTeam:t,special:sp});return true}
 function humanSpecial(){if(!G||G.turn!==0||G.phase!=='play')return;if(!declareSpecial(0))toast('La mano attuale non corrisponde a una Mano speciale CLA')}
 
@@ -3658,7 +3815,7 @@ function cpuAttachmentWorthPlaying(pi,m,c,info){
   if(isWild(c))return false;
   return p.hand.length>3;
 }
-function cpuTryAttach(pi){
+async function cpuTryAttach(pi){
   const p=G.players[pi],t=teamOf(pi);let guard=0;
   while(guard++<24){
     let best=null;
@@ -3672,7 +3829,8 @@ function cpuTryAttach(pi){
       }
     }
     if(!best)break;
-    removeCards(pi,[best.c]);commitInfoToMeld(best.m,best.info);
+    await animateCpuGroup(pi,[best.c],tableMeldRect(best.m.id)||teamTableRect(t),'ATTACCA');
+    removeCards(pi,[best.c]);commitInfoToMeld(best.m,best.info);render();
   }
 }
 function cpuNewMeldUtility(pi,m){
@@ -3684,7 +3842,7 @@ function cpuNewMeldUtility(pi,m){
   }
   return u;
 }
-function cpuTryNewMelds(pi){
+async function cpuTryNewMelds(pi){
   const p=G.players[pi],t=teamOf(pi);let guard=0;
   while(guard++<8){
     const cand=generateMeldCandidates(p.hand,t).filter(m=>{
@@ -3704,7 +3862,9 @@ function cpuTryNewMelds(pi){
     if(!cand.length)break;
     cand.sort((a,b)=>cpuNewMeldUtility(pi,b)-cpuNewMeldUtility(pi,a));
     const m=cand[0],utility=cpuNewMeldUtility(pi,m);
-    if(utility<95)break;removeCards(pi,m.cards);createMeld(t,m);
+    if(utility<95)break;
+    await animateCpuGroup(pi,m.cards,teamTableRect(t),'CALA');
+    removeCards(pi,m.cards);createMeld(t,m);render();
   }
 }
 function cpuDiscardScore(pi,c){const t=teamOf(pi),opp=1-t,p=G.players[pi];let s=scoreCard(c);if(isDeadCard(c))s+=180;if(isWild(c))s-=600;const own=p.hand.filter(x=>x.id!==c.id&&isNatural(x)&&isNatural(c)&&x.rank===c.rank).length,total=own+1;
@@ -3731,9 +3891,9 @@ async function cpuTurn(){if(!G||G.phase==='round-end'||(G.turn===0&&!G.autoplay)
   }
   if(!G.opened[t]&&declareSpecial(pi))return;
   if(!G.opened[t])specialPursuit=cpuNearSpecialPlan(pi);
-  if(!G.opened[t]&&!specialPursuit){const plan=openingCandidatesGreedy(pi);if(plan&&(()=>{const left=p.hand.length-plan.list.flatMap(m=>m.cards).length;return left>=2||(left===1&&canGoOutWithMelds(t,plan.list.map(m=>({...m,team:t}))))})()){for(const info of plan.list){removeCards(pi,info.cards);createMeld(t,info)}G.opened[t]=true;G.openOrder.push(t);if(G.drawSource!=='pack'&&G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3;G.talonOwner=pi}G.lastLog=`${p.name} apre con ${plan.pts} punti.`;render();await sleep(250)}}
+  if(!G.opened[t]&&!specialPursuit){const plan=openingCandidatesGreedy(pi);if(plan&&(()=>{const left=p.hand.length-plan.list.flatMap(m=>m.cards).length;return left>=2||(left===1&&canGoOutWithMelds(t,plan.list.map(m=>({...m,team:t}))))})()){const base=teamTableRect(t);for(let i=0;i<plan.list.length;i++){const info=plan.list[i],d={left:base.left+i*12,top:base.top,width:base.width,height:base.height};await animateCpuGroup(pi,info.cards,d,'APRE')}for(const info of plan.list){removeCards(pi,info.cards);createMeld(t,info)}G.opened[t]=true;G.openOrder.push(t);if(G.drawSource!=='pack'&&G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3;G.talonOwner=pi}G.lastLog=`${p.name} apre con ${plan.pts} punti.`;render();await sleep(250)}}
   if(specialPursuit)G.lastLog=`${p.name} conserva una mano promettente invece di aprire subito.`;
-  if(G.opened[t]){cpuTryAttach(pi);cpuTryNewMelds(pi);render();await sleep(220)}
+  if(G.opened[t]){await cpuTryAttach(pi);await cpuTryNewMelds(pi);render();await sleep(220)}
   if(p.hand.length===1&&canGoOutTeam(t)&&pi===2&&!G.permissionAsked&&!G.autoplay){G.permissionAsked=true;G.permissionPending={pi,epoch};$('permissionModal').classList.add('show');return}
   let d=specialPursuit?p.hand.find(c=>c.id===specialPursuit.discardId&&legalDiscardBasic(c))||null:null;
   if(!d)d=cpuChooseDiscard(pi);if(!d){G.lastLog=`${p.name} non trova uno scarto legale: la smazzata termina per sicurezza.`;finishHand({});return}if(G.talonPending&&!G.talonOwner)G.talonOwner=pi;G.lastLog=`${p.name} scarta ${cardText(d)}.`;finishDiscard(pi,d)}
@@ -3750,13 +3910,13 @@ async function runAutoplayHands(n=20,maxTurns=500){
   }
   G.autoplay=false;G.fastTest=false;return out;
 }
-function finishHand(opts={}){if(!G||G.phase==='round-end')return;clearTimeout(cpuTimer);cpuEpoch++;G.phase='round-end';const a=scoreTeam(0,opts),b=scoreTeam(1,opts);G.teamScores[0]+=a.total;G.teamScores[1]+=b.total;G.lastRound={a,b,opts};render();showScore()}
+function finishHand(opts={}){if(!G||G.phase==='round-end')return;clearTimeout(cpuTimer);clearTimeout(stockEndTimer);cpuEpoch++;G.phase='round-end';const a=scoreTeam(0,opts),b=scoreTeam(1,opts);G.teamScores[0]+=a.total;G.teamScores[1]+=b.total;G.lastRound={a,b,opts};render();showScore()}
 function showScore(){const {a,b,opts}=G.lastRound;let html=`<table><tr><th>Squadra</th><th>Smazzata</th><th>Totale</th></tr><tr><td>Tu + Marco</td><td class="${a.total<0?'bad':'win'}">${a.total>=0?'+':''}${a.total}</td><td class="scoreBig">${G.teamScores[0]}</td></tr><tr><td>Luna + Sara</td><td class="${b.total<0?'bad':'win'}">${b.total>=0?'+':''}${b.total}</td><td class="scoreBig">${G.teamScores[1]}</td></tr></table><h3>Dettaglio</h3><p><b>Tu + Marco:</b> ${a.detail.join(' · ')||'0'}</p><p><b>Luna + Sara:</b> ${b.detail.join(' · ')||'0'}</p>`;
   let gameOver=false,winner=null;if(opts.special?.dream){gameOver=true;winner=opts.specialTeam}else if(G.teamScores[0]>=8500||G.teamScores[1]>=8500){if(G.teamScores[0]!==G.teamScores[1]){gameOver=true;winner=G.teamScores[0]>G.teamScores[1]?0:1}}
   if(gameOver){html+=`<h3 class="win">Partita vinta da ${teamName(winner)}!</h3>`;$('nextBtn').hidden=true;$('scoreTitle').textContent='Fine partita'}else{$('nextBtn').hidden=false;$('scoreTitle').textContent='Fine smazzata'}$('scoreBody').innerHTML=html;$('scoreModal').classList.add('show')}
 
-function startGame(){clearTimeout(cpuTimer);cpuEpoch++;G={players:[{name:'Tu',human:true,hand:[]},{name:'Luna',hand:[]},{name:'Marco',hand:[]},{name:'Sara',hand:[]}],teamScores:[0,0],round:0,dealer:(Math.random()*4)|0,stock:[],discard:[],melds:[],threes:[[],[]],opened:[false,false],openOrder:[],turn:0,phase:'round-end',selected:new Set(),targetMeld:null,pendingOpening:[],pendingPickup:null,lastLog:'',justDrawn:[],talonPending:0,talonOwner:null,deferredBonusThrees:[],permissionAsked:false,permissionPending:null};sortMode='rank';manualOrder=[];startRound()}
-function startRound(){clearTimeout(cpuTimer);cpuEpoch++;G.round++;G.stock=shuffle(makeDeck());G.discard=[];G.melds=[];G.threes=[[],[]];G.opened=[false,false];G.openOrder=[];G.pendingOpening=[];G.pendingPickup=null;G.selected.clear();G.targetMeld=null;G.justDrawn=[];G.talonPending=0;G.talonOwner=null;G.deferredBonusThrees=[];G.permissionAsked=false;G.permissionPending=null;for(const p of G.players)p.hand=[];
+function startGame(){clearTimeout(cpuTimer);clearTimeout(stockEndTimer);cpuEpoch++;G={players:[{name:'Tu',human:true,hand:[]},{name:'Luna',hand:[]},{name:'Marco',hand:[]},{name:'Sara',hand:[]}],teamScores:[0,0],round:0,dealer:(Math.random()*4)|0,stock:[],discard:[],melds:[],threes:[[],[]],opened:[false,false],openOrder:[],turn:0,phase:'round-end',selected:new Set(),targetMeld:null,pendingOpening:[],pendingPickup:null,lastLog:'',justDrawn:[],talonPending:0,talonOwner:null,deferredBonusThrees:[],permissionAsked:false,permissionPending:null};startRound()}
+function startRound(){clearTimeout(cpuTimer);clearTimeout(stockEndTimer);cpuEpoch++;G.round++;G.stock=shuffle(makeDeck());G.discard=[];G.melds=[];G.threes=[[],[]];G.opened=[false,false];G.openOrder=[];G.pendingOpening=[];G.pendingPickup=null;G.selected.clear();G.targetMeld=null;G.justDrawn=[];G.talonPending=0;G.talonOwner=null;G.deferredBonusThrees=[];G.permissionAsked=false;G.permissionPending=null;for(const p of G.players)p.hand=[];
   // 13 cards each. Expose and replace dealt threes unless a special hand is being pursued; digital play defaults to ordinary handling.
   for(let r=0;r<13;r++)for(let pi=0;pi<4;pi++){let c=G.stock.pop();while(c&&isThree(c)&&G.stock.length){exposeThree(teamOf(pi),c);c=G.stock.pop()}if(c)G.players[pi].hand.push(c)}
   // In Modern American Canasta the discard tray starts empty; the first player creates the Pack with their discard.
@@ -3764,20 +3924,55 @@ function startRound(){clearTimeout(cpuTimer);cpuEpoch++;G.round++;G.stock=shuffl
   for(let i=0;i<4;i++)arrangeHand(i);G.dealer=nextPlayer(G.dealer);G.turn=nextPlayer(G.dealer);G.phase='draw';G.lastLog=`Smazzata ${G.round}. ${G.players[G.dealer].name} distribuisce; inizia ${G.players[G.turn].name}.`;render();scheduleCpu()}
 
 function toast(msg){clearTimeout(toastTimer);$('toast').textContent=msg;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2300);if(navigator.vibrate)navigator.vibrate(18)}
-function phaseText(){if(!G)return '';if(G.phase==='round-end')return G.lastLog;const p=G.players[G.turn];if(G.turn===0)return G.phase==='draw'?'Tocca Pesca oppure Prendi pozzo.':G.pendingPickup?'Usa subito la cima del Pozzo con due naturali uguali.':G.opened[0]?'Gioca, poi scarta.':'Prepara l’apertura, oppure conserva e scarta.';return `${p.name}: ${G.phase==='draw'?'pesca':'gioca'}…`}
-function renderOpp(){const html=[1,2,3].map(i=>{const p=G.players[i],t=teamOf(i),meta=G.opened[t]?'':`min ${openingNeed(t)}`;return `<div class="opp ${G.turn===i?'active':''} ${i===2?'partner':''}"><div class="name"><span>${p.name}${i===2?' · partner':''}</span><span class="name-hand-count">${p.hand.length}</span></div><div class="meta">${meta}</div></div>`}).join('');$('opponents').innerHTML=html}
+function phaseText(){if(!G)return '';if(G.phase==='round-end')return G.lastLog;if(G.phase==='stock-end')return 'Tallone esaurito.';const p=G.players[G.turn];if(G.turn===0)return G.phase==='draw'?'Tocca Pesca oppure Prendi pozzo.':G.pendingPickup?'Usa subito la cima del Pozzo con due naturali uguali.':G.opened[0]?'Gioca, poi scarta.':'Prepara l’apertura, oppure conserva e scarta.';return `${p.name}: ${G.phase==='draw'?'pesca':'gioca'}…`}
+function renderOpp(){const html=[1,2,3].map(i=>{const p=G.players[i],t=teamOf(i),meta=G.opened[t]?'':`min ${openingNeed(t)}`;return `<div class="opp ${G.turn===i?'active':''} ${i===2?'partner':''}" data-player="${i}"><div class="name"><span>${p.name}${i===2?' · partner':''}</span><span class="name-hand-count">${p.hand.length}</span></div><div class="meta">${meta}</div></div>`}).join('');$('opponents').innerHTML=html}
 function renderStock(){const el=$('stockPile');el.className='pile'+(G.turn===0&&G.phase==='draw'&&G.stock.length?' clickable':'');if(!G.stock.length){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}const n=G.stock.length,turn=n>=9?`<img class="turnCardBack ${n===9?'stockTop turnTop':''}" src="${backSrc(1)}" alt="Turn Card">`:'';const top=n===9?'':`<img class="backsvg stockTop" src="${backSrc(0)}" alt="Tallone">`;el.innerHTML=`${turn}${top}<div class="stockCount">${n}</div>`}
 function renderDiscard(){const el=$('discardPile'),top=G.discard[G.discard.length-1];if(!top){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}el.innerHTML=cardHtml(top,isDeadCard(top)?'deadTop':'')+(G.pendingPickup?'<div class="stockCount">RESTO</div>':'');el.onclick=()=>{if(G.turn===0&&G.phase==='draw')humanPickup()}}
-function renderMelds(team,elid,metaid){const el=$(elid),ms=teamMelds(team),canAttach=team===0&&G.turn===0&&G.phase==='play'&&G.opened[0]&&G.selected.size>0;el.innerHTML=ms.length?ms.map(m=>{const wc=m.cards.filter(isWild).length,title=`${m.cards.length} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}${isCanasta(m)?` · bonus ${canastaBonus(m)}`:''}`;return `<div class="meld ${canAttach?'attachable':''} ${isCanasta(m)?'done':''}" data-meld="${m.id}" title="${title}"><div class="meldHead">${meldHeadLabel(m)}</div><div class="meldCards">${m.cards.map((c,i)=>cardHtml(c,'') .replace('class="card ','class="card ').replace('data-card=',`style="--i:${i}" data-card=`)).join('')}</div></div>`}).join(''):'<div class="emptyZone">Nessun gioco</div>';
-  $(metaid).textContent=G.opened[team]?'':`Apertura ${openingNeed(team)}`;el.querySelectorAll('.meld').forEach(x=>x.onclick=()=>{if(team!==0||G.turn!==0||G.phase!=='play'||!G.opened[0]||!G.selected.size)return;humanAttachTo(x.dataset.meld)})}
+function renderMelds(team,elid,metaid){const el=$(elid),ms=teamMelds(team),canAttach=team===0&&G.turn===0&&G.phase==='play'&&G.opened[0]&&G.selected.size>0;el.innerHTML=ms.length?ms.map(m=>{const wc=m.cards.filter(isWild).length,title=`${m.cards.length} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}${isCanasta(m)?` · bonus ${canastaBonus(m)}`:''}`;
+    let topCard,peekCard=null;
+    if(m.kind==='rank'){
+      topCard=m.cards.find(isNatural)||m.cards[0];
+      peekCard=m.cards.find(isWild)||null;
+    }else{
+      topCard=m.cards[0];
+      peekCard=m.cards.length>1?m.cards[1]:null;
+    }
+    const cls=peekCard?' hasWild':'';
+    const peek=peekCard?cardHtml(peekCard,'meldWildPeek'):'';
+    const top=cardHtml(topCard,'meldTopCard');
+    return `<div class="meld ${canAttach?'attachable':''} ${isCanasta(m)?'done':''}" data-meld="${m.id}" title="${title}"><div class="meldHead">${meldHeadLabel(m)}</div><div class="meldCards${cls}">${peek}${top}</div></div>`}).join(''):'<div class="emptyZone">Nessun gioco</div>';
+  $(metaid).textContent=G.opened[team]?'':`Apertura ${openingNeed(team)}`;el.querySelectorAll('.meld').forEach(x=>x.onclick=()=>{if(team!==0||G.turn!==0||G.phase!=='play'||!G.opened[0]||!G.selected.size||tableFlightLock)return;humanAttachTo(x.dataset.meld)})}
 function renderThrees(){for(const [team,id] of [[0,'oursThrees'],[1,'theirThrees']]){const el=$(id),cards=G.threes[team];el.innerHTML=cards.map(c=>`<div class="threeMini" title="${esc(cardText(c))}"><img draggable="false" alt="${esc(cardText(c))}" src="${faceSrc(c)}"></div>`).join('');el.title=cards.length?`${teamName(team)}: ${cards.length} Tre esposti`:''}}
 function renderPending(){const box=$('pending');if(!G.pendingOpening.length||G.opened[0]){box.classList.remove('show');return}box.classList.add('show');const ex=new Set(G.pendingPickup?[G.pendingPickup.topId]:[]);let pts=G.pendingOpening.reduce((s,m)=>s+m.cards.filter(c=>!ex.has(c.id)).reduce((x,c)=>x+scoreCard(c),0),0),clean=G.pendingOpening.some(m=>m.kind==='rank'&&m.cards.every(isNatural)&&m.cards.filter(c=>!ex.has(c.id)).length>=3);$('pendingPts').textContent=pts;$('pendingNeed').textContent=openingNeed(0);$('pendingClean').textContent=clean?'Clean Triple ✓':'Clean Triple mancante';$('pendingRows').innerHTML=G.pendingOpening.map(m=>`<span class="pendingTag">${meldLabel(m)} · ${m.cards.filter(c=>!ex.has(c.id)).reduce((s,c)=>s+scoreCard(c),0)} pt</span>`).join('')}
-function renderHand(){const el=$('hand'),just=new Set(G.justDrawn);G.justDrawn=[];arrangeHand(0);el.innerHTML=G.players[0].hand.map(c=>`<div class="handcard" draggable="true" data-id="${c.id}">${cardHtml(c,`${G.selected.has(c.id)?'selected':''} ${just.has(c.id)?'just':''}`)}</div>`).join('');el.querySelectorAll('.handcard').forEach(w=>{const id=Number(w.dataset.id);w.onclick=e=>{if(dragId)return;if(!G||G.turn!==0||G.phase!=='play')return;if(G.pendingOpening.some(m=>m.cards.some(c=>c.id===id)))return;G.selected.has(id)?G.selected.delete(id):G.selected.add(id);render()};w.ondragstart=e=>{dragId=id;sortMode='manual';manualOrder=G.players[0].hand.map(c=>c.id);w.classList.add('dragging');e.dataTransfer.effectAllowed='move'};w.ondragover=e=>{e.preventDefault()};w.ondrop=e=>{e.preventDefault();const to=id;if(dragId&&dragId!==to){const a=manualOrder.indexOf(dragId),b=manualOrder.indexOf(to);if(a>=0&&b>=0){manualOrder.splice(a,1);manualOrder.splice(b,0,dragId)}}};w.ondragend=()=>{dragId=null;arrangeHand(0);render()}})}
-function renderActions(){const my=G.turn===0&&G.phase==='play',draw=G.turn===0&&G.phase==='draw',sel=G.selected.size>0,opened=G.opened[0];$('drawBtn').hidden=!draw;$('pickupBtn').hidden=!draw;$('pickupBtn').disabled=draw&&!pickupPlan(0);$('meldBtn').hidden=!my||!sel;$('openBtn').hidden=!my||opened||!G.pendingOpening.length;$('specialBtn').hidden=!my||opened||!!G.pendingPickup||!detectSpecial(G.players[0].hand);$('discardBtn').hidden=!my||!sel||!!G.pendingPickup;$('cancelBtn').hidden=!my||(!sel&&!G.pendingOpening.length&&!G.pendingPickup);$('sortBtn').hidden=G.turn!==0}
+function renderHand(){const el=$('hand'),just=new Set(G.justDrawn);G.justDrawn=[];arrangeHand(0);el.innerHTML=G.players[0].hand.map(c=>`<div class="handcard" data-id="${c.id}">${cardHtml(c,`${G.selected.has(c.id)?'selected':''} ${just.has(c.id)?'just':''}`)}</div>`).join('');el.querySelectorAll('.handcard').forEach(w=>{const id=Number(w.dataset.id);w.onclick=()=>{if(!G||G.turn!==0||G.phase!=='play')return;if(G.pendingOpening.some(m=>m.cards.some(c=>c.id===id)))return;G.selected.has(id)?G.selected.delete(id):G.selected.add(id);render()}})}
+
+function humanSelectionCanMeld(){
+  if(!G||G.turn!==0||G.phase!=='play'||!G.selected.size)return false;
+  if(!G.opened[0]){
+    const cards=selectedAvailable();
+    if(cards.length<3)return false;
+    const info=analyzeNewMeld(cards,{initial:true,team:0});
+    if(!info)return false;
+    if(G.pendingPickup&&cards.some(c=>c.id===G.pendingPickup.topId)&&!pickupUseValid(cards))return false;
+    if(G.pendingOpening.some(m=>m.kind===info.kind&&(m.kind==='wild'||m.rank===info.rank)))return false;
+    return true;
+  }
+  const cards=selectedCards();
+  if(cards.length<3)return false;
+  if(G.pendingPickup&&!pickupUseValid(cards))return false;
+  const info=analyzeNewMeld(cards,{team:0});
+  if(!info)return false;
+  const tail=G.pendingPickup?G.discard.length:0;
+  const left=G.players[0].hand.length-cards.length+tail;
+  if(left<2&&!(left===1&&canGoOutAfterNew(0,info)))return false;
+  return true;
+}
+
+function renderActions(){const my=G.turn===0&&G.phase==='play',draw=G.turn===0&&G.phase==='draw',sel=G.selected.size>0,opened=G.opened[0];$('drawBtn').hidden=!draw;$('pickupBtn').hidden=!draw;$('pickupBtn').disabled=draw&&!pickupPlan(0);$('meldBtn').hidden=!my||!humanSelectionCanMeld();$('openBtn').hidden=!my||opened||!G.pendingOpening.length;$('specialBtn').hidden=!my||opened||!!G.pendingPickup||!detectSpecial(G.players[0].hand);$('discardBtn').hidden=!my||!sel||!!G.pendingPickup;$('cancelBtn').hidden=!my||(!sel&&!G.pendingOpening.length&&!G.pendingPickup)}
 function renderMatchScore(){if(!G)return;$('matchScoreUs').textContent=G.teamScores[0];$('matchScoreThem').textContent=G.teamScores[1]}
 function render(){if(!G)return;renderMatchScore();$('banner').textContent=phaseText()+(G.lastLog?` · ${G.lastLog}`:'');renderOpp();renderStock();renderDiscard();renderThrees();renderMelds(0,'oursMelds','oursMeta');renderMelds(1,'theirMelds','theirsMeta');renderPending();renderHand();renderActions()}
 
-$('newBtn').onclick=()=>startGame();$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('drawBtn').onclick=humanDraw;$('pickupBtn').onclick=humanPickup;$('meldBtn').onclick=humanMeld;$('openBtn').onclick=commitOpening;$('specialBtn').onclick=humanSpecial;$('discardBtn').onclick=humanDiscard;$('cancelBtn').onclick=cancelSelectionOrPending;$('sortBtn').onclick=()=>{sortMode=sortMode==='rank'?'suit':sortMode==='suit'?'manual':'rank';if(sortMode==='manual')manualOrder=G.players[0].hand.map(c=>c.id);arrangeHand(0);render()};$('stockPile').onclick=humanDraw;
+$('newBtn').onclick=()=>startGame();$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('drawBtn').onclick=humanDraw;$('pickupBtn').onclick=humanPickup;$('meldBtn').onclick=humanMeld;$('openBtn').onclick=commitOpening;$('specialBtn').onclick=humanSpecial;$('discardBtn').onclick=humanDiscard;$('cancelBtn').onclick=cancelSelectionOrPending;$('stockPile').onclick=humanDraw;
 $('nextBtn').onclick=()=>{$('scoreModal').classList.remove('show');startRound()};$('restartBtn').onclick=()=>{$('scoreModal').classList.remove('show');startGame()};
 $('permYes').onclick=()=>{const q=G?.permissionPending;$('permissionModal').classList.remove('show');if(!q||G.turn!==q.pi)return;G.permissionPending=null;const d=cpuChooseDiscard(q.pi);if(d)finishDiscard(q.pi,d);else finishHand({})};$('permNo').onclick=()=>{const q=G?.permissionPending;$('permissionModal').classList.remove('show');if(!q||G.turn!==q.pi)return;G.permissionPending=null;const p=G.players[q.pi]; // If Marco had only one card, he must recover a meld rather than go out.
   if(p.hand.length===1){const ms=teamMelds(0).filter(m=>m.seq).sort((a,b)=>b.seq-a.seq);if(ms.length){const m=ms[0];G.melds=G.melds.filter(x=>x.id!==m.id);addCards(q.pi,m.cards)}}const d=cpuChooseDiscard(q.pi);if(d)finishDiscard(q.pi,d);else finishHand({})};
@@ -3788,7 +3983,7 @@ function selfTest(){
   let m=analyzeNewMeld([mk(8,0),mk(8,1),mk(8,2)] ,{team:0});assert('clean triple',m&&m.rank===8);assert('7 no wild',!analyzeNewMeld([mk(7,0),mk(7,1),mk(0,-1,true)],{team:0}));assert('mixed ordinary',!!analyzeNewMeld([mk(9,0),mk(9,1),mk(2,2)],{team:0}));assert('ace wild only initial',!analyzeNewMeld([mk(1,0),mk(1,1),mk(2,2)],{team:0})&&!!analyzeNewMeld([mk(1,0),mk(1,1),mk(2,2)],{team:0,initial:true}));assert('wild meld',analyzeNewMeld([mk(2),mk(2,1),mk(0,-1,true)],{team:0})?.kind==='wild');
   const sp=[4,4,5,5,6,6,8,8,9,9,11,11,13,13].map((r,i)=>mk(r,i%4));assert('pairs special',detectSpecial(sp)?.name==='Pairs');
   G=oldG;seq=oldSeq;return true}
-window.CANASTA_MODERN_TEST={selfTest,detectSpecial,analyzeNewMeld,analyzeAttached,initialMeldLegalList,bestOpeningPlan,pickupPlan,canastaBonus,scoreTeam,legalDiscardBasic,openingCandidatesGreedy,cpuOpeningSpecialAcceptable,cpuEstimatedUnseenNaturals,cpuOpponentOutThreat,cpuDiscardPileRankCount,cpuNearSpecialPlan,cpuShouldSpendWildOnRankMeld,cpuPackCompositionValue,cpuTryAttach,cpuTryNewMelds,cpuChooseDiscard,cpuPickupDesire,getState:()=>G,startGame,startRound,cpuTurn,runAutoplayHands};
+window.CANASTA_MODERN_TEST={selfTest,detectSpecial,analyzeNewMeld,analyzeAttached,initialMeldLegalList,bestOpeningPlan,pickupPlan,canastaBonus,scoreTeam,legalDiscardBasic,openingCandidatesGreedy,cpuOpeningSpecialAcceptable,cpuEstimatedUnseenNaturals,cpuOpponentOutThreat,cpuDiscardPileRankCount,cpuNearSpecialPlan,cpuShouldSpendWildOnRankMeld,cpuPackCompositionValue,cpuTryAttach,cpuTryNewMelds,cpuChooseDiscard,cpuPickupDesire,beginStockEnd,getState:()=>G,startGame,startRound,cpuTurn,runAutoplayHands};
 async function bootWithOriginalCards(){
   selfTest();
 
