@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- BUILD: Canasta classica v29 MODERN LAYOUT ESATTO; based on v28; Wild peeks LEFT, no bottom reserve; red/black top convention; game/AI/rules unchanged -->
+<!-- BUILD: Canasta classica v26 + MODERN CANASTA LAYOUT; based on v25, game/AI/rules unchanged -->
 <!-- BUILD: Canasta classica v24 + DEFLATED CARD BLOB; game/AI/rules unchanged -->
 <!-- BUILD: Canasta mobile v14 wild-count meld labels + explicit attach validation, 2026-08-21 -->
 <html lang="it">
@@ -629,6 +631,186 @@ main{overflow:auto;padding:8px 8px calc(var(--ch) + 96px + env(safe-area-inset-b
 .diag-details{margin-top:14px;border-top:1px solid rgba(255,255,255,.14);padding-top:10px}
 .diag-details summary{cursor:pointer;font-weight:900}
 #diagText{margin-top:8px;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:10px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(0,0,0,.28);padding:8px;border-radius:8px;user-select:text}
+
+
+/* Canasta classica v26: geometria delle pilette allineata alla Moderna v11/v13.
+   Regole e nomenclatura restano CLASSICHE: CANASTA ROSSA / CANASTA NERA.
+   La carta naturale identificativa resta interamente visibile; una Matta
+   rappresentativa sporge in basso del 38%, con lo spazio gia' incorporato
+   nella cella della piletta invece di un enorme row-gap esterno. */
+#melds{
+  --modern-meld-cw:clamp(45px,12.5vw,58px);
+  --modern-meld-ch:calc(var(--modern-meld-cw)*1.43);
+}
+.team-meld-list{
+  --meld-cw:var(--modern-meld-cw)!important;
+  --meld-ch:var(--modern-meld-ch)!important;
+  grid-template-columns:repeat(auto-fill,minmax(calc(var(--modern-meld-cw) + 6px),1fr))!important;
+  column-gap:5px!important;
+  row-gap:8px!important;
+  align-items:start!important;
+  overflow:visible!important;
+}
+.meld{
+  --meld-cw:var(--modern-meld-cw)!important;
+  --meld-ch:var(--modern-meld-ch)!important;
+  box-sizing:border-box!important;
+  width:calc(var(--modern-meld-cw) + 6px)!important;
+  min-width:calc(var(--modern-meld-cw) + 6px)!important;
+  max-width:calc(var(--modern-meld-cw) + 6px)!important;
+  min-height:calc(var(--modern-meld-ch)*1.40 + 27px)!important;
+  margin:auto!important;
+  padding:3px!important;
+  border-radius:8px!important;
+  overflow:visible!important;
+  align-self:start!important;
+}
+.meld-head{
+  min-height:19px!important;
+  margin:0 0 3px!important;
+  text-align:center!important;
+  white-space:normal!important;
+  font-size:8.5px!important;
+  font-weight:950!important;
+  line-height:1.1!important;
+}
+.meld-head b{font-size:8.5px!important;line-height:1.1!important}
+.meld-cards,
+.meld-cards.has-wild{
+  position:relative!important;
+  width:var(--modern-meld-cw)!important;
+  height:calc(var(--modern-meld-ch)*1.40)!important;
+  max-width:none!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+.meld-cards .card{
+  --cw:var(--modern-meld-cw)!important;
+  --ch:var(--modern-meld-ch)!important;
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  width:var(--modern-meld-cw)!important;
+  height:var(--modern-meld-ch)!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+.meld-cards .meld-wild-peek-card{
+  top:calc(var(--modern-meld-ch)*.38)!important;
+  z-index:1!important;
+  filter:brightness(.96)!important;
+  pointer-events:none!important;
+}
+.meld-cards .meld-top-card{
+  top:0!important;
+  z-index:3!important;
+}
+.meld-cards::before,
+.meld-cards::after{
+  content:''!important;
+  position:absolute!important;
+  left:2px!important;
+  top:2px!important;
+  width:calc(var(--modern-meld-cw) - 4px)!important;
+  height:calc(var(--modern-meld-ch) - 4px)!important;
+  border-radius:7px!important;
+  border:1px solid rgba(0,0,0,.18)!important;
+  background:#f7f4ec!important;
+  pointer-events:none!important;
+  opacity:1!important;
+}
+.meld-cards::before{transform:translate(2px,2px)!important;z-index:0!important}
+.meld-cards::after{transform:translate(4px,4px)!important;z-index:0!important}
+/* Come nella Moderna, una canasta completata emerge subito dal resto dei giochi. */
+.meld.canasta-pura,
+.meld.canasta-mista{box-shadow:inset 0 0 0 2px rgba(255,209,102,.70)!important}
+@media(max-width:430px){
+  .team-meld-list{column-gap:3px!important;row-gap:8px!important}
+}
+@media(orientation:landscape) and (max-height:560px){
+  #melds{--modern-meld-cw:42px;--modern-meld-ch:calc(var(--modern-meld-cw)*1.43)}
+}
+
+
+
+/* Canasta classica v29: layout ESATTO della Moderna.
+   1) una Matta rappresentativa sporge leggermente a SINISTRA, mai in basso;
+   2) nessuno spazio verticale e' riservato alla Matta;
+   3) CANASTA ROSSA: carta rossa in cima ove possibile;
+   4) CANASTA NERA: carta nera in cima ove possibile + Matta laterale a sinistra. */
+.meld{
+  min-height:calc(var(--modern-meld-ch) + 27px)!important;
+}
+.meld-cards,
+.meld-cards.has-wild,
+.meld.canasta-pura .meld-cards,
+.meld.canasta-mista .meld-cards{
+  position:relative!important;
+  width:var(--modern-meld-cw)!important;
+  height:var(--modern-meld-ch)!important;
+  max-width:none!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+.meld-cards .meld-wild-peek-card{
+  display:flex!important;
+  left:calc(var(--modern-meld-cw) * -0.16)!important;
+  top:0!important;
+  z-index:1!important;
+  filter:brightness(.96)!important;
+  pointer-events:none!important;
+}
+.meld-cards .meld-top-card{
+  left:0!important;
+  top:0!important;
+  z-index:3!important;
+}
+.meld.canasta-pura .meld-wild-peek-card{display:none!important}
+.meld.canasta-mista .meld-wild-peek-card{display:flex!important}
+/* La pila resta visivamente impilata, senza creare una fascia inferiore. */
+.meld-cards::before,
+.meld-cards::after,
+.meld.canasta-pura .meld-cards::before,
+.meld.canasta-pura .meld-cards::after,
+.meld.canasta-mista .meld-cards::before,
+.meld.canasta-mista .meld-cards::after{
+  display:block!important;
+}
+.meld.canasta-pura,
+.meld.canasta-mista{box-shadow:inset 0 0 0 2px rgba(255,209,102,.70)!important}
+
+@media(max-width:430px){
+  #melds{
+    gap:7px!important;
+    --modern-meld-cw:clamp(40px,12.3vw,48px)!important;
+    --modern-meld-ch:calc(var(--modern-meld-cw)*1.43)!important;
+  }
+  .team-zone{padding:3px!important}
+  .team-zone-head{padding:2px 1px 5px!important}
+  .team-meld-list{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    justify-content:stretch!important;
+    column-gap:4px!important;
+    row-gap:5px!important;
+  }
+  .meld{
+    width:calc(var(--modern-meld-cw) + 4px)!important;
+    min-width:0!important;
+    max-width:100%!important;
+    padding:2px!important;
+  }
+  .meld-head,
+  .meld-head b{font-size:7.7px!important}
+}
+
+@media(min-width:431px){
+  .team-meld-list{
+    grid-template-columns:repeat(auto-fill,minmax(calc(var(--modern-meld-cw) + 6px),1fr))!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4674,7 +4856,18 @@ function renderMelds(){
          restore the explicit red/black label while retaining the compact count. */
       const compactCount=wc?`${count} (${wc})`:`${count}`;
       const head=kind?`CANASTA ${kind==='pura'?'ROSSA':'NERA'} · ${compactCount}`:compactCount;
-      const topCard=m.kind==='set'?(m.cards.find(c=>isNatural(c)&&c.rank===m.rank)||m.cards[0]):m.cards[0],wildCard=m.cards.find(c=>isWild(c));
+      const naturals=m.kind==='set'?m.cards.filter(c=>isNatural(c)&&c.rank===m.rank):m.cards.filter(isNatural);
+      const isRedSuit=c=>!!(c&&!c.joker&&(c.suit===1||c.suit===2));
+      const isBlackSuit=c=>!!(c&&!c.joker&&(c.suit===0||c.suit===3));
+      let topCard;
+      if(kind==='pura')topCard=naturals.find(isRedSuit)||naturals[0]||m.cards[0];
+      else if(kind==='mista')topCard=naturals.find(isBlackSuit)||naturals[0]||m.cards.find(c=>!isWild(c))||m.cards[0];
+      else topCard=naturals[0]||m.cards[0];
+      /* Layout della Moderna: la Matta rappresentativa non occupa spazio sotto
+         la pila ma sporge leggermente a SINISTRA. Nelle canaste nere resta
+         visibile; nelle rosse non esiste. La carta superiore prova invece a
+         rispettare la convenzione cromatica rossa/nera con una naturale. */
+      const wildCard=kind==='pura'?null:(m.cards.find(c=>isWild(c)&&c.id!==topCard.id)||(!isWild(topCard)?m.cards.find(isWild):null));
       const stateTitle=kind?`Canasta ${kind==='pura'?'rossa':'nera'}: ${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`:`${count} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}`;
       return `<div class="meld ${G.targetMeld===m.id?'target':''} ${G.cpuFocusMeld===m.id?'cpu-target':''} ${kind?`canasta-${kind}`:''}" data-meld="${m.id}" title="${stateTitle}"><div class="meld-head"><b>${head}</b></div><div class="meld-cards ${wildCard?'has-wild':''}">${wildCard?face(wildCard,'meld-wild-peek-card'):''}${face(topCard,'meld-top-card')}</div></div>`;
     }).join(''):`<div class="team-empty">${teamOpened(team)?'Nessun gioco':`Apertura con ${openingThreshold(team)} punti`}</div>`;

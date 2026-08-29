@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- BUILD: Canasta Americana Moderna v17 MIXED-STOCK-BACKS, 2026-08-29; v16 retained; stock now shows multiple visible back layers using the actual shuffled deck colors, so red and black backs alternate randomly in the Tallone. -->
+<!-- BUILD: Canasta Americana Moderna v18 COMPACT-MELDS, 2026-08-29; v17 retained; meld/canasta columns made vertically more compact now that Wild peeks laterally rather than downward. -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <link rel="icon" type="image/png" href="favicon.ico">
 <meta name="theme-color" content="#075b38">
-<title>Canasta Americana Moderna · Mobile v17</title>
+<title>Canasta Americana Moderna · Mobile v18</title>
 <style>
 :root{--felt:#087044;--felt2:#05492e;--panel:rgba(0,0,0,.22);--ink:#f8f7f2;--gold:#ffd166;--danger:#c64b51;--good:#2f9e62;--cardw:clamp(52px,15.5vw,72px);--cardh:calc(var(--cardw)*1.4);--tablew:clamp(45px,12.5vw,58px);--tableh:calc(var(--tablew)*1.4);--shadow:0 5px 15px rgba(0,0,0,.28)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--felt2);color:var(--ink);overscroll-behavior:none}body{height:100dvh;overflow:hidden}button{font:inherit;color:inherit;border:0;touch-action:manipulation}button:disabled{opacity:.36;filter:saturate(.35)}
@@ -234,6 +234,24 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
   left:0!important;
   top:0!important;
   z-index:4!important;
+}
+
+
+/* v18: compact meld/canasta columns now that the representative Wild
+   no longer protrudes downward. */
+.meld{
+  min-height:calc(var(--tableh) + 29px)!important;
+  padding-bottom:5px!important;
+}
+.meldCards,
+.meldCards.hasWild{
+  height:calc(var(--tableh) + 6px)!important;
+}
+.meldCards .card{
+  top:0!important;
+}
+.meldGrid{
+  row-gap:6px!important;
 }
 
 </style>
