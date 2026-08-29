@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- BUILD: Canasta Americana Moderna v11 TABLE-FLIGHTS, 2026-08-28; v10 smart actions retained; v24-style table card flights; compact meld visualization with a natural rank card fully visible and one representative Wild peeking downward. -->
+<!-- BUILD: Canasta Americana Moderna v17 MIXED-STOCK-BACKS, 2026-08-29; v16 retained; stock now shows multiple visible back layers using the actual shuffled deck colors, so red and black backs alternate randomly in the Tallone. -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <link rel="icon" type="image/png" href="favicon.ico">
 <meta name="theme-color" content="#075b38">
-<title>Canasta Americana Moderna · Mobile v11</title>
+<title>Canasta Americana Moderna · Mobile v17</title>
 <style>
 :root{--felt:#087044;--felt2:#05492e;--panel:rgba(0,0,0,.22);--ink:#f8f7f2;--gold:#ffd166;--danger:#c64b51;--good:#2f9e62;--cardw:clamp(52px,15.5vw,72px);--cardh:calc(var(--cardw)*1.4);--tablew:clamp(45px,12.5vw,58px);--tableh:calc(var(--tablew)*1.4);--shadow:0 5px 15px rgba(0,0,0,.28)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--felt2);color:var(--ink);overscroll-behavior:none}body{height:100dvh;overflow:hidden}button{font:inherit;color:inherit;border:0;touch-action:manipulation}button:disabled{opacity:.36;filter:saturate(.35)}
@@ -112,6 +112,130 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
   .tableFlight{display:none!important}
 }
 
+
+/* v13: tap/click a free point of our partnership carpet to meld the selected cards. */
+#oursZone.meldDropZone{position:relative}
+#oursZone.meldDropZone.canMeldHere{cursor:pointer}
+#oursZone.meldDropZone.canMeldHere::after{
+  content:"";position:absolute;inset:4px;border:1px dashed rgba(255,213,74,.16);
+  border-radius:10px;pointer-events:none
+}
+#oursZone.meldDropZone.canMeldHere:active::after{border-color:rgba(255,213,74,.55)}
+
+
+/* v14 GUI polish */
+#center{column-gap:14px!important}
+#oursThrees{justify-content:flex-end!important;padding-right:14px!important}
+#theirThrees{justify-content:flex-start!important;padding-left:14px!important}
+
+.turnCardBack{
+  left:calc(var(--tablew)*-.24)!important;
+  top:0!important;
+  width:100%!important;
+  height:100%!important;
+  transform:none!important;
+  z-index:1!important;
+}
+.turnCardBack.turnTop{
+  z-index:3!important;
+  left:calc(var(--tablew)*-.18)!important;
+}
+.stockTop{
+  z-index:4!important;
+}
+.stockCount{z-index:13!important}
+
+.meldCards.leftBias .meldWildPeek{
+  left:calc(var(--tablew)*-.18)!important;
+  top:8px!important;
+}
+.meldCards.rightBias .meldWildPeek{
+  left:calc(var(--tablew)*.18)!important;
+  top:8px!important;
+}
+.meldCards.leftBias .meldTopCard,
+.meldCards.rightBias .meldTopCard{
+  top:0!important;
+}
+
+
+/* v15: keep the yellow draw-highlight visually ABOVE the protruding Turn Card. */
+#stockPile{position:relative;overflow:visible!important;isolation:isolate}
+#stockPile.clickable::after{
+  content:"";
+  position:absolute;
+  z-index:12;
+  inset:-3px;
+  border-radius:10px;
+  pointer-events:none;
+  outline:3px solid rgba(255,209,102,.85);
+  box-shadow:0 0 0 3px rgba(255,209,102,.18), 0 0 16px rgba(255,209,102,.28);
+  animation:stockGlow 1.05s ease-in-out infinite;
+}
+
+
+/* v16: improve Marco partner badge readability and keep wild peek always left. */
+#opponents .opp.partner .name{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+#opponents .opp.partner .count,
+#opponents .opp.partner .cardsCount,
+#opponents .opp.partner .handCount,
+#opponents .opp.partner .ncards,
+#opponents .opp.partner .num{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  min-width:1.55em;
+  height:1.55em;
+  padding:0 .38em;
+  border-radius:999px;
+  background:rgba(255,213,74,.22);
+  border:1px solid rgba(255,213,74,.55);
+  color:#fff7d1!important;
+  font-weight:900!important;
+  line-height:1;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+  box-shadow:0 1px 5px rgba(0,0,0,.28);
+}
+#opponents .opp.partner .meta{
+  opacity:1!important;
+}
+
+/* The meld grid is now effectively 3 columns: keep the representative Wild
+   consistently protruding to the LEFT for visual stability. */
+.meldCards.leftBias .meldWildPeek,
+.meldCards.rightBias .meldWildPeek,
+.meldCards .meldWildPeek{
+  left:calc(var(--tablew)*-.18)!important;
+  top:8px!important;
+}
+
+
+/* v17: visible multi-deck stock layers with mixed red/black backs. */
+.stockUnder2{
+  position:absolute!important;
+  left:6px!important;
+  top:4px!important;
+  z-index:1!important;
+}
+.stockUnder1{
+  position:absolute!important;
+  left:3px!important;
+  top:2px!important;
+  z-index:2!important;
+}
+.stockTop{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  z-index:4!important;
+}
+
 </style>
 </head>
 <body>
@@ -125,12 +249,12 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
   <div id="oursThrees" class="threeSide ours" aria-label="Tre esposti di Tu e Marco"></div>
   <div id="centerPiles">
     <div class="pileWrap"><div id="stockPile" class="pile"></div><div class="pileLabel">Tallone</div></div>
-    <div class="pileWrap"><div id="discardPile"></div><div class="pileLabel">Pozzo</div></div>
+    <div class="pileWrap"><div id="discardPile"></div><div class="pileLabel" id="discardLabel">Pozzo</div></div>
   </div>
   <div id="theirThrees" class="threeSide theirs" aria-label="Tre esposti di Luna e Sara"></div>
 </div>
 <div id="table">
-  <section class="zone ours"><div class="zoneHead">Tu + Marco <span id="oursMeta"></span></div><div id="oursMelds" class="meldGrid"></div></section>
+  <section id="oursZone" class="zone ours meldDropZone"><div class="zoneHead">Tu + Marco <span id="oursMeta"></span></div><div id="oursMelds" class="meldGrid"></div></section>
   <section class="zone"><div class="zoneHead">Luna + Sara <span id="theirsMeta"></span></div><div id="theirMelds" class="meldGrid"></div></section>
 </div>
 <div id="pending"><b>Apertura provvisoria</b> · <span id="pendingPts">0</span> / <span id="pendingNeed">125</span> punti · <span id="pendingClean">clean triple mancante</span><div id="pendingRows" class="pendingRow"></div></div>
@@ -168,7 +292,7 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
 <tr><td>Dream Hand Plus 4</td><td>Due gruppi naturali di 5 carte + 4 Matte</td><td><b>8.500</b></td></tr>
 <tr><td>Dream Hand Plus 5</td><td>Un gruppo naturale di 5, uno di 4 + 5 Matte</td><td><b>8.500</b></td></tr></table>
 <p>Una Dream Hand da 8.500 punti <b>vince direttamente la partita</b>.</p>
-<div class="ruleNote"><b>SWAD:</b> su un Pozzo vuoto non si possono scartare 7, Matte, Assi o carte morte. Il motore impedisce anche lo scarto volontario di una Matta quando esiste un'alternativa legale.</div>
+<div class="ruleNote"><b>SWAD</b> significa <b>Sevens, Wilds, Aces and Deads</b>, cioè <b>Sette, Matte, Assi e carte morte</b>. Su un Pozzo vuoto non si possono scartare carte SWAD. Una carta <b>morta</b> è una carta di un valore per il quale esiste già una canasta completa sul tavolo. Il motore impedisce anche lo scarto volontario di una Matta quando esiste un'alternativa legale.</div>
 <div class="row"><button id="closeHelp">Chiudi</button></div></div></div>
 <div id="scoreModal" class="modal"><div class="sheet"><h2 id="scoreTitle">Fine smazzata</h2><div id="scoreBody"></div><div class="row"><button id="nextBtn">Prossima smazzata</button><button id="restartBtn" class="secondary">Nuova partita</button></div></div></div>
 <div id="permissionModal" class="modal"><div class="sheet"><h2>Marco chiede il permesso</h2><p>Marco può uscire. Gli consenti di chiudere la smazzata?</p><div class="row"><button id="permYes">Sì, chiudi</button><button id="permNo" class="secondary">No, continua</button></div></div></div>
@@ -3927,7 +4051,8 @@ function toast(msg){clearTimeout(toastTimer);$('toast').textContent=msg;$('toast
 function phaseText(){if(!G)return '';if(G.phase==='round-end')return G.lastLog;if(G.phase==='stock-end')return 'Tallone esaurito.';const p=G.players[G.turn];if(G.turn===0)return G.phase==='draw'?'Tocca Pesca oppure Prendi pozzo.':G.pendingPickup?'Usa subito la cima del Pozzo con due naturali uguali.':G.opened[0]?'Gioca, poi scarta.':'Prepara l’apertura, oppure conserva e scarta.';return `${p.name}: ${G.phase==='draw'?'pesca':'gioca'}…`}
 function renderOpp(){const html=[1,2,3].map(i=>{const p=G.players[i],t=teamOf(i),meta=G.opened[t]?'':`min ${openingNeed(t)}`;return `<div class="opp ${G.turn===i?'active':''} ${i===2?'partner':''}" data-player="${i}"><div class="name"><span>${p.name}${i===2?' · partner':''}</span><span class="name-hand-count">${p.hand.length}</span></div><div class="meta">${meta}</div></div>`}).join('');$('opponents').innerHTML=html}
 function renderStock(){const el=$('stockPile');el.className='pile'+(G.turn===0&&G.phase==='draw'&&G.stock.length?' clickable':'');if(!G.stock.length){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}const n=G.stock.length,turn=n>=9?`<img class="turnCardBack ${n===9?'stockTop turnTop':''}" src="${backSrc(1)}" alt="Turn Card">`:'';const top=n===9?'':`<img class="backsvg stockTop" src="${backSrc(0)}" alt="Tallone">`;el.innerHTML=`${turn}${top}<div class="stockCount">${n}</div>`}
-function renderDiscard(){const el=$('discardPile'),top=G.discard[G.discard.length-1];if(!top){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}el.innerHTML=cardHtml(top,isDeadCard(top)?'deadTop':'')+(G.pendingPickup?'<div class="stockCount">RESTO</div>':'');el.onclick=()=>{if(G.turn===0&&G.phase==='draw')humanPickup()}}
+function renderDiscard(){
+  $('discardLabel').textContent=`Pozzo · ${G.discard.length}`;const el=$('discardPile'),top=G.discard[G.discard.length-1];if(!top){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}el.innerHTML=cardHtml(top,isDeadCard(top)?'deadTop':'')+(G.pendingPickup?'<div class="stockCount">RESTO</div>':'');el.onclick=()=>{if(G.turn===0&&G.phase==='draw')humanPickup()}}
 function renderMelds(team,elid,metaid){const el=$(elid),ms=teamMelds(team),canAttach=team===0&&G.turn===0&&G.phase==='play'&&G.opened[0]&&G.selected.size>0;el.innerHTML=ms.length?ms.map(m=>{const wc=m.cards.filter(isWild).length,title=`${m.cards.length} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}${isCanasta(m)?` · bonus ${canastaBonus(m)}`:''}`;
     let topCard,peekCard=null;
     if(m.kind==='rank'){
@@ -3968,11 +4093,21 @@ function humanSelectionCanMeld(){
   return true;
 }
 
-function renderActions(){const my=G.turn===0&&G.phase==='play',draw=G.turn===0&&G.phase==='draw',sel=G.selected.size>0,opened=G.opened[0];$('drawBtn').hidden=!draw;$('pickupBtn').hidden=!draw;$('pickupBtn').disabled=draw&&!pickupPlan(0);$('meldBtn').hidden=!my||!humanSelectionCanMeld();$('openBtn').hidden=!my||opened||!G.pendingOpening.length;$('specialBtn').hidden=!my||opened||!!G.pendingPickup||!detectSpecial(G.players[0].hand);$('discardBtn').hidden=!my||!sel||!!G.pendingPickup;$('cancelBtn').hidden=!my||(!sel&&!G.pendingOpening.length&&!G.pendingPickup)}
+
+function humanTapOwnCarpetToMeld(ev){
+  if(!G||G.turn!==0||G.phase!=='play')return;
+  // A click on an existing column must remain "Attacca"; only genuinely free
+  // carpet space acts as a destination for a new meld.
+  if(ev.target.closest('.meld,.card,button,a,input,select,textarea,#hand,#stockPile,#discardPile'))return;
+  if(!humanSelectionCanMeld())return;
+  humanMeld();
+}
+
+function renderActions(){const my=G.turn===0&&G.phase==='play',draw=G.turn===0&&G.phase==='draw',sel=G.selected.size>0,opened=G.opened[0],canMeld=humanSelectionCanMeld();$('oursZone').classList.toggle('canMeldHere',my&&canMeld);$('drawBtn').hidden=!draw;$('pickupBtn').hidden=!draw;$('pickupBtn').disabled=draw&&!pickupPlan(0);$('meldBtn').hidden=!my||!canMeld;$('openBtn').hidden=!my||opened||!G.pendingOpening.length;$('specialBtn').hidden=!my||opened||!!G.pendingPickup||!detectSpecial(G.players[0].hand);$('discardBtn').hidden=!my||!sel||!!G.pendingPickup;$('cancelBtn').hidden=!my||(!sel&&!G.pendingOpening.length&&!G.pendingPickup)}
 function renderMatchScore(){if(!G)return;$('matchScoreUs').textContent=G.teamScores[0];$('matchScoreThem').textContent=G.teamScores[1]}
 function render(){if(!G)return;renderMatchScore();$('banner').textContent=phaseText()+(G.lastLog?` · ${G.lastLog}`:'');renderOpp();renderStock();renderDiscard();renderThrees();renderMelds(0,'oursMelds','oursMeta');renderMelds(1,'theirMelds','theirsMeta');renderPending();renderHand();renderActions()}
 
-$('newBtn').onclick=()=>startGame();$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('drawBtn').onclick=humanDraw;$('pickupBtn').onclick=humanPickup;$('meldBtn').onclick=humanMeld;$('openBtn').onclick=commitOpening;$('specialBtn').onclick=humanSpecial;$('discardBtn').onclick=humanDiscard;$('cancelBtn').onclick=cancelSelectionOrPending;$('stockPile').onclick=humanDraw;
+$('newBtn').onclick=()=>startGame();$('helpBtn').onclick=()=>$('helpModal').classList.add('show');$('closeHelp').onclick=()=>$('helpModal').classList.remove('show');$('drawBtn').onclick=humanDraw;$('pickupBtn').onclick=humanPickup;$('meldBtn').onclick=humanMeld;$('openBtn').onclick=commitOpening;$('specialBtn').onclick=humanSpecial;$('discardBtn').onclick=humanDiscard;$('cancelBtn').onclick=cancelSelectionOrPending;$('oursZone').addEventListener('click',humanTapOwnCarpetToMeld);$('stockPile').onclick=humanDraw;
 $('nextBtn').onclick=()=>{$('scoreModal').classList.remove('show');startRound()};$('restartBtn').onclick=()=>{$('scoreModal').classList.remove('show');startGame()};
 $('permYes').onclick=()=>{const q=G?.permissionPending;$('permissionModal').classList.remove('show');if(!q||G.turn!==q.pi)return;G.permissionPending=null;const d=cpuChooseDiscard(q.pi);if(d)finishDiscard(q.pi,d);else finishHand({})};$('permNo').onclick=()=>{const q=G?.permissionPending;$('permissionModal').classList.remove('show');if(!q||G.turn!==q.pi)return;G.permissionPending=null;const p=G.players[q.pi]; // If Marco had only one card, he must recover a meld rather than go out.
   if(p.hand.length===1){const ms=teamMelds(0).filter(m=>m.seq).sort((a,b)=>b.seq-a.seq);if(ms.length){const m=ms[0];G.melds=G.melds.filter(x=>x.id!==m.id);addCards(q.pi,m.cards)}}const d=cpuChooseDiscard(q.pi);if(d)finishDiscard(q.pi,d);else finishHand({})};
@@ -4007,6 +4142,69 @@ async function bootWithOriginalCards(){
 
   SVG_CARDS=decoded;
   startGame();
+}
+
+
+function canastaDisplayTopCard(m){
+  const naturals=m.cards.filter(isNatural);
+  const base=(naturals[0]||m.cards[0]);
+  if(!base)return null;
+  if(m.kind!=='rank'||!isCanasta(m))return base;
+  const wc=m.cards.filter(isWild).length;
+  // Classic-style indicator: red top for pure natural canasta, black top for mixed/impure.
+  const suit=wc?0:1; // 0=Spades (black), 1=Hearts (red)
+  return {...base,suit};
+}
+function renderStock(){
+  const el=$('stockPile');el.className='pile'+(G.turn===0&&G.phase==='draw'?' clickable':'');
+  const n=G.stock.length;
+  if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
+  const turn=n>=9?`<img class="backsvg turnCardBack ${n===9?'turnTop':''}" src="${backSrc(0)}" alt="Turn Card">`:'';
+  const top=n===9?'':`<img class="backsvg stockTop" src="${backSrc(0)}" alt="Tallone">`;
+  el.innerHTML=`${turn}${top}<div class="stockCount">${n}</div>`;
+}
+function renderMelds(team,elid,metaid){
+  const el=$(elid),ms=teamMelds(team),canAttach=team===0&&G.turn===0&&G.phase==='play'&&G.opened[0]&&G.selected.size>0;
+  el.innerHTML=ms.length?ms.map((m,idx)=>{
+    const wc=m.cards.filter(isWild).length,title=`${m.cards.length} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}${isCanasta(m)?` · bonus ${canastaBonus(m)}`:''}`;
+    const sideClass='leftBias';
+    let topCard,peekCard=null;
+    if(m.kind==='rank'){
+      topCard=canastaDisplayTopCard(m);
+      peekCard=m.cards.find(isWild)||null;
+    }else{
+      topCard=m.cards[0];
+      peekCard=m.cards.length>1?m.cards[1]:null;
+    }
+    const cls=(peekCard?' hasWild':'')+' '+sideClass;
+    const peek=peekCard?cardHtml(peekCard,'meldWildPeek'):'';
+    const top=cardHtml(topCard,'meldTopCard');
+    return `<div class="meld ${canAttach?'attachable':''} ${isCanasta(m)?'done':''}" data-meld="${m.id}" title="${title}"><div class="meldHead">${meldHeadLabel(m)}</div><div class="meldCards${cls}">${peek}${top}</div></div>`
+  }).join(''):'<div class="emptyZone">Nessun gioco</div>';
+  $(metaid).textContent=G.opened[team]?'':`Apertura ${openingNeed(team)}`;
+  el.querySelectorAll('.meld').forEach(x=>x.onclick=()=>{if(team!==0||G.turn!==0||G.phase!=='play'||!G.opened[0]||!G.selected.size||tableFlightLock)return;humanAttachTo(x.dataset.meld)})
+}
+
+
+function renderStock(){
+  const el=$('stockPile');
+  el.className='pile'+(G.turn===0&&G.phase==='draw'?' clickable':'');
+  const n=G.stock.length;
+  if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
+
+  const parts=[];
+  const topCard=G.stock[n-1]||null;
+  const under1=n>=2?(G.stock[n-2]||null):null;
+  const under2=n>=3?(G.stock[n-3]||null):null;
+  const turnRef=n>=9?(n===9?topCard:(G.stock[8]||topCard)):null;
+
+  if(turnRef)parts.push(`<img class="backsvg turnCardBack ${n===9?'turnTop':''}" src="${backSrc(turnRef.deck)}" alt="Turn Card">`);
+  if(under2)parts.push(`<img class="backsvg stockUnder2" src="${backSrc(under2.deck)}" alt="">`);
+  if(under1)parts.push(`<img class="backsvg stockUnder1" src="${backSrc(under1.deck)}" alt="">`);
+  if(n!==9&&topCard)parts.push(`<img class="backsvg stockTop" src="${backSrc(topCard.deck)}" alt="Tallone">`);
+
+  parts.push(`<div class="stockCount">${n}</div>`);
+  el.innerHTML=parts.join('');
 }
 
 bootWithOriginalCards().catch(err=>{
