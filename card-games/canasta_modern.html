@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- BUILD: Canasta Americana Moderna v18 COMPACT-MELDS, 2026-08-29; v17 retained; meld/canasta columns made vertically more compact now that Wild peeks laterally rather than downward. -->
+<!-- BUILD: Canasta Americana Moderna v19 CLASSIC-OPENING, 2026-09-08; v18 GUI/AI retained; provisional Initial Meld now physically removes staged cards from hand and displays them as real cards, matching Classic Canasta. -->
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <link rel="icon" type="image/png" href="favicon.ico">
 <meta name="theme-color" content="#075b38">
-<title>Canasta Americana Moderna · Mobile v18</title>
+<title>Canasta Americana Moderna · Mobile v19</title>
 <style>
 :root{--felt:#087044;--felt2:#05492e;--panel:rgba(0,0,0,.22);--ink:#f8f7f2;--gold:#ffd166;--danger:#c64b51;--good:#2f9e62;--cardw:clamp(52px,15.5vw,72px);--cardh:calc(var(--cardw)*1.4);--tablew:clamp(45px,12.5vw,58px);--tableh:calc(var(--tablew)*1.4);--shadow:0 5px 15px rgba(0,0,0,.28)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--felt2);color:var(--ink);overscroll-behavior:none}body{height:100dvh;overflow:hidden}button{font:inherit;color:inherit;border:0;touch-action:manipulation}button:disabled{opacity:.36;filter:saturate(.35)}
@@ -127,132 +127,44 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
 #center{column-gap:14px!important}
 #oursThrees{justify-content:flex-end!important;padding-right:14px!important}
 #theirThrees{justify-content:flex-start!important;padding-left:14px!important}
+.turnCardBack{left:calc(var(--tablew)*-.24)!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;z-index:1!important}
+.turnCardBack.turnTop{z-index:3!important;left:calc(var(--tablew)*-.18)!important}
+.stockTop{z-index:4!important}
+.meldCards.leftBias .meldWildPeek{left:calc(var(--tablew)*-.18)!important;top:8px!important}
+.meldCards.rightBias .meldWildPeek{left:calc(var(--tablew)*.18)!important;top:8px!important}
+.meldCards.leftBias .meldTopCard,.meldCards.rightBias .meldTopCard{top:0!important}
 
-.turnCardBack{
-  left:calc(var(--tablew)*-.24)!important;
-  top:0!important;
-  width:100%!important;
-  height:100%!important;
-  transform:none!important;
-  z-index:1!important;
-}
-.turnCardBack.turnTop{
-  z-index:3!important;
-  left:calc(var(--tablew)*-.18)!important;
-}
-.stockTop{
-  z-index:4!important;
-}
+
+#stockPile{position:relative;overflow:visible!important;isolation:isolate}
+#stockPile.clickable::after{content:"";position:absolute;z-index:12;inset:-3px;border-radius:10px;pointer-events:none;outline:3px solid rgba(255,209,102,.85);box-shadow:0 0 0 3px rgba(255,209,102,.18),0 0 16px rgba(255,209,102,.28);animation:stockGlow 1.05s ease-in-out infinite}
 .stockCount{z-index:13!important}
 
-.meldCards.leftBias .meldWildPeek{
-  left:calc(var(--tablew)*-.18)!important;
-  top:8px!important;
-}
-.meldCards.rightBias .meldWildPeek{
-  left:calc(var(--tablew)*.18)!important;
-  top:8px!important;
-}
-.meldCards.leftBias .meldTopCard,
-.meldCards.rightBias .meldTopCard{
-  top:0!important;
-}
+
+#opponents .opp.partner .name{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+#opponents .opp.partner .name-hand-count{display:inline-flex!important;align-items:center;justify-content:center;min-width:1.55em;height:1.55em;padding:0 .38em;border-radius:999px;background:rgba(255,213,74,.22);border:1px solid rgba(255,213,74,.55);color:#fff7d1!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.8);box-shadow:0 1px 5px rgba(0,0,0,.28)}
+#opponents .opp.partner .meta{opacity:1!important}
+.meldCards.leftBias .meldWildPeek,.meldCards.rightBias .meldWildPeek,.meldCards .meldWildPeek{left:calc(var(--tablew)*-.18)!important;top:8px!important}
 
 
-/* v15: keep the yellow draw-highlight visually ABOVE the protruding Turn Card. */
-#stockPile{position:relative;overflow:visible!important;isolation:isolate}
-#stockPile.clickable::after{
-  content:"";
-  position:absolute;
-  z-index:12;
-  inset:-3px;
-  border-radius:10px;
-  pointer-events:none;
-  outline:3px solid rgba(255,209,102,.85);
-  box-shadow:0 0 0 3px rgba(255,209,102,.18), 0 0 16px rgba(255,209,102,.28);
-  animation:stockGlow 1.05s ease-in-out infinite;
-}
+.stockUnder2{position:absolute!important;left:6px!important;top:4px!important;z-index:1!important}
+.stockUnder1{position:absolute!important;left:3px!important;top:2px!important;z-index:2!important}
+.stockTop{position:absolute!important;left:0!important;top:0!important;z-index:4!important}
 
 
-/* v16: improve Marco partner badge readability and keep wild peek always left. */
-#opponents .opp.partner .name{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  flex-wrap:wrap;
-}
-#opponents .opp.partner .count,
-#opponents .opp.partner .cardsCount,
-#opponents .opp.partner .handCount,
-#opponents .opp.partner .ncards,
-#opponents .opp.partner .num{
-  display:inline-flex!important;
-  align-items:center;
-  justify-content:center;
-  min-width:1.55em;
-  height:1.55em;
-  padding:0 .38em;
-  border-radius:999px;
-  background:rgba(255,213,74,.22);
-  border:1px solid rgba(255,213,74,.55);
-  color:#fff7d1!important;
-  font-weight:900!important;
-  line-height:1;
-  text-shadow:0 1px 2px rgba(0,0,0,.8);
-  box-shadow:0 1px 5px rgba(0,0,0,.28);
-}
-#opponents .opp.partner .meta{
-  opacity:1!important;
-}
-
-/* The meld grid is now effectively 3 columns: keep the representative Wild
-   consistently protruding to the LEFT for visual stability. */
-.meldCards.leftBias .meldWildPeek,
-.meldCards.rightBias .meldWildPeek,
-.meldCards .meldWildPeek{
-  left:calc(var(--tablew)*-.18)!important;
-  top:8px!important;
-}
+.meld{min-height:calc(var(--tableh) + 29px)!important;padding-bottom:5px!important}
+.meldCards,.meldCards.hasWild{height:calc(var(--tableh) + 6px)!important}
+.meldCards .card{top:0!important}
+.meldGrid{row-gap:6px!important}
 
 
-/* v17: visible multi-deck stock layers with mixed red/black backs. */
-.stockUnder2{
-  position:absolute!important;
-  left:6px!important;
-  top:4px!important;
-  z-index:1!important;
-}
-.stockUnder1{
-  position:absolute!important;
-  left:3px!important;
-  top:2px!important;
-  z-index:2!important;
-}
-.stockTop{
-  position:absolute!important;
-  left:0!important;
-  top:0!important;
-  z-index:4!important;
-}
-
-
-/* v18: compact meld/canasta columns now that the representative Wild
-   no longer protrudes downward. */
-.meld{
-  min-height:calc(var(--tableh) + 29px)!important;
-  padding-bottom:5px!important;
-}
-.meldCards,
-.meldCards.hasWild{
-  height:calc(var(--tableh) + 6px)!important;
-}
-.meldCards .card{
-  top:0!important;
-}
-.meldGrid{
-  row-gap:6px!important;
-}
+/* v19: Classic-style provisional opening: staged cards leave the hand and are shown here. */
+#pending{padding:7px 8px!important}
+#pendingRows{display:flex!important;align-items:flex-start;gap:7px!important;flex-wrap:wrap!important;margin-top:6px!important}
+.pendingMeld{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.11);border-radius:9px;padding:4px 5px 5px;min-width:74px}
+.pendingMeldLabel{display:block;text-align:center;font-size:8.5px;font-weight:900;margin-bottom:3px;opacity:.9;white-space:nowrap}
+.pendingCards{--pw:clamp(29px,7.8vw,38px);display:flex;align-items:flex-start;justify-content:center;min-height:calc(var(--pw)*1.4);padding-right:calc(var(--pw)*.55)}
+.pendingCards .card{position:relative!important;flex:0 0 var(--pw)!important;width:var(--pw)!important;height:calc(var(--pw)*1.4)!important;margin:0 calc(var(--pw)*-.55) 0 0!important;border-radius:5px!important;box-shadow:0 2px 6px rgba(0,0,0,.28)!important}
+.pendingCards .card img{border-radius:5px!important}
 
 </style>
 </head>
@@ -291,7 +203,7 @@ main{position:relative;overflow:auto;scrollbar-width:none;padding:7px 7px calc(v
 <div id="helpModal" class="modal"><div class="sheet"><h2>Canasta americana moderna — CLA</h2>
 <p>Questa è una variante separata dalla Canasta classica. Si gioca in quattro, a coppie, con due mazzi e quattro Jolly; si distribuiscono 13 carte a testa. Obiettivo: 8.500 punti.</p>
 <h3>Pozzo e turno</h3><p>Nella Canasta americana moderna la presa del Pozzo richiede sempre la carta naturale in cima e due naturali dello stesso valore già in mano. La cima viene giocata immediatamente, poi arriva in mano il resto del Pozzo. Non si può prendere se quel valore è morto o se la propria squadra ha già cinque o più carte di quel valore. La <b>Turn Card</b> è la nona carta dal fondo del Tallone, messa di traverso: raggiuntala, restano le ultime otto carte e non sono più disponibili le Bonus Cards/Talon.</p>
-<h3>Apertura</h3><p>Minimo: 125 fino a 2.995; 155 da 3.000 a 4.995; 180 da 5.000. Serve un <b>Clean Triple</b> (almeno tre naturali dello stesso valore senza Matte). Una canasta mista non può essere usata come apertura. Se si apre senza prendere il Pozzo e restano almeno nove carte nel Tallone, la prima squadra che apre riceve 4 Bonus Cards dopo lo scarto, la seconda 3.</p>
+<h3>Apertura</h3><p>Minimo: 125 fino a 2.995; 155 da 3.000 a 4.995; 180 da 5.000. Serve un <b>Clean Triple</b> (almeno tre naturali dello stesso valore senza Matte). Una canasta mista non può essere usata come apertura. Quando premi <b>Cala</b> prima dell’apertura, le carte lasciano la mano e passano nell’<b>Apertura provvisoria</b>; <b>Annulla</b> le rimette in mano, mentre <b>Apri</b> le trasferisce definitivamente sul tavolo. Se si apre senza prendere il Pozzo e restano almeno nove carte nel Tallone, la prima squadra che apre riceve 4 Bonus Cards dopo lo scarto, la seconda 3.</p>
 <h3>Canaste speciali</h3><p>I 7 non accettano Matte. Gli Assi iniziati puri devono restare puri; possono diventare misti solo se la Matta è stata aggiunta nell'apertura. È ammesso un gioco di sole Matte: finché non è completato, la squadra non può aggiungere Matte ad altri giochi.</p>
 <table><tr><th>Canasta</th><th>Bonus</th></tr><tr><td>Mista ordinaria</td><td>300</td></tr><tr><td>Naturale ordinaria</td><td>500</td></tr><tr><td>Assi o 7 naturali</td><td>2.500</td></tr><tr><td>Matte con 1–3 Jolly</td><td>2.000</td></tr><tr><td>4 Jolly + 3 Due</td><td>2.500</td></tr><tr><td>7 Due</td><td>3.000</td></tr></table>
 <h3>Tre e chiusura</h3><p>I Tre vengono esposti e sostituiti. Il loro punteggio dipende dal numero di canaste: con zero sono negativi, con una valgono zero, con almeno due diventano positivi. Per uscire servono almeno <b>due canaste</b> e una carta finale da scartare. Non si può uscire con un gioco incompleto di 7, Assi naturali o Matte.</p>
@@ -3828,16 +3740,26 @@ function commitPickup(pi,plan){
 
 function selectedCards(){const h=G.players[0].hand;return h.filter(c=>G.selected.has(c.id))}
 function pendingCards(){return G.pendingOpening.flatMap(m=>m.cards)}
-function selectedAvailable(){const used=new Set(pendingCards().map(c=>c.id));return selectedCards().filter(c=>!used.has(c.id))}
-function pendingPickupTop(){return G?.pendingPickup?G.players[0].hand.find(c=>c.id===G.pendingPickup.topId)||null:null}
+function selectedAvailable(){return selectedCards()}
+function pendingPickupTop(){if(!G?.pendingPickup)return null;const id=G.pendingPickup.topId;return G.players[0].hand.find(c=>c.id===id)||pendingCards().find(c=>c.id===id)||null}
 function pickupUseValid(cards){const top=pendingPickupTop();if(!top)return true;if(!cards.some(c=>c.id===top.id))return false;return cards.filter(c=>c.id!==top.id&&isNatural(c)&&c.rank===top.rank).length>=2}
 function releasePendingPickup(){if(!G?.pendingPickup)return 0;const n=G.discard.length,tail=G.discard.splice(0);G.pendingPickup=null;if(tail.length)addCards(0,tail);return n}
-function cancelPendingPickup(){if(!G?.pendingPickup)return false;const top=pendingPickupTop();G.pendingOpening=[];G.selected.clear();if(top){removeCards(0,[top]);G.discard.push(top)}G.pendingPickup=null;G.phase='draw';G.drawSource=null;G.justDrawn=[];G.lastLog='Hai annullato la presa del Pozzo.';render();return true}
+function restorePendingOpeningToHand({excludeId=null}={}){if(!G?.pendingOpening?.length)return [];const cards=pendingCards().filter(c=>c.id!==excludeId);G.pendingOpening=[];if(cards.length)addCards(0,cards);return cards}
+function cancelPendingPickup(){if(!G?.pendingPickup)return false;const topId=G.pendingPickup.topId,top=pendingPickupTop();restorePendingOpeningToHand({excludeId:topId});G.selected.clear();if(top){const inHand=G.players[0].hand.some(c=>c.id===top.id);if(inHand)removeCards(0,[top]);G.discard.push(top)}G.pendingPickup=null;G.phase='draw';G.drawSource=null;G.justDrawn=[];G.lastLog='Hai annullato la presa del Pozzo.';render();return true}
 
 let tableFlightLock=false;
 function humanCardRect(id){
   const el=document.querySelector(`#hand .handcard[data-id="${id}"] .card`);
   return el?el.getBoundingClientRect():null;
+}
+function pendingCardRect(id){
+  const el=document.querySelector(`#pending .card[data-card="${id}"]`);
+  return el?el.getBoundingClientRect():null;
+}
+async function animatePendingGroup(cards,destRect,label='APRI'){
+  if(!cards.length||G?.fastTest)return;
+  const sources=cards.map(c=>pendingCardRect(c.id));
+  await Promise.all(cards.map((c,i)=>(async()=>{if(i)await sleep(i*55);await animateTableCard(c,sources[i],{left:destRect.left+Math.min(i,4)*5,top:destRect.top+Math.min(i,4)*3,width:destRect.width,height:destRect.height},label,390)})()));
 }
 function playerBadgeRect(pi){
   const el=document.querySelector(`#opponents .opp[data-player="${pi}"]`);
@@ -3889,12 +3811,12 @@ async function animateCpuGroup(pi,cards,destRect,label='CALA'){
   await Promise.all(cards.map((c,i)=>(async()=>{if(i)await sleep(i*50);await animateTableCard(c,src,{left:destRect.left+Math.min(i,4)*5,top:destRect.top+Math.min(i,4)*3,width:destRect.width,height:destRect.height},label,390)})()));
 }
 
-function stageOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0])return;const cards=selectedAvailable();if(!cards.length){toast('Seleziona le carte del gioco');return}const info=analyzeNewMeld(cards,{initial:true,team:0});if(!info){toast('Questo non è un gioco valido per l’apertura');return}if(G.pendingPickup&&cards.some(c=>c.id===G.pendingPickup.topId)&&!pickupUseValid(cards)){toast('La cima del Pozzo va usata con due naturali uguali già in mano');return}if(G.pendingOpening.some(m=>m.kind===info.kind&&(m.kind==='wild'||m.rank===info.rank))){toast('Hai già preparato un gioco di quel valore');return}G.pendingOpening.push(info);G.selected.clear();render()}
-async function commitOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0]||tableFlightLock)return;const topId=G.pendingPickup?.topId||null;if(topId){const pm=G.pendingOpening.find(m=>m.cards.some(c=>c.id===topId));if(!pm||!pickupUseValid(pm.cards)){toast('Prima devi usare la cima del Pozzo con due naturali uguali');return}}const ex=new Set(topId?[topId]:[]),check=initialMeldLegalList(G.pendingOpening,0,ex);if(!check.ok){toast(check.msg);return}const n=pendingCards().length,leftAfter=G.players[0].hand.length-n+(G.pendingPickup?G.discard.length:0);if(leftAfter<2&&!(leftAfter===1&&canGoOutWithMelds(0,G.pendingOpening.map(m=>({...m,team:0}))))){toast('Dopo l’apertura devi poter conservare lo scarto finale in modo legale');return}const fromPack=!!G.pendingPickup;
+function stageOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0])return;const cards=selectedAvailable();if(!cards.length){toast('Seleziona le carte del gioco');return}const info=analyzeNewMeld(cards,{initial:true,team:0});if(!info){toast('Questo non è un gioco valido per l’apertura');return}if(G.pendingPickup&&cards.some(c=>c.id===G.pendingPickup.topId)&&!pickupUseValid(cards)){toast('La cima del Pozzo va usata con due naturali uguali già in mano');return}if(G.pendingOpening.some(m=>m.kind===info.kind&&(m.kind==='wild'||m.rank===info.rank))){toast('Hai già preparato un gioco di quel valore');return}removeCards(0,cards);G.pendingOpening.push(info);G.selected.clear();G.lastLog=`Gioco spostato nell'apertura provvisoria (${G.pendingOpening.length}).`;render()}
+async function commitOpening(){if(!G||G.turn!==0||G.phase!=='play'||G.opened[0]||tableFlightLock)return;const topId=G.pendingPickup?.topId||null;if(topId){const pm=G.pendingOpening.find(m=>m.cards.some(c=>c.id===topId));if(!pm||!pickupUseValid(pm.cards)){toast('Prima devi usare la cima del Pozzo con due naturali uguali');return}}const ex=new Set(topId?[topId]:[]),check=initialMeldLegalList(G.pendingOpening,0,ex);if(!check.ok){toast(check.msg);return}const leftAfter=G.players[0].hand.length+(G.pendingPickup?G.discard.length:0);if(leftAfter<2&&!(leftAfter===1&&canGoOutWithMelds(0,G.pendingOpening.map(m=>({...m,team:0}))))){toast('Dopo l’apertura devi poter conservare lo scarto finale in modo legale');return}const fromPack=!!G.pendingPickup;
   tableFlightLock=true;
-  try{const base=teamTableRect(0);for(let i=0;i<G.pendingOpening.length;i++){const info=G.pendingOpening[i],d={left:base.left+i*12,top:base.top,width:base.width,height:base.height};await animateHumanGroup(info.cards,d,'APRI')}}finally{tableFlightLock=false}
-  for(const info of G.pendingOpening){removeCards(0,info.cards);createMeld(0,info)}G.pendingOpening=[];G.opened[0]=true;G.openOrder.push(0);let tail=0;if(fromPack)tail=releasePendingPickup();else if(G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3}G.lastLog=`Hai aperto con ${check.pts} punti${fromPack?` e raccolto il resto del Pozzo (${tail} carte)`:G.talonPending?` · ${G.talonPending} Bonus Cards dopo lo scarto`:''}.`;render()}
-function cancelSelectionOrPending(){if(cancelPendingPickup())return;if(G.selected.size){G.selected.clear();render();return}if(G.pendingOpening.length){G.pendingOpening=[];render()}}
+  try{const base=teamTableRect(0);for(let i=0;i<G.pendingOpening.length;i++){const info=G.pendingOpening[i],d={left:base.left+i*12,top:base.top,width:base.width,height:base.height};await animatePendingGroup(info.cards,d,'APRI')}}finally{tableFlightLock=false}
+  for(const info of G.pendingOpening)createMeld(0,info);G.pendingOpening=[];G.opened[0]=true;G.openOrder.push(0);let tail=0;if(fromPack)tail=releasePendingPickup();else if(G.stock.length>=9){G.talonPending=G.openOrder.length===1?4:3}G.lastLog=`Hai aperto con ${check.pts} punti${fromPack?` e raccolto il resto del Pozzo (${tail} carte)`:G.talonPending?` · ${G.talonPending} Bonus Cards dopo lo scarto`:''}.`;render()}
+function cancelSelectionOrPending(){if(cancelPendingPickup())return;if(G.selected.size){G.selected.clear();render();return}if(G.pendingOpening.length){restorePendingOpeningToHand();G.lastLog='Apertura provvisoria annullata: le carte tornano in mano.';render()}}
 async function humanMeld(){if(!G||G.turn!==0||G.phase!=='play'||tableFlightLock)return;if(!G.opened[0]){stageOpening();return}const cards=selectedCards();if(!cards.length)return;if(G.pendingPickup&&!pickupUseValid(cards)){toast('Devi usare subito la cima del Pozzo con due naturali uguali');return}const info=analyzeNewMeld(cards,{team:0});if(!info){toast('Combinazione non valida');return}const tail=G.pendingPickup?G.discard.length:0,left=G.players[0].hand.length-cards.length+tail;if(left<2&&!(left===1&&canGoOutAfterNew(0,info))){toast(canGoOutAfterNew(0,info)?'Devi lasciare la carta dello scarto finale':'Servono due canaste complete e nessun gioco speciale incompleto');return}
   tableFlightLock=true;try{await animateHumanGroup(cards,teamTableRect(0),'CALA')}finally{tableFlightLock=false}
   removeCards(0,cards);createMeld(0,info);const got=G.pendingPickup?releasePendingPickup():0;G.selected.clear();G.lastLog=got?`Hai usato la cima e raccolto altre ${got} carte dal Pozzo.`:`Hai calato ${meldLabel(info)}.`;render()}
@@ -4086,7 +4008,7 @@ function renderMelds(team,elid,metaid){const el=$(elid),ms=teamMelds(team),canAt
     return `<div class="meld ${canAttach?'attachable':''} ${isCanasta(m)?'done':''}" data-meld="${m.id}" title="${title}"><div class="meldHead">${meldHeadLabel(m)}</div><div class="meldCards${cls}">${peek}${top}</div></div>`}).join(''):'<div class="emptyZone">Nessun gioco</div>';
   $(metaid).textContent=G.opened[team]?'':`Apertura ${openingNeed(team)}`;el.querySelectorAll('.meld').forEach(x=>x.onclick=()=>{if(team!==0||G.turn!==0||G.phase!=='play'||!G.opened[0]||!G.selected.size||tableFlightLock)return;humanAttachTo(x.dataset.meld)})}
 function renderThrees(){for(const [team,id] of [[0,'oursThrees'],[1,'theirThrees']]){const el=$(id),cards=G.threes[team];el.innerHTML=cards.map(c=>`<div class="threeMini" title="${esc(cardText(c))}"><img draggable="false" alt="${esc(cardText(c))}" src="${faceSrc(c)}"></div>`).join('');el.title=cards.length?`${teamName(team)}: ${cards.length} Tre esposti`:''}}
-function renderPending(){const box=$('pending');if(!G.pendingOpening.length||G.opened[0]){box.classList.remove('show');return}box.classList.add('show');const ex=new Set(G.pendingPickup?[G.pendingPickup.topId]:[]);let pts=G.pendingOpening.reduce((s,m)=>s+m.cards.filter(c=>!ex.has(c.id)).reduce((x,c)=>x+scoreCard(c),0),0),clean=G.pendingOpening.some(m=>m.kind==='rank'&&m.cards.every(isNatural)&&m.cards.filter(c=>!ex.has(c.id)).length>=3);$('pendingPts').textContent=pts;$('pendingNeed').textContent=openingNeed(0);$('pendingClean').textContent=clean?'Clean Triple ✓':'Clean Triple mancante';$('pendingRows').innerHTML=G.pendingOpening.map(m=>`<span class="pendingTag">${meldLabel(m)} · ${m.cards.filter(c=>!ex.has(c.id)).reduce((s,c)=>s+scoreCard(c),0)} pt</span>`).join('')}
+function renderPending(){const box=$('pending');if(!G.pendingOpening.length||G.opened[0]){box.classList.remove('show');$('pendingRows').innerHTML='';return}box.classList.add('show');const ex=new Set(G.pendingPickup?[G.pendingPickup.topId]:[]);let pts=G.pendingOpening.reduce((s,m)=>s+m.cards.filter(c=>!ex.has(c.id)).reduce((x,c)=>x+scoreCard(c),0),0),clean=G.pendingOpening.some(m=>m.kind==='rank'&&m.cards.every(isNatural)&&m.cards.filter(c=>!ex.has(c.id)).length>=3);$('pendingPts').textContent=pts;$('pendingNeed').textContent=openingNeed(0);$('pendingClean').textContent=clean?'Clean Triple ✓':'Clean Triple mancante';$('pendingRows').innerHTML=G.pendingOpening.map(m=>{const p=m.cards.filter(c=>!ex.has(c.id)).reduce((s,c)=>s+scoreCard(c),0);return `<div class="pendingMeld"><span class="pendingMeldLabel">${meldLabel(m)} · ${p} pt</span><div class="pendingCards">${m.cards.map(c=>cardHtml(c,'pendingCard')).join('')}</div></div>`}).join('')}
 function renderHand(){const el=$('hand'),just=new Set(G.justDrawn);G.justDrawn=[];arrangeHand(0);el.innerHTML=G.players[0].hand.map(c=>`<div class="handcard" data-id="${c.id}">${cardHtml(c,`${G.selected.has(c.id)?'selected':''} ${just.has(c.id)?'just':''}`)}</div>`).join('');el.querySelectorAll('.handcard').forEach(w=>{const id=Number(w.dataset.id);w.onclick=()=>{if(!G||G.turn!==0||G.phase!=='play')return;if(G.pendingOpening.some(m=>m.cards.some(c=>c.id===id)))return;G.selected.has(id)?G.selected.delete(id):G.selected.add(id);render()}})}
 
 function humanSelectionCanMeld(){
@@ -4164,19 +4086,16 @@ async function bootWithOriginalCards(){
 
 
 function canastaDisplayTopCard(m){
-  const naturals=m.cards.filter(isNatural);
-  const base=(naturals[0]||m.cards[0]);
+  const naturals=m.cards.filter(isNatural),base=(naturals[0]||m.cards[0]);
   if(!base)return null;
   if(m.kind!=='rank'||!isCanasta(m))return base;
   const wc=m.cards.filter(isWild).length;
-  // Classic-style indicator: red top for pure natural canasta, black top for mixed/impure.
-  const suit=wc?0:1; // 0=Spades (black), 1=Hearts (red)
+  const suit=wc?0:1; // black spades when mixed; red hearts when pure
   return {...base,suit};
 }
 function renderStock(){
   const el=$('stockPile');el.className='pile'+(G.turn===0&&G.phase==='draw'?' clickable':'');
-  const n=G.stock.length;
-  if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
+  const n=G.stock.length;if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
   const turn=n>=9?`<img class="backsvg turnCardBack ${n===9?'turnTop':''}" src="${backSrc(0)}" alt="Turn Card">`:'';
   const top=n===9?'':`<img class="backsvg stockTop" src="${backSrc(0)}" alt="Tallone">`;
   el.innerHTML=`${turn}${top}<div class="stockCount">${n}</div>`;
@@ -4187,16 +4106,9 @@ function renderMelds(team,elid,metaid){
     const wc=m.cards.filter(isWild).length,title=`${m.cards.length} carte${wc?`, ${wc} ${wc===1?'matta':'matte'}`:''}${isCanasta(m)?` · bonus ${canastaBonus(m)}`:''}`;
     const sideClass='leftBias';
     let topCard,peekCard=null;
-    if(m.kind==='rank'){
-      topCard=canastaDisplayTopCard(m);
-      peekCard=m.cards.find(isWild)||null;
-    }else{
-      topCard=m.cards[0];
-      peekCard=m.cards.length>1?m.cards[1]:null;
-    }
-    const cls=(peekCard?' hasWild':'')+' '+sideClass;
-    const peek=peekCard?cardHtml(peekCard,'meldWildPeek'):'';
-    const top=cardHtml(topCard,'meldTopCard');
+    if(m.kind==='rank'){topCard=canastaDisplayTopCard(m);peekCard=m.cards.find(isWild)||null}
+    else{topCard=m.cards[0];peekCard=m.cards.length>1?m.cards[1]:null}
+    const cls=(peekCard?' hasWild':'')+' '+sideClass,peek=peekCard?cardHtml(peekCard,'meldWildPeek'):'',top=cardHtml(topCard,'meldTopCard');
     return `<div class="meld ${canAttach?'attachable':''} ${isCanasta(m)?'done':''}" data-meld="${m.id}" title="${title}"><div class="meldHead">${meldHeadLabel(m)}</div><div class="meldCards${cls}">${peek}${top}</div></div>`
   }).join(''):'<div class="emptyZone">Nessun gioco</div>';
   $(metaid).textContent=G.opened[team]?'':`Apertura ${openingNeed(team)}`;
@@ -4205,24 +4117,15 @@ function renderMelds(team,elid,metaid){
 
 
 function renderStock(){
-  const el=$('stockPile');
-  el.className='pile'+(G.turn===0&&G.phase==='draw'?' clickable':'');
-  const n=G.stock.length;
-  if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
-
-  const parts=[];
-  const topCard=G.stock[n-1]||null;
-  const under1=n>=2?(G.stock[n-2]||null):null;
-  const under2=n>=3?(G.stock[n-3]||null):null;
+  const el=$('stockPile');el.className='pile'+(G.turn===0&&G.phase==='draw'?' clickable':'');
+  const n=G.stock.length;if(!n){el.innerHTML='<div class="emptyPile">VUOTO</div>';return}
+  const parts=[],topCard=G.stock[n-1]||null,under1=n>=2?(G.stock[n-2]||null):null,under2=n>=3?(G.stock[n-3]||null):null;
   const turnRef=n>=9?(n===9?topCard:(G.stock[8]||topCard)):null;
-
   if(turnRef)parts.push(`<img class="backsvg turnCardBack ${n===9?'turnTop':''}" src="${backSrc(turnRef.deck)}" alt="Turn Card">`);
   if(under2)parts.push(`<img class="backsvg stockUnder2" src="${backSrc(under2.deck)}" alt="">`);
   if(under1)parts.push(`<img class="backsvg stockUnder1" src="${backSrc(under1.deck)}" alt="">`);
   if(n!==9&&topCard)parts.push(`<img class="backsvg stockTop" src="${backSrc(topCard.deck)}" alt="Tallone">`);
-
-  parts.push(`<div class="stockCount">${n}</div>`);
-  el.innerHTML=parts.join('');
+  parts.push(`<div class="stockCount">${n}</div>`);el.innerHTML=parts.join('');
 }
 
 bootWithOriginalCards().catch(err=>{
