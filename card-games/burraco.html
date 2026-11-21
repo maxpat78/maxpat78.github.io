@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- BUILD: Burraco mobile v24 PARTNERSHIP-ACTION-BALANCE + DEFLATED CARD BLOB, 2026-08-28 -->
+<!-- BUILD: Burraco mobile v25 MELD-EV + DEFLATED CARD BLOB, 2026-11-21 -->
+<!-- BASE: Burraco mobile v24 PARTNERSHIP-ACTION-BALANCE -->
 <!-- CARD ASSETS: CPK1 / Deflate, original SVG bytes preserved exactly -->
 <!-- BASE: Burraco mobile v22 SINGLETON-VALUE FINAL -->
 <!-- BASE: Burraco mobile v20 BELIEF+ENDGAME -->
@@ -10,10 +11,11 @@
 <!-- BUILD: Burraco mobile v10 ACE-WILD-FIX, 2026-08-23 -->
 <html lang="it">
 <head>
+<link rel="icon" type="image/png" href="favicon.ico">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a6b3b">
-<title>Burraco — Classico e Internazionale · v24 Card Blob</title>
+<title>Burraco — Classico e Internazionale · v25 Meld-EV</title>
 <style>
 :root{
   --felt:#0a6b3b; --felt2:#07532f; --panel:rgba(0,0,0,.23); --ink:#f7f7f2;
@@ -3635,6 +3637,7 @@ function cpuAudit(pi,code,severity='note',data={}){
   if(!Array.isArray(G.aiAudits))G.aiAudits=[];G.aiAudits.push(rec);if(G.aiAudits.length>120)G.aiAudits.splice(0,G.aiAudits.length-120);
 }
 if(typeof window!=='undefined')window.BurracoAIAudit=()=>G?JSON.parse(JSON.stringify(G.aiAudits||[])):[];
+if(typeof window!=='undefined')window.BurracoAIMeldEV=()=>G?JSON.parse(JSON.stringify((G.aiDiagnostics||[]).filter(x=>x.kind==='play-choice'&&x.meld?.meldEV).slice(-30))):[];
 if(typeof window!=='undefined')window.BurracoAIPartnerPlan=(pi=null)=>{if(!G)return null;const i=pi===null?(G.turn??0):pi;if(i<0||i>=G.players.length)return null;return JSON.parse(JSON.stringify(cpuPartnershipPlan(i)));};
 
 // Production always enables v20. The optional aiLegacyTeam switch exists only
@@ -4323,6 +4326,137 @@ function cpuNewMeldStrategicScore(pi,info){
   if(aiAtLeast('expert')){const mc=cpuMatchContext(pi);score+=mc.closeBias*info.cards.length*8+mc.risk*(bk?34:info.cards.length*3);}
   return score;
 }
+// v25 MELD-EV.  Public-information, finite-deck expectation: no peeking at
+// opponents' hands, hidden pots or stock order.  This measures future *growth*
+// and, more importantly, the lost option to reuse a card in a different meld.
+// An exposed meld can still grow, so its growth potential is NOT treated as a
+// general reason to wait.  The wait cost is assigned to genuine rival projects.
+function cpuV25MeldEVEnabled(pi){
+  return !!(aiAtLeast('professional')&&G.variant==='classic'&&
+    !(G.aiV25LegacyTeam!==undefined&&G.aiV25LegacyTeam!==null&&teamOf(pi)===G.aiV25LegacyTeam));
+}
+function cpuEVChoose(n,k){
+  if(k<0||k>n)return 0;k=Math.min(k,n-k);let v=1;
+  for(let i=1;i<=k;i++)v*=((n-k+i)/i);
+  return v;
+}
+function cpuEVAtLeastOne(n,outs,draws){
+  if(!outs||!draws||!n)return 0;
+  return 1-cpuEVChoose(n-outs,Math.min(n,draws))/cpuEVChoose(n,Math.min(n,draws));
+}
+function cpuEVMeldPool(pi){
+  // cpuUnknownTypeCounts subtracts our exact hand, all exposed melds/discards,
+  // and individual opponent cards learned from public pickup events.
+  const counts=cpuUnknownTypeCounts(pi);let n=0;
+  for(const v of counts.values())n+=v;
+  return {counts,n,cache:new Map()};
+}
+function cpuEVSetGrowth(info,pool){
+  const n=pool.n,k=[0,1,2,3].reduce((v,suit)=>v+(pool.counts.get(`${info.rank}:${suit}`)||0),0);
+  const prob=(draws,needed)=>{const h=Math.min(n,draws);if(needed<=0)return 1;
+    if(n<=0||k<needed||h<needed)return 0;
+    let v=0;for(let j=needed;j<=Math.min(k,h);j++)v+=cpuEVChoose(k,j)*cpuEVChoose(n-k,h-j);
+    return Math.max(0,Math.min(1,v/cpuEVChoose(n,h)));
+  };
+  return {near:prob(3,1),two:prob(9,2),four:prob(9,4)};
+}
+function cpuEVRunGrowth(info,pool){
+  const groups=[],left=[],right=[],keys=new Set();
+  const cardKey=(v)=>`${v===14?1:v}:${info.suit}`;
+  for(let step=1;step<=4;step++)if(info.start-step>=1){
+    const key=cardKey(info.start-step);if(keys.has(key))break;keys.add(key);
+    left.push(groups.length);groups.push(pool.counts.get(key)||0);
+  }else break;
+  for(let step=1;step<=4;step++)if(info.end+step<=14){
+    const key=cardKey(info.end+step);if(keys.has(key))break;keys.add(key);
+    right.push(groups.length);groups.push(pool.counts.get(key)||0);
+  }else break;
+  const m=groups.length,n=pool.n;
+  if(!m||!n)return {near:0,two:0,four:0};
+  const hMax=Math.min(9,n),maskMax=1<<m;
+  let dp=Array.from({length:hMax+1},()=>new Float64Array(maskMax));dp[0][0]=1;
+  let processed=0;
+  for(let g=0;g<m;g++){
+    const next=Array.from({length:hMax+1},()=>new Float64Array(maskMax)),cnt=groups[g];
+    for(let drawn=0;drawn<=Math.min(hMax,processed);drawn++){
+      const row=dp[drawn];
+      for(let mask=0;mask<maskMax;mask++){
+        const weight=row[mask];if(!weight)continue;
+        next[drawn][mask]+=weight;
+        if(cnt&&drawn<hMax)next[drawn+1][mask|(1<<g)]+=weight*cnt;
+        if(cnt>=2&&drawn+2<=hMax)next[drawn+2][mask|(1<<g)]+=weight*(cnt*(cnt-1)/2);
+      }
+    }
+    processed+=cnt;dp=next;
+  }
+  const other=n-processed,summary={near:0,two:0,four:0};
+  for(const [h,field,k] of [[Math.min(3,n),'near',1],[hMax,'two',2],[hMax,'four',4]]){
+    if(h<k)continue;
+    const denom=cpuEVChoose(n,h);let hit=0;
+    for(let drawn=0;drawn<=Math.min(h,processed);drawn++){
+      const rest=cpuEVChoose(other,h-drawn);if(!rest)continue;
+      const row=dp[drawn];
+      for(let mask=0;mask<maskMax;mask++){
+        const w=row[mask];if(!w)continue;
+        let ext=0;
+        for(const g of left){if(!(mask&(1<<g)))break;ext++;}
+        for(const g of right){if(!(mask&(1<<g)))break;ext++;}
+        if(ext>=k)hit+=w*rest;
+      }
+    }
+    summary[field]=Math.max(0,Math.min(1,hit/denom));
+  }
+  return summary;
+}
+function cpuEVRankForPair(c,aceHigh){return c.rank===1?(aceHigh?14:1):c.rank;}
+function cpuEVAlternativeRunChance(pi,info,pool){
+  if(info.kind!=='set'||info.cards.length>4||info.wildId)return 0;
+  const own=G.players[pi].hand,used=new Set(info.cards.map(c=>c.id)),n=pool.n;
+  let values=[];
+  for(const c of info.cards){
+    if(isMattaCard(c))continue;
+    for(const d of own){
+      if(used.has(d.id)||isMattaCard(d)||d.suit!==c.suit)continue;
+      let outs=0,already=false;const wantedKeys=new Set();
+      for(const aceHigh of [false,true]){
+        const a=cpuEVRankForPair(c,aceHigh),b=cpuEVRankForPair(d,aceHigh),dist=Math.abs(a-b);
+        if(dist>2||dist===0)continue;
+        const wanted=dist===2?[(a+b)/2]:[Math.min(a,b)-1,Math.max(a,b)+1].filter(x=>x>=1&&x<=14);
+        for(const v of wanted)wantedKeys.add(`${v===14?1:v}:${c.suit}`);
+      }
+      // In particular, an Ace remains ONE physical card whether it is low
+      // or high.  Deduplicate the exact rank/suit outs before counting.
+      for(const key of wantedKeys){
+        const [rank,suit]=key.split(':').map(Number);
+        if(own.some(x=>!used.has(x.id)&&x.id!==d.id&&!x.joker&&x.rank===rank&&x.suit===suit)){already=true;continue;}
+        outs+=pool.counts.get(key)||0;
+      }
+      const p=already?1:cpuEVAtLeastOne(n,outs,4);
+      values.push(p*(Math.abs(c.rank-d.rank)===1?1:.82));
+    }
+  }
+  values.sort((a,b)=>b-a);
+  return Math.min(1.5,(values[0]||0)+.25*(values[1]||0)+.12*(values[2]||0));
+}
+function cpuMeldEVAdjustment(pi,info,pool){
+  if(!cpuV25MeldEVEnabled(pi)||burracoKind(info)||info.cards.length!==3||info.wildId)return {delta:0,near:0,two:0,four:0,compete:0};
+  const key=`${info.kind}:${info.kind==='set'?info.rank:`${info.suit}:${info.start}:${info.end}`}:${info.cards.length}`;
+  let future=pool.cache.get(key);
+  if(!future){future=info.kind==='set'?cpuEVSetGrowth(info,pool):cpuEVRunGrowth(info,pool);pool.cache.set(key,future);}
+  const early=cpuEarlyFactor(),urg=cpuPlayUrgency(pi),length=info.cards.length;
+  const cadence=Math.max(0,early*(1-urg*.85));
+  // Credit well-supported projects, but never mistake growth after opening
+  // for a benefit of delaying the opening.  The delta remains bounded.
+  const project=length<=4?future.near*24+future.two*52+future.four*150:future.near*12+future.two*20;
+  const compete=cpuEVAlternativeRunChance(pi,info,pool);
+  // A three-of-a-kind that uses cards already supporting one/two suited
+  // two-card projects irreversibly consumes those options; this is the real
+  // reason to wait, not a blanket preference for runs.
+  const wait=(info.kind==='set'&&length<=4)?Math.min(28,compete*32):0;
+  const delta=Math.max(-28,Math.min(20,(project*.50-wait)*cadence));
+  return {delta,near:future.near,two:future.two,four:future.four,compete};
+}
+
 // v23 WILD-RELOCATION: when a natural card fills the exact internal hole
 // currently occupied by a Matta, the Matta can slide to a legal free end of
 // the SAME run.  It does not return to the hand, but the run becomes materially
@@ -4422,9 +4556,34 @@ function bestNewMeld(pi){
     list.push({info,score:cpuNewMeldStrategicScore(pi,info)});
   }
   list.sort((a,b)=>b.score-a.score);
+  // Evaluate only plausible alternatives.  No per-candidate recomputation of
+  // public deck counts, and no path through any concealed opponent hand.
+  if(cpuV25MeldEVEnabled(pi)&&list.length){
+    const leader=list[0],top=leader.info;
+    // Tournament calibration: do not postpone an otherwise good legal meld
+    // merely because future growth is possible (it can grow on the table too).
+    // The EV model breaks only close, same-length SET-vs-RUN ties, where the
+    // SAME physical card cannot be committed to both projects.
+    if(top.kind==='set'&&top.cards.length===3&&!top.wildId&&cpuPlayUrgency(pi)<.60){
+      const pool=cpuEVMeldPool(pi),evSet=cpuMeldEVAdjustment(pi,top,pool),topIds=new Set(top.cards.map(c=>c.id));
+      for(const x of list.slice(1,16)){
+        const info=x.info,diff=leader.score-x.score;
+        if(diff>9.0)break;
+        if(info.kind!=='run'||info.cards.length!==3||info.wildId||!info.cards.some(c=>topIds.has(c.id)))continue;
+        const evRun=cpuMeldEVAdjustment(pi,info,pool);
+        x.ev=evRun;
+        // Require actual estimated future-growth advantage, not just a
+        // stylistic preference for runs.  Avoid opening a wild-containing run.
+        const betterTwo=evRun.two>evSet.two+.012&&evRun.four>=evSet.four;
+        const betterBurraco=evRun.four>evSet.four+.002&&evRun.two>=evSet.two*.85;
+        if(betterTwo||betterBurraco){const choiceBonus=Math.min(9.25,diff+.15);x.score+=choiceBonus;x.ev={...evRun,choiceBonus,baselineSet:{near:evSet.near,two:evSet.two,four:evSet.four}};break;}
+      }
+      list.sort((a,b)=>b.score-a.score);
+    }
+  }
   for(const x of list.slice(0,4))x.score+=cpuActionLookaheadBonus(pi,x.info.cards);for(const x of list.slice(0,2)){x.search=cpuEndgameActionSearchBonus(pi,x.info.cards,null,x.info,true);x.deep=cpuEndgameDeepPlanBonus(pi,x.info.cards,null,x.info,true);x.partner=0;x.score+=x.search+x.deep;}
   list.sort((a,b)=>b.score-a.score);if(cpuV21PartnershipEnabled(pi)&&list.length){const top=list[0].score;for(const x of list.slice(0,2))if(top-x.score<=3)x.partner=cpuPartnershipActionSearchBonus(pi,x.info.cards,null,x.info,true);}
-  list.sort((a,b)=>{const d=b.score-a.score;if(Math.abs(d)>3)return d;const pd=(b.partner||0)-(a.partner||0);return Math.abs(pd)>1e-9?pd:d;});const best=list[0];return best&&best.score>=threshold?Object.assign(best.info,{_cpuScore:best.score,_cpuSearch:best.search||0,_cpuDeep:best.deep||0,_cpuPartner:best.partner||0}):null;
+  list.sort((a,b)=>{const d=b.score-a.score;if(Math.abs(d)>3)return d;const pd=(b.partner||0)-(a.partner||0);return Math.abs(pd)>1e-9?pd:d;});const best=list[0];return best&&best.score>=threshold?Object.assign(best.info,{_cpuScore:best.score,_cpuSearch:best.search||0,_cpuDeep:best.deep||0,_cpuPartner:best.partner||0,_cpuEV:best.ev||null}):null;
 }
 function bestAttachment(pi){
   const p=G.players[pi],team=teamOf(pi),threshold=cpuActionThreshold(pi),list=[];
@@ -4603,7 +4762,7 @@ async function cpuTurn(){
     // v11: compare attachment and new meld on the same strategic scale instead of blindly attaching first.
     const a=bestAttachment(pi),info=bestNewMeld(pi),meldScore=info?info._cpuScore:-1e9;
     if(a||info){
-      let chooseAttach=!!(a&&a.score>=meldScore);if(a&&info&&cpuV21PartnershipEnabled(pi)&&Math.abs(a.score-meldScore)<=3)chooseAttach=(a.partner||0)>=(info._cpuPartner||0);cpuTrace(pi,'play-choice',{choice:chooseAttach?'attach':'new-meld',attach:a?{card:cardText(a.c),meld:a.m.id,score:+a.score.toFixed(1),search:+(a.search||0).toFixed(1),deep:+(a.deep||0).toFixed(1),partner:+(a.partner||0).toFixed(1),wildRelocation:+(a.reloc||0).toFixed(1)}:null,meld:info?{kind:info.kind,cards:info.cards.map(cardText),score:+meldScore.toFixed(1),search:+(info._cpuSearch||0).toFixed(1),deep:+(info._cpuDeep||0).toFixed(1),partner:+(info._cpuPartner||0).toFixed(1)}:null,plan:G.cpuTurnContext?.plan||null});
+      let chooseAttach=!!(a&&a.score>=meldScore);if(a&&info&&cpuV21PartnershipEnabled(pi)&&Math.abs(a.score-meldScore)<=3)chooseAttach=(a.partner||0)>=(info._cpuPartner||0);cpuTrace(pi,'play-choice',{choice:chooseAttach?'attach':'new-meld',attach:a?{card:cardText(a.c),meld:a.m.id,score:+a.score.toFixed(1),search:+(a.search||0).toFixed(1),deep:+(a.deep||0).toFixed(1),partner:+(a.partner||0).toFixed(1),wildRelocation:+(a.reloc||0).toFixed(1)}:null,meld:info?{kind:info.kind,cards:info.cards.map(cardText),score:+meldScore.toFixed(1),search:+(info._cpuSearch||0).toFixed(1),deep:+(info._cpuDeep||0).toFixed(1),partner:+(info._cpuPartner||0).toFixed(1),meldEV:info._cpuEV||null}:null,plan:G.cpuTurnContext?.plan||null});
       if(chooseAttach){if(!await cpuPlayAttachment(pi,a,epoch))return;}
       else {if(!await cpuPlayMeld(pi,info,epoch))return;}
       continue;
